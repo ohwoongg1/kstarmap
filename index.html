@@ -334,6 +334,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic',san
 .rest-name:hover{color:var(--gold)}
 .rest-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px}
 .rest-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--gold-bg);color:#B45309}
+.rest-badge-multi{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--gold);color:#fff}
 .rest-cat{font-size:11px;color:var(--text3)}
 .rest-area{font-size:11px;color:var(--text3)}
 .rest-comment{font-size:12px;color:var(--text2);line-height:1.5;padding:7px 10px;background:var(--bg2);border-radius:8px;border-left:2.5px solid var(--gold);margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -996,7 +997,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
   <!-- 맛집 리스트 -->
   <div class="list-panel">
     <div class="list-header">
-      <span class="list-title" id="listTitle">성시경 맛집</span>
+      <span class="list-title" id="listTitle">줄서는 맛집</span>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="list-count" id="listCount">0곳</span>
         <select class="sort-select" onchange="setSort(this.value)" id="sortSelect">
@@ -2209,7 +2210,7 @@ async function renderCuratorList() {
 // 일반인 큐레이터 클릭
 window.selectCuratorByUser = async function(name, uid) {
   selCurator = name;
-  document.getElementById('listTitle').textContent = name + ' 맛집';
+  document.getElementById('listTitle').textContent = name ? name + '픽 맛집' : '줄서는 맛집';
   renderCuratorList();
   // 해당 사용자가 등록한 맛집 불러오기
   try {
@@ -2240,7 +2241,7 @@ window.selectAllCurator = async function() {
   selCurator = '전체';
   mapBoundsFilter = null; // 드래그 범위 초기화
   renderCuratorList();
-  document.getElementById('listTitle').textContent = '전체 맛집';
+  document.getElementById('listTitle').textContent = '줄서는 맛집';
   hideRegionBanner();
   regionFilter = '';
   // 전체 DB 로드
@@ -2331,35 +2332,47 @@ window.selectCurator = async function(name, uid) {
     document.getElementById('listCount').textContent = items.length + '곳';
     showToast(`📍 ${regionFilter} · ${name} 맛집 ${items.length}곳`);
   } else {
-    document.getElementById('listTitle').textContent = name + ' 맛집';
+    document.getElementById('listTitle').textContent = name ? name + '픽 맛집' : '줄서는 맛집';
     renderCuratorList();
     await loadRests(name);
   }
 };
 
-// ── 모바일 큐레이터 pill strip 렌더링 ──
+// ── 모바일 지역 필터 pill strip 렌더링 ──
+const REGION_FILTERS = [
+  {label:'전체', icon:'🍽️', value:''},
+  {label:'서울', icon:'🗼', value:'서울'},
+  {label:'경기', icon:'🌿', value:'경기'},
+  {label:'인천', icon:'✈️', value:'인천'},
+  {label:'부산', icon:'🌊', value:'부산'},
+  {label:'제주', icon:'🍊', value:'제주'},
+  {label:'대구', icon:'🍎', value:'대구'},
+  {label:'강원', icon:'⛰️', value:'강원'},
+];
+
+let _regionFilter = '';
+
 function renderMobileCuratorStrip() {
   const strip = document.getElementById('mCuratorStrip');
-  if (strip && STAR_CURATORS.length) {
-    const isRadiusOn = _nearbyRadiusM > 0;
-    const nearbyPill = `<div class="m-cpill${isRadiusOn?' on':''}" onclick="toggleRadiusBar()" style="${isRadiusOn?'background:var(--blue,#3B82F6);border-color:var(--blue,#3B82F6);color:#fff':''}">
-      <span class="m-cpill-icon" style="font-size:13px">📍</span>${isRadiusOn ? formatRadiusLabel(_nearbyRadiusM) : '내 주변'}
-    </div>`;
-    const allPill = `<div class="m-cpill${(selCurator==='전체'||!selCurator)&&!isRadiusOn?' on':''}" onclick="mSelectAll()">
-      <span class="m-cpill-icon">🍽️</span>전체
-    </div>`;
-    const curatorPills = STAR_CURATORS.map(c =>
-      `<div class="m-cpill${selCurator===c.name?' on':''}" onclick="selectCurator('${c.name}')">
-        <span class="m-cpill-icon">${c.icon}</span>${c.name}
-      </div>`
-    ).join('');
-    strip.innerHTML = nearbyPill + allPill + curatorPills;
-  }
-  // 검색바에 현재 큐레이터 표시 + X버튼 제어
+  if (!strip) return;
+
+  const isRadiusOn = _nearbyRadiusM > 0;
+  const nearbyPill = `<div class="m-cpill${isRadiusOn?' on':''}" onclick="toggleRadiusBar()" style="${isRadiusOn?'background:var(--blue,#3B82F6);border-color:var(--blue,#3B82F6);color:#fff':''}">
+    <span class="m-cpill-icon" style="font-size:13px">📍</span>${isRadiusOn ? formatRadiusLabel(_nearbyRadiusM) : '내 주변'}
+  </div>`;
+
+  const regionPills = REGION_FILTERS.map(r =>
+    `<div class="m-cpill${_regionFilter===r.value&&!isRadiusOn?' on':''}" onclick="setRegionFilter('${r.value}')">
+      <span class="m-cpill-icon">${r.icon}</span>${r.label}
+    </div>`
+  ).join('');
+
+  strip.innerHTML = nearbyPill + regionPills;
+
+  // 검색바 표시
   const display = document.getElementById('mSearchDisplay');
   const clearBtn = document.getElementById('mTopClearBtn');
   if (display && window.innerWidth <= 768) {
-    // ★ 검색창은 항상 placeholder처럼 - 큐레이터는 pill 바에서만 표시
     const isFiltered = !!regionFilter || !!searchQ;
     const label = regionFilter ? '📍 ' + regionFilter : (searchQ ? searchQ : '맛집, 음식, 지역 검색');
     display.textContent = label;
@@ -2368,6 +2381,20 @@ function renderMobileCuratorStrip() {
   }
 }
 
+window.setRegionFilter = function(region) {
+  _regionFilter = region;
+  selCurator = '';  // 큐레이터 필터 초기화
+  renderMobileCuratorStrip();
+  // 지역 필터 적용해서 맛집 로드
+  if (region) {
+    loadRests('전체', region);
+    document.getElementById('listTitle').textContent = region + ' 줄서는 맛집';
+  } else {
+    loadRests('전체');
+    document.getElementById('listTitle').textContent = '줄서는 맛집';
+  }
+};
+
 // 모바일 전체 선택
 window.mSelectAll = async function() {
   selCurator = '전체';
@@ -2375,12 +2402,12 @@ window.mSelectAll = async function() {
   renderCuratorList();
   if (regionFilter) {
     // 지역 필터 중이면 해당 지역 전체 맛집 유지
-    document.getElementById('listTitle').textContent = regionFilter + ' 전체 맛집';
+    document.getElementById('listTitle').textContent = regionFilter + ' 줄서는 맛집';
     renderList();
     renderPins();
   } else {
     // 전체 초기 상태로
-    document.getElementById('listTitle').textContent = '전체 맛집';
+    document.getElementById('listTitle').textContent = '줄서는 맛집';
     await loadRests('전체');
   }
 };
@@ -2530,7 +2557,7 @@ function matchRegion(r, region) {
 async function loadRestsByRegion(region) {
   try {
     document.getElementById('listCount').textContent = '로딩 중...';
-    document.getElementById('listTitle').textContent = region + ' 전체 맛집';
+    document.getElementById('listTitle').textContent = region + ' 줄서는 맛집';
 
     // 전체 맛집 로드
     const snap = await getDocs(query(collection(db, 'restaurants'), limit(2000)));
@@ -2575,7 +2602,7 @@ async function loadRestsByRegion(region) {
       countMsg = `🥄 일반 맛집 ${userCount}곳`;
     }
 
-    document.getElementById('listTitle').textContent = region + ' 전체 맛집';
+    document.getElementById('listTitle').textContent = region + ' 줄서는 맛집';
     document.getElementById('listCount').textContent = DATA.length + '곳';
 
     if (countMsg) showRegionBanner(region, countMsg);
@@ -2794,7 +2821,10 @@ function renderList() {
         <div class="rest-info">
           <div class="rest-name" onclick="event.stopPropagation();showMapForCard('${d.id}')">${d.name}</div>
           <div class="rest-meta">
-            ${(d.celebs||[d.celeb]).map(c => `<span class="rest-badge">${c}</span>`).join('')}
+            ${(() => {
+              const allCelebs = d.celebs || [d.celeb];
+              return `<span class="rest-badge">${allCelebs.join(' · ')}</span>`;
+            })()}
             <span class="rest-cat">${d.cat}</span>
             <span style="color:var(--border2)">·</span>
             <span class="rest-area">${d.area}</span>
@@ -4550,7 +4580,7 @@ window.doSearch = async function(q) {
   const matchedCurator = STAR_CURATORS.find(c => c.name === q.trim() || c.name.includes(q.trim()));
   if (matchedCurator) {
     selCurator = matchedCurator.name;
-    document.getElementById('listTitle').textContent = matchedCurator.name + ' 맛집';
+    document.getElementById('listTitle').textContent = matchedCurator.name ? name + '픽 맛집' : '줄서는 맛집';
     renderCuratorList();
     await loadRests(matchedCurator.name);
     return;
@@ -4790,7 +4820,7 @@ window.mspDoSearch = async function() {
   const textQ = document.getElementById('mobileSearch')?.value?.trim() || '';
 
   if (!textQ && !mspSelCurator && !mspSelRegion) {
-    saveMRecentSearch('전체 맛집');
+    saveMRecentSearch('줄서는 맛집');
     applyMspFilters();
     return;
   }
@@ -5357,7 +5387,7 @@ window.clearSearch = async function() {
   renderMobileCuratorStrip();
   document.getElementById('listTitle').textContent = '성시경 맛집';
   renderCuratorList();
-  await loadRests('성시경');
+  await loadRests('전체');
   if (map) {
     map.setCenter(new kakao.maps.LatLng(37.5550, 126.9700));
     map.setLevel(8);
@@ -7472,7 +7502,7 @@ initKakaoLogin();
   } else {
     // ★ 성지순례가 첫 탭
     setPage('pilgrim', document.querySelector('.pnav'));
-    loadRests('성시경').catch(() => {}); // 맛집 백그라운드 로드
+    loadRests('전체').catch(() => {}); // 맛집 백그라운드 로드
   }
 })();
 
@@ -7484,7 +7514,7 @@ async function loadSharedRest(restId) {
     const snap = await getDoc(doc(db, 'restaurants', restId));
     if (!snap.exists()) {
       showToast('음식점 정보를 찾을 수 없어요');
-      await loadRests('성시경');
+      await loadRests('전체');
       return;
     }
     const r = snap.data();
@@ -7528,7 +7558,7 @@ async function loadSharedRest(restId) {
     }
   } catch(e) {
     console.log('음식점 로드 오류:', e);
-    await loadRests('성시경');
+    await loadRests('전체');
   }
 }
 
@@ -7542,14 +7572,14 @@ async function loadSharedCourse(courseId) {
     const snap = await getDoc(doc(db, 'sharedCourses', courseId));
     if (!snap.exists()) {
       showToast('코스를 찾을 수 없어요 (만료됐을 수 있어요)');
-      await loadRests('성시경');
+      await loadRests('전체');
       return;
     }
     _sharedCourseData = snap.data();
   } catch(e) {
     console.log('Firebase 로드 오류:', e);
     showToast('코스 불러오기 실패');
-    await loadRests('성시경');
+    await loadRests('전체');
     return;
   }
 
@@ -7563,7 +7593,7 @@ async function loadSharedCourse(courseId) {
   window.history.replaceState({}, '', window.location.pathname);
 
   // 맛집 데이터 로드 (백그라운드)
-  loadRests('성시경').catch(() => {});
+  loadRests('전체').catch(() => {});
 
   // ★ 지도가 완전히 준비될 때까지 대기 (최대 5초)
   const mapReady = await new Promise(resolve => {
