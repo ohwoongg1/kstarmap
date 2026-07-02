@@ -3377,7 +3377,7 @@ function renderPilgrimList(items, append = false) {
       <div class="p-card-actions" id="pactions-${d._id}">
         <a class="gb" href="#" onclick="event.preventDefault();event.stopPropagation();openNavigation('${placeName.replace(/'/g,"\\'")}',${d.lat||0},${d.lng||0})"><span class="gb-ic">🗺️</span><span class="gb-tx">길찾기</span></a>
         <button class="gb" onclick="event.stopPropagation();addToGlobalBasket({id:'${d._id}',name:'${placeName.replace(/'/g,"\\'")}',lat:${d.lat||0},lng:${d.lng||0},type:'pilgrim',icon:'${d.placeIcon||"📍"}',celeb:''})"><span class="gb-ic">🗺️</span><span class="gb-tx">코스담기</span></button>
-        <button class="gb" onclick="event.stopPropagation();showNearbyRests(${d.lat||0},${d.lng||0},'${placeName.replace(/'/g,&quot;\\'&quot;)}')"><span class="gb-ic">🍽️</span><span class="gb-tx">주변맛집</span></button>
+        <button class="gb" onclick="event.stopPropagation();showNearbyRests(${d.lat||0},${d.lng||0},'${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">🍽️</span><span class="gb-tx">주변맛집</span></button>
         <button class="gb" onclick="event.stopPropagation();shareKakaoPilgrim('${d._id}','${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">💛</span><span class="gb-tx">공유</span></button>
       </div>
     </div>`;
@@ -8262,8 +8262,6 @@ window.loadPilgrimData = async function() {
   </div>
 </div>
 
-</body>
-</html>
 <script>
 window.openKakaoSearch = function() {
   const input = document.getElementById('kakaoSearch');
@@ -8285,19 +8283,13 @@ function closeOnboard() {
   localStorage.setItem('starspoon_onboarded', today);
   setTimeout(() => {
     overlay.remove();
-    // 카카오맵/Firebase 준비 기다렸다가 성지순례 탭 초기화
-    const tryInit = (attempts) => {
-      const firstNav = document.querySelector('.pnav');
-      if (window.setPage && window.kakao?.maps && firstNav) {
-        window.setPage('pilgrim', firstNav);
-      } else if (attempts > 0) {
-        setTimeout(() => tryInit(attempts - 1), 300);
-      } else {
-        // 최후 수단 - 그냥 페이지 새로고침
-        location.reload();
-      }
-    };
-    tryInit(10); // 최대 3초 대기
+    // 성지순례 탭은 module 부팅 시 이미 초기화됨. 혹시 안 됐으면 한 번만 재시도.
+    const firstNav = document.querySelector('.pnav');
+    if (window.setPage && firstNav) {
+      try { window.setPage('pilgrim', firstNav); } catch(e) { console.error(e); }
+    }
   }, 500);
 }
 </script>
+</body>
+</html>
