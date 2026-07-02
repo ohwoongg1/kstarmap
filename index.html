@@ -3179,12 +3179,17 @@ async function initPilgrimPage() {
     const container = document.getElementById('pilgrimMapContainer');
     if (container && window.kakao?.maps) {
       _pilgrimMap = new kakao.maps.Map(container, {
-        center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 7
+        center: new kakao.maps.LatLng(myLat || 37.5665, myLng || 126.9780),
+        level: myLat ? 6 : 7
       });
-      setTimeout(() => {
-        try { _pilgrimMap.relayout(); } catch(e) {}
-      }, 200);
+    setTimeout(() => {
+      try { _pilgrimMap.relayout(); } catch(e) {}
+      // 위치 확인 후 내 위치로 이동
+      if (myLat && myLng && _pilgrimMap) {
+        _pilgrimMap.setCenter(new kakao.maps.LatLng(myLat, myLng));
+        _pilgrimMap.setLevel(6);
+      }
+    }, 200);
     }
 
     // ── 바텀시트 드래그 (최초 1회만) ──
@@ -3373,10 +3378,8 @@ function renderPilgrimList(items, append = false) {
       <div class="p-card-actions" id="pactions-${d._id}">
         <a class="gb" href="#" onclick="event.preventDefault();event.stopPropagation();openNavigation('${placeName.replace(/'/g,"\\'")}',${d.lat||0},${d.lng||0})"><span class="gb-ic">🗺️</span><span class="gb-tx">길찾기</span></a>
         <button class="gb" onclick="event.stopPropagation();addToGlobalBasket({id:'${d._id}',name:'${placeName.replace(/'/g,"\\'")}',lat:${d.lat||0},lng:${d.lng||0},type:'pilgrim',icon:'${d.placeIcon||"📍"}',celeb:''})"><span class="gb-ic">🗺️</span><span class="gb-tx">코스담기</span></button>
-        <button class="gb" onclick="event.stopPropagation();openPlaceInfo('${placeName.replace(/'/g,"\\'")}',${d.lat||0},${d.lng||0})"><span class="gb-ic">🍽️</span><span class="gb-tx">식당정보</span></button>
-        <a class="gb" href="https://map.naver.com/p/search/${encodeURIComponent(placeName)}" target="_blank" onclick="event.stopPropagation()"><span class="gb-ic">🔍</span><span class="gb-tx">네이버</span></a>
+        <button class="gb" onclick="event.stopPropagation();showNearbyRests(${d.lat||0},${d.lng||0},'${placeName.replace(/'/g,&quot;\\'&quot;)}')"><span class="gb-ic">🍽️</span><span class="gb-tx">주변맛집</span></button>
         <button class="gb" onclick="event.stopPropagation();shareKakaoPilgrim('${d._id}','${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">💛</span><span class="gb-tx">공유</span></button>
-        <button class="gb" onclick="event.stopPropagation();pilgrimGoMap(${d.lat||0},${d.lng||0})"><span class="gb-ic">📍</span><span class="gb-tx">지도보기</span></button>
       </div>
     </div>`;
   }).join('');
@@ -3510,6 +3513,51 @@ window.pilgrimGoMap = function(lat, lng) {
   // 지도 쪽으로 시트 줄이기
   const sheet = document.getElementById('pilgrimSheet');
   if (sheet) sheet.style.height = '25vh';
+};
+
+// 주변 맛집 보기 (1km 이내)
+window.showNearbyRests = function(lat, lng, placeName) {
+  if (!lat || !lng) { showToast('위치 정보가 없어요'); return; }
+  const RADIUS = 1000; // 1km
+  const nearby = (window._pilgrimRestData || DATA || []).filter(d => {
+    if (!d.lat || !d.lng) return false;
+    const dlat = d.lat - lat, dlng = d.lng - lng;
+    const dist = Math.sqrt(dlat*dlat + dlng*dlng) * 111320;
+    d._nearbyDist = dist;
+    return dist <= RADIUS;
+  }).sort((a,b) => a._nearbyDist - b._nearbyDist).slice(0, 10);
+
+  if (!nearby.length) {
+    showToast('1km 이내 등록된 맛집이 없어요');
+    return;
+  }
+
+  // 바텀시트에 결과 표시
+  const sheet = document.getElementById('pilgrimSheet');
+  const body = document.getElementById('pilgrimListBody');
+  const titleEl = document.getElementById('pilgrimListTitle');
+  const countEl = document.getElementById('pilgrimListCount');
+  if (titleEl) titleEl.textContent = placeName + ' 주변 맛집';
+  if (countEl) countEl.textContent = nearby.length + '곳';
+  if (body) {
+    body.innerHTML = nearby.map(d => `
+      <div class="p-card" style="cursor:pointer" onclick="openNavigation('${(d.name||'').replace(/'/g,"\\'")}',${d.lat},${d.lng})">
+        <div class="p-card-head">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <span class="rest-badge">${d.celeb||''}</span>
+            </div>
+            <div class="p-card-name">${d.name||''}</div>
+            <div class="p-card-sub">${d.cat||''} · ${d._nearbyDist < 1000 ? Math.round(d._nearbyDist)+'m' : (d._nearbyDist/1000).toFixed(1)+'km'}</div>
+          </div>
+          <div style="font-size:22px">🍽️</div>
+        </div>
+        ${d.comment ? `<div class="p-card-story">"${d.comment}"</div>` : ''}
+      </div>`).join('');
+  }
+  // 시트 올리기
+  if (sheet) { sheet.style.transition='height .3s ease'; sheet.style.height='55vh'; }
+  showToast('🍽️ 주변 맛집 ' + nearby.length + '곳');
 };
 
 // 카카오 공유
