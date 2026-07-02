@@ -876,7 +876,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <path d="M50 8 L61 38 L93 38 L67 57 L77 88 L50 70 L23 88 L33 57 L7 38 L39 38 Z" fill="none" stroke="#E8A33D" stroke-width="5.5" stroke-linejoin="round"/>
       <ellipse cx="50" cy="8" rx="10" ry="13" fill="#E8A33D" transform="rotate(-8 50 8)"/>
     </svg>
-    <span class="onboard-logo-text">Star<span>spoon</span></span>
+    <span class="onboard-logo-text">KStar<span>Map</span></span>
   </div>
   <div class="onboard-eyebrow" id="onboardEyebrow">그들이 앉았던, 그 자리</div>
 
@@ -899,7 +899,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <path d="M50 8 L61 38 L93 38 L67 57 L77 88 L50 70 L23 88 L33 57 L7 38 L39 38 Z" fill="none" stroke="var(--gold)" stroke-width="6" stroke-linejoin="round"/>
       <ellipse cx="50" cy="8" rx="11" ry="14" fill="var(--gold)" transform="rotate(-8 50 8)"/>
     </svg>
-    <span class="logo-text">Star<span>spoon</span></span>
+    <span class="logo-text">KStar<span>Map</span></span>
   </a>
   <button onclick="toggleRecentPanel()" id="recentBtn" title="최근 본 맛집" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;display:flex;align-items:center;color:var(--text3);position:relative;flex-shrink:0" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text3)'"><i class="ti ti-clock" style="font-size:20px"></i><span id="recentBadge" style="display:none;position:absolute;top:0;right:0;background:var(--gold);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:6px;line-height:1.5">0</span></button>
   <div class="header-search">
@@ -1604,7 +1604,7 @@ window.setOnboardLang = function(lang) {
 
 // 저장된 언어 적용
 (function() {
-  const savedLang = localStorage.getItem('starspoon_lang') || 'ko';
+  const savedLang = localStorage.getItem('starspoon_lang') || 'en';
   if (savedLang !== 'ko') setOnboardLang(savedLang);
 })();
 
