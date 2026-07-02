@@ -3265,6 +3265,7 @@ async function initPilgrimPage() {
     renderPilgrimList(_pilgrimFiltered.slice(0, PILGRIM_PER_PAGE));
   }
 }
+window.initPilgrimPage = initPilgrimPage;
 
 // Firebase에서 pilgrimages 로드 → module 스크립트의 window.loadPilgrimData 사용
 // (이 함수는 module 스크립트에서 정의됨)
@@ -4525,9 +4526,10 @@ window.setPage = function(page, el) {
   if (pilgrimPageEl) {
     if (page === 'pilgrim') {
       pilgrimPageEl.style.display = 'flex';
-      // 성지순례 탭에서는 상단 맛집 검색바 숨기기 (자체 검색창 있음)
       if (mTopBar) mTopBar.style.display = 'none';
-      initPilgrimPage();
+      // window.initPilgrimPage 또는 로컬 함수 호출
+      if (typeof initPilgrimPage === 'function') initPilgrimPage();
+      else if (typeof window.initPilgrimPage === 'function') window.initPilgrimPage();
     } else {
       pilgrimPageEl.style.display = 'none';
       // 다른 탭으로 가면 상단바 복원
