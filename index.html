@@ -3515,49 +3515,50 @@ window.pilgrimGoMap = function(lat, lng) {
   if (sheet) sheet.style.height = '25vh';
 };
 
-// 주변 맛집 보기 (1km 이내)
+// 주변 맛집 보기 (거리 제한 없음, 가까운 순)
 window.showNearbyRests = function(lat, lng, placeName) {
   if (!lat || !lng) { showToast('위치 정보가 없어요'); return; }
-  const RADIUS = 1000; // 1km
-  const nearby = (window._pilgrimRestData || DATA || []).filter(d => {
-    if (!d.lat || !d.lng) return false;
+  const allData = window._pilgrimRestData || DATA || [];
+  const nearby = allData.filter(d => d.lat && d.lng).map(d => {
     const dlat = d.lat - lat, dlng = d.lng - lng;
-    const dist = Math.sqrt(dlat*dlat + dlng*dlng) * 111320;
-    d._nearbyDist = dist;
-    return dist <= RADIUS;
-  }).sort((a,b) => a._nearbyDist - b._nearbyDist).slice(0, 10);
+    d._nearbyDist = Math.round(Math.sqrt(dlat*dlat + dlng*dlng) * 111320);
+    return d;
+  }).sort((a,b) => a._nearbyDist - b._nearbyDist).slice(0, 20);
 
   if (!nearby.length) {
-    showToast('1km 이내 등록된 맛집이 없어요');
+    showToast('등록된 맛집이 없어요');
     return;
   }
 
-  // 바텀시트에 결과 표시
   const sheet = document.getElementById('pilgrimSheet');
   const body = document.getElementById('pilgrimListBody');
   const titleEl = document.getElementById('pilgrimListTitle');
   const countEl = document.getElementById('pilgrimListCount');
   if (titleEl) titleEl.textContent = placeName + ' 주변 맛집';
-  if (countEl) countEl.textContent = nearby.length + '곳';
+  if (countEl) countEl.textContent = '가까운 순 ' + nearby.length + '곳';
   if (body) {
-    body.innerHTML = nearby.map(d => `
-      <div class="p-card" style="cursor:pointer" onclick="openNavigation('${(d.name||'').replace(/'/g,"\\'")}',${d.lat},${d.lng})">
+    body.innerHTML = nearby.map(d => {
+      const distStr = d._nearbyDist < 1000
+        ? Math.round(d._nearbyDist) + 'm'
+        : (d._nearbyDist / 1000).toFixed(1) + 'km';
+      return `<div class="p-card" style="cursor:pointer" onclick="openNavigation('${(d.name||'').replace(/'/g,"\\'")}',${d.lat},${d.lng})">
         <div class="p-card-head">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
               <span class="rest-badge">${d.celeb||''}</span>
+              <span style="font-size:11px;color:var(--gold);font-weight:700">${distStr}</span>
             </div>
             <div class="p-card-name">${d.name||''}</div>
-            <div class="p-card-sub">${d.cat||''} · ${d._nearbyDist < 1000 ? Math.round(d._nearbyDist)+'m' : (d._nearbyDist/1000).toFixed(1)+'km'}</div>
+            <div class="p-card-sub">${d.cat||''} · ${d.area||''}</div>
           </div>
           <div style="font-size:22px">🍽️</div>
         </div>
         ${d.comment ? `<div class="p-card-story">"${d.comment}"</div>` : ''}
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
-  // 시트 올리기
   if (sheet) { sheet.style.transition='height .3s ease'; sheet.style.height='55vh'; }
-  showToast('🍽️ 주변 맛집 ' + nearby.length + '곳');
+  showToast('🍽️ 주변 맛집 ' + nearby.length + '곳 (거리순)');
 };
 
 // 카카오 공유
