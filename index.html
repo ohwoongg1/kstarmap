@@ -5478,21 +5478,18 @@ window.showToast = showToast;
 window.openNavigation = function(destName, destLat, destLng) {
   const naverAppUrl = `nmap://route/walk?dlat=${destLat}&dlng=${destLng}&dname=${encodeURIComponent(destName)}&appname=kstarmap`;
   const naverWebUrl = `https://map.naver.com/p/directions/-/-/${destLng},${destLat},${encodeURIComponent(destName)},PLACE_POI/-/walk`;
-  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  if (isIOS) {
-    // ★ iOS: 길찾기 바텀시트 표시 (팝업 없음)
-    showNavSheet(destName, naverAppUrl, naverWebUrl);
-  } else {
-    window.location.href = naverAppUrl;
-    setTimeout(() => { window.location.href = naverWebUrl; }, 2000);
-  }
+  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}`;
+  showNavSheet(destName, naverAppUrl, naverWebUrl, googleUrl);
 };
 
 // ★ iOS 길찾기 바텀시트 (팝업 차단 완전 우회)
-function showNavSheet(destName, appUrl, webUrl) {
+function showNavSheet(destName, appUrl, webUrl, googleUrl) {
   const existing = document.getElementById('navSheet');
   if (existing) existing.remove();
+  const ko = (localStorage.getItem('starspoon_lang') || 'en') === 'ko';
+  const t = ko
+    ? {title:'\uD83D\uDDFA\uFE0F \uAE38\uCC3E\uAE30', naver:'\uB124\uC774\uBC84\uC9C0\uB3C4 \uC571\uC73C\uB85C \uAE38\uCC3E\uAE30', naverSub:'\uC571\uC774 \uC124\uCE58\uB41C \uACBD\uC6B0', google:'Google \uC9C0\uB3C4\uB85C \uAE38\uCC3E\uAE30', googleSub:'\uC804 \uC138\uACC4 \uC5B4\uB514\uC11C\uB098', web:'\uC6F9\uC5D0\uC11C \uAE38\uCC3E\uAE30 (\uB124\uC774\uBC84)', close:'\u2715 \uB2EB\uAE30'}
+    : {title:'\uD83D\uDDFA\uFE0F Directions', naver:'Open in Naver Map app', naverSub:'If installed', google:'Open in Google Maps', googleSub:'Works worldwide', web:'Naver Map on web', close:'\u2715 Close'};
 
   const sheet = document.createElement('div');
   sheet.id = 'navSheet';
@@ -5502,23 +5499,29 @@ function showNavSheet(destName, appUrl, webUrl) {
     <div onclick="document.getElementById('navSheet').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>
     <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 40px;font-family:-apple-system,sans-serif">
       <div style="width:40px;height:4px;background:#D4D3CF;border-radius:2px;margin:0 auto 16px"></div>
-      <div style="font-size:15px;font-weight:700;color:#1A1A18;margin-bottom:4px">🗺️ 길찾기</div>
+      <div style="font-size:15px;font-weight:700;color:#1A1A18;margin-bottom:4px">${t.title}</div>
       <div style="font-size:13px;color:#9A9A96;margin-bottom:16px">${destName}</div>
+      <a href="${googleUrl}" target="_blank" onclick="document.getElementById('navSheet').remove()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#4285F4;border-radius:12px;text-decoration:none;margin-bottom:10px">
+        <span style="font-size:22px">\uD83C\uDF10</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#fff">${t.google}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.85);margin-top:2px">${t.googleSub}</div>
+        </div>
+      </a>
       <a href="${appUrl}" onclick="document.getElementById('navSheet').remove()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#03C75A;border-radius:12px;text-decoration:none;margin-bottom:10px">
-        <span style="font-size:22px">🟢</span>
+        <span style="font-size:22px">\uD83D\uDFE2</span>
         <div>
-          <div style="font-size:14px;font-weight:700;color:#fff">네이버지도 앱으로 길찾기</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:2px">앱이 설치된 경우</div>
+          <div style="font-size:14px;font-weight:700;color:#fff">${t.naver}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:2px">${t.naverSub}</div>
         </div>
       </a>
-      <a href="${webUrl}" onclick="document.getElementById('navSheet').remove()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#F4F3EF;border-radius:12px;text-decoration:none">
-        <span style="font-size:22px">🌐</span>
+      <a href="${webUrl}" target="_blank" onclick="document.getElementById('navSheet').remove()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#F4F3EF;border-radius:12px;text-decoration:none">
+        <span style="font-size:22px">\uD83C\uDF10</span>
         <div>
-          <div style="font-size:14px;font-weight:700;color:#1A1A18">웹에서 길찾기</div>
-          <div style="font-size:11px;color:#9A9A96;margin-top:2px">앱 없이 브라우저에서</div>
+          <div style="font-size:14px;font-weight:700;color:#1A1A18">${t.web}</div>
         </div>
       </a>
-      <button onclick="document.getElementById('navSheet').remove()" style="width:100%;margin-top:10px;padding:13px;background:none;border:1.5px solid #D4D3CF;border-radius:12px;font-size:14px;font-weight:600;color:#9A9A96;cursor:pointer">✕ 닫기</button>
+      <button onclick="document.getElementById('navSheet').remove()" style="width:100%;margin-top:10px;padding:13px;background:none;border:1.5px solid #D4D3CF;border-radius:12px;font-size:14px;font-weight:600;color:#9A9A96;cursor:pointer">${t.close}</button>
     </div>`;
 
   document.body.appendChild(sheet);
