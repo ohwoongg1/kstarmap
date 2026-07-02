@@ -890,8 +890,8 @@ input::placeholder{color:var(--text3) !important;opacity:1}
   <div class="onboard-title" id="onboardTitle">한류 성지를 직접<br><em>걸어보세요</em></div>
   <div class="onboard-sub" id="onboardSub">드라마 촬영지, 스타 방문지, 영화 로케이션<br>모두 한 곳에서 코스로 만들어보세요</div>
 
-  <button class="onboard-start-btn" id="onboardBtn">성지 지도 펼치기</button>
-  <button class="onboard-skip" id="onboardSkip">✕ 오늘 하루 닫기</button>
+  <button class="onboard-start-btn" id="onboardBtn" onclick="closeOnboard()">성지 지도 펼치기</button>
+  <button class="onboard-skip" id="onboardSkip" onclick="closeOnboard()">✕ 오늘 하루 닫기</button>
 </div>
 <header class="header">
   <a class="logo" href="/">
@@ -1624,21 +1624,7 @@ window.setOnboardLang = function(lang) {
 })();
 
 // ── 온보딩 스플래시 ──
-window.closeOnboard = function() {
-  const overlay = document.getElementById('onboardOverlay');
-  if (!overlay) return;
-  overlay.classList.add('hide');
-  setTimeout(() => {
-    overlay.remove();
-    // 성지순례 첫 탭 초기화
-    const firstNav = document.querySelector('.pnav');
-    if (firstNav && typeof setPage === 'function') {
-      setPage('pilgrim', firstNav);
-    }
-  }, 500);
-  const today = new Date().toISOString().slice(0,10);
-  localStorage.setItem('starspoon_onboarded', today);
-};
+// closeOnboard는 하단 일반 스크립트에 정의됨
 
 // 자동 닫힘 (날짜 저장 안 함)
 function autoCloseOnboard() {
@@ -7829,14 +7815,6 @@ window.loadPilgrimData = async function() {
   }
 };
 
-// ── 온보딩 버튼 이벤트 (module 로드 완료 후 연결) ──
-document.addEventListener('DOMContentLoaded', () => {
-  const onboardBtn = document.getElementById('onboardBtn');
-  const onboardSkip = document.getElementById('onboardSkip');
-  if (onboardBtn) onboardBtn.addEventListener('click', () => closeOnboard());
-  if (onboardSkip) onboardSkip.addEventListener('click', () => closeOnboard());
-});
-
 </script>
 
 <!-- ── 내 맛집 등록 모달 ── -->
@@ -8291,4 +8269,21 @@ window.openKakaoSearch = function() {
   input.value = '';
   input.blur();
 };
+
+// ── 온보딩 닫기 (일반 스크립트 - onclick에서 직접 호출 가능) ──
+function closeOnboard() {
+  const overlay = document.getElementById('onboardOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hide');
+  const today = new Date().toISOString().slice(0,10);
+  localStorage.setItem('starspoon_onboarded', today);
+  setTimeout(() => {
+    overlay.remove();
+    // 성지순례 첫 탭 초기화
+    const firstNav = document.querySelector('.pnav');
+    if (firstNav && window.setPage) {
+      window.setPage('pilgrim', firstNav);
+    }
+  }, 500);
+}
 </script>
