@@ -890,8 +890,8 @@ input::placeholder{color:var(--text3) !important;opacity:1}
   <div class="onboard-title" id="onboardTitle">한류 성지를 직접<br><em>걸어보세요</em></div>
   <div class="onboard-sub" id="onboardSub">드라마 촬영지, 스타 방문지, 영화 로케이션<br>모두 한 곳에서 코스로 만들어보세요</div>
 
-  <button class="onboard-start-btn" id="onboardBtn" onclick="closeOnboard()">성지 지도 펼치기</button>
-  <button class="onboard-skip" id="onboardSkip" onclick="closeOnboard()">✕ 오늘 하루 닫기</button>
+  <button class="onboard-start-btn" id="onboardBtn">성지 지도 펼치기</button>
+  <button class="onboard-skip" id="onboardSkip">✕ 오늘 하루 닫기</button>
 </div>
 <header class="header">
   <a class="logo" href="/">
@@ -7828,6 +7828,14 @@ window.loadPilgrimData = async function() {
     if (lb) lb.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text3)">⚠️ 데이터를 불러올 수 없어요<br><small style="font-size:11px;opacity:0.6">' + (e.message||'') + '</small><br><button onclick="loadPilgrimData()" style="margin-top:12px;padding:8px 20px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);cursor:pointer;font-size:13px;font-weight:600">다시 시도</button></div>';
   }
 };
+
+// ── 온보딩 버튼 이벤트 (module 로드 완료 후 연결) ──
+document.addEventListener('DOMContentLoaded', () => {
+  const onboardBtn = document.getElementById('onboardBtn');
+  const onboardSkip = document.getElementById('onboardSkip');
+  if (onboardBtn) onboardBtn.addEventListener('click', () => closeOnboard());
+  if (onboardSkip) onboardSkip.addEventListener('click', () => closeOnboard());
+});
 
 </script>
 
