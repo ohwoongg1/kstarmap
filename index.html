@@ -654,8 +654,22 @@ input[type=range].m-radius-input{width:100%;height:4px;accent-color:var(--gold);
 .p-card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
 .p-card-sub{font-size:11px;color:var(--text3)}
 .p-card-story{font-size:12px;color:var(--text2);line-height:1.5;margin-top:6px;padding:6px 10px;background:var(--bg2);border-radius:6px;border-left:3px solid var(--gold)}
-.p-card-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;display:none}
+.p-card-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;display:none}
 .p-card-actions.open{display:grid}
+/* ── gb 타일 버튼 (아이콘 위 + 라벨 아래, 중립 카드) ── */
+.gb{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:10px 4px;min-height:56px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  font-family:inherit;font-size:12px;font-weight:600;color:var(--text2);
+  text-decoration:none;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;
+  transition:transform .08s ease,filter .08s ease,box-shadow .08s ease;
+}
+.gb:active{transform:scale(.92);filter:brightness(.94);box-shadow:inset 0 2px 5px rgba(0,0,0,.08)}
+.gb .gb-ic{font-size:20px;line-height:1}
+.gb .gb-tx{font-size:11.5px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+a.gb,a.gb:visited,a.gb:hover{color:var(--text2);text-decoration:none}
 .toast{position:fixed;bottom:20px;right:20px;background:#1A1A18;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;display:none;align-items:center;gap:8px;z-index:999;box-shadow:var(--shadow-lg);max-width:320px}
 .toast.show{display:flex}
 
@@ -8273,6 +8287,13 @@ window.openKakaoSearch = function() {
   input.value = '';
   input.blur();
 };
+
+// ── gb 버튼 햅틱 진동 (안드로이드, iOS는 자동 무시) ──
+document.addEventListener('touchstart', function(e) {
+  if (e.target.closest('.gb')) {
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+}, {passive:true});
 
 // ── 온보딩 닫기 (일반 스크립트 - onclick에서 직접 호출 가능) ──
 function closeOnboard() {
