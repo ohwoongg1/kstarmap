@@ -16,6 +16,11 @@
 <meta name="naver-site-verification" content="6f4b79f996ee96a01d32863c2fd978e0a215db4b" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>KStarMap — K-Drama & K-Star Locations</title>
+<meta name="description" content="Walk the Hallyu pilgrimage. Find K-drama filming locations, K-pop star visited places, and must-eat Korean restaurants on one map.">
+<meta property="og:title" content="KStarMap — K-Drama & K-Star Locations">
+<meta property="og:description" content="Find K-drama filming locations, K-pop star visited places, and must-eat Korean restaurants on one map.">
+<meta property="og:url" content="https://kstarmap.com">
+<meta property="og:type" content="website">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" integrity="sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4" crossorigin="anonymous"></script>
@@ -3550,7 +3555,7 @@ window.showNearbyRests = function(lat, lng, placeName) {
   if (titleEl) titleEl.textContent = placeName + ' 주변 맛집';
   if (countEl) countEl.textContent = '가까운 순 ' + nearby.length + '곳';
   if (body) {
-    const backBtn = `<button onclick="filterPilgrim()" style="display:flex;align-items:center;gap:6px;width:100%;padding:11px 14px;margin-bottom:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;-webkit-tap-highlight-color:transparent"><span style="font-size:15px">←</span> 성지 목록으로 돌아가기</button>`;
+    const backBtn = `<div style="position:sticky;top:0;z-index:10;background:var(--bg);padding:2px 0 8px;margin-bottom:4px"><button onclick="filterPilgrim()" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;background:var(--bg2);border:1.5px solid var(--gold);border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer;-webkit-tap-highlight-color:transparent"><span style="font-size:15px">←</span> 성지 목록으로 돌아가기</button></div>`;
     body.innerHTML = backBtn + nearby.map(d => {
       const distStr = d._nearbyDist < 1000
         ? Math.round(d._nearbyDist) + 'm'
@@ -4548,6 +4553,16 @@ window.setPage = function(page, el) {
   const mapPanel = document.querySelector('.map-panel');
   if (mapPanel && window.innerWidth <= 768) {
     mapPanel.style.display = page==='main' ? '' : 'none';
+  }
+  // 숨김 상태에서 초기화된 지도는 크기를 0으로 알고 있어 깨짐 → 재계산
+  if (page === 'main' && typeof map !== 'undefined' && map) {
+    setTimeout(() => {
+      try {
+        const c = map.getCenter();
+        map.relayout();
+        map.setCenter(myLat && myLng ? new kakao.maps.LatLng(myLat, myLng) : c);
+      } catch(e) {}
+    }, 100);
   }
   document.getElementById('rankPage').classList.toggle('show', page==='rank');
   document.getElementById('myPage').classList.toggle('show', page==='my');
