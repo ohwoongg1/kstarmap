@@ -675,6 +675,11 @@ input[type=range].m-radius-input{width:100%;height:4px;accent-color:var(--gold);
 .gb .gb-ic{font-size:20px;line-height:1}
 .gb .gb-tx{font-size:11.5px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 a.gb,a.gb:visited,a.gb:hover{color:var(--text2);text-decoration:none}
+.gb.gb-on{border-color:var(--gold);color:var(--gold);background:var(--gold-bg)}
+.rest-actions{display:none;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.rest-actions.open{display:grid}
+.rest-name-arrow{display:inline-block;font-size:10px;color:var(--text3);margin-left:4px;transition:transform .2s}
+.rest-card.expanded .rest-name-arrow{transform:rotate(180deg)}
 .toast{position:fixed;bottom:20px;right:20px;background:#1A1A18;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;display:none;align-items:center;gap:8px;z-index:999;box-shadow:var(--shadow-lg);max-width:320px}
 .toast.show{display:flex}
 
@@ -2830,7 +2835,7 @@ function renderList() {
       <div class="rest-card-top">
         <div class="rest-rank rank-num ${rankClass}">${i+1}</div>
         <div class="rest-info">
-          <div class="rest-name" onclick="event.stopPropagation();showMapForCard('${d.id}')">${d.name}</div>
+          <div class="rest-name" onclick="event.stopPropagation();toggleRestCard('${d.id}')">${d.name}<span class="rest-name-arrow">▾</span></div>
           <div class="rest-meta">
             ${(() => {
               const allCelebs = d.celebs || [d.celeb];
@@ -2848,31 +2853,16 @@ function renderList() {
         <div class="rest-rating">
           ${d.avgRating ? `<span style="color:var(--gold)">★</span> ${d.avgRating.toFixed(1)}<span class="rest-rating-count">${d.ratingCount ? ` (${d.ratingCount})` : ''}</span>` : ''}
         </div>
-        <div class="rest-saves"><i class="ti ti-heart" style="font-size:11px"></i> ${d.saves||0}</div>
-        <div class="rest-btns">
-          <a class="btn-sm map" href="#" onclick="event.preventDefault();event.stopPropagation();openNavigation('${d.name.replace(/'/g,"\\'")}',${d.lat},${d.lng})">🗺️ 길찾기</a>
-          <button class="btn-sm${isSaved?' saved':''}" onclick="event.stopPropagation();toggleSave('${d.id}')">
-            ${isSaved?'❤️ 저장됨':'🤍 저장'}
-          </button>
-          <a class="btn-sm" href="https://www.youtube.com/results?search_query=${encodeURIComponent((['투스타','쓰리스타','대장','사령관'].includes(d.celeb) ? (d.celebs||[d.celeb]).join(' ')+' '+d.name : (d.celeb||'')+' '+d.name))}" onclick="event.stopPropagation();logVideoClick(d.celeb,d.name,d.id);if(window.innerWidth<=768){event.preventDefault();location.href=this.href;}" style="text-decoration:none;color:#FF0000;border-color:#FF0000">▶️ 영상</a>
-          <a class="btn-sm" href="https://map.naver.com/p/search/${encodeURIComponent(d.name+' 예약')}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;color:#03C75A;border-color:#03C75A">📅 예약</a>
-          <button class="btn-sm" onclick="event.stopPropagation();addCardToCourse('${d.id}','${d.name.replace(/'/g,"\'")}',${d.lat},${d.lng},'${d.celeb}')" style="color:var(--gold);border-color:var(--gold);font-weight:700">🗺️ 코스</button>
-        </div>
       </div>
-      <div class="rest-link">
-        <button class="link-btn" onclick="event.stopPropagation();addCardToCourse('${d.id}','${d.name.replace(/'/g,"\\'")}',${d.lat},${d.lng},'${d.celeb}')" style="background:var(--gold);border:1px solid var(--gold);color:#fff;font-weight:700">🗺️ 코스담기</button>
-        ${d.yt ? `<a class="link-btn link-yt" href="${d.yt}" target="_blank" onclick="event.stopPropagation()">${d.yt.includes('youtube.com')||d.yt.includes('youtu.be') ? '<i class="ti ti-brand-youtube"></i> 영상' : '🔗 링크'}</a>` : ''}
-        <button class="link-btn" onclick="event.stopPropagation();openPlaceInfo('${d.name.replace(/'/g,"\'")}',${d.lat},${d.lng})" style="background:none;border:1px solid #03C75A;border-radius:8px;padding:6px 12px;font-size:12px;color:#03C75A;cursor:pointer;font-weight:600">🍽️ 식당정보</button>
-        <button class="link-btn" onclick="event.stopPropagation();openCommentModal('${d.id}','${d.name.replace(/'/g,"\\'")}')" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-weight:600">💬 댓글·평점</button>
-        <button class="link-btn" onclick="event.stopPropagation();shareKakaoPC('${d.id}')" style="background:#FEE500;border:1px solid #F0D000;border-radius:8px;padding:6px 12px;font-size:12px;color:#3A1D1D;cursor:pointer;font-weight:600">💛 카카오공유</button>
-        <button class="link-btn" onclick="event.stopPropagation();openRestReportModal('${d.id}','${d.name.replace(/'/g,"\\'")}','${d.registeredBy||''}')" style="background:none;border:1px solid #FECACA;border-radius:8px;padding:6px 10px;font-size:11px;color:#EF4444;cursor:pointer;font-weight:600">🚨 신고</button>
-      </div>
-      <div class="card-detail" id="detail-${d.id}">
-        ${d.address ? `<div class="detail-row"><span class="detail-icon">📍</span><span class="detail-text">${d.address}</span></div>` : ''}
-        ${d.phone ? `<div class="detail-row"><span class="detail-icon">📞</span><a class="detail-text detail-phone" href="tel:${d.phone}" onclick="event.stopPropagation()">${d.phone}</a></div>` : ''}
-        <div class="detail-actions">
-          <a class="detail-btn detail-naver" href="https://map.naver.com/v5/search/${encodeURIComponent(d.name + ' ' + d.area)}" target="_blank" onclick="event.stopPropagation()">🟢 네이버지도에서 보기</a>
-        </div>
+      <div class="rest-actions" id="ractions-${d.id}">
+        <a class="gb" href="#" onclick="event.preventDefault();event.stopPropagation();openNavigation('${d.name.replace(/'/g,"\\'")}',${d.lat},${d.lng})"><span class="gb-ic">🗺️</span><span class="gb-tx">길찾기</span></a>
+        <button class="gb" onclick="event.stopPropagation();toggleSave('${d.id}')"><span class="gb-ic">${isSaved?'❤️':'🤍'}</span><span class="gb-tx">${isSaved?'저장됨':'저장'}</span></button>
+        <a class="gb" href="${d.yt || 'https://www.youtube.com/results?search_query='+encodeURIComponent((d.celeb||'')+' '+d.name)}" target="_blank" onclick="event.stopPropagation();logVideoClick(d.celeb,d.name,d.id)"><span class="gb-ic">▶️</span><span class="gb-tx">영상</span></a>
+        <button class="gb" onclick="event.stopPropagation();addCardToCourse('${d.id}','${d.name.replace(/'/g,"\\'")}',${d.lat},${d.lng},'${d.celeb}')"><span class="gb-ic">🗺️</span><span class="gb-tx">코스담기</span></button>
+        <button class="gb" onclick="event.stopPropagation();openPlaceInfo('${d.name.replace(/'/g,"\\'")}',${d.lat},${d.lng})"><span class="gb-ic">🍽️</span><span class="gb-tx">식당정보</span></button>
+        <button class="gb" onclick="event.stopPropagation();shareKakaoPC('${d.id}')"><span class="gb-ic">💛</span><span class="gb-tx">공유</span></button>
+        ${d.address ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📍</span><span class="detail-text">${d.address}</span></div>` : ''}
+        ${d.phone ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📞</span><a class="detail-text detail-phone" href="tel:${d.phone}" onclick="event.stopPropagation()">${d.phone}</a></div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -8302,6 +8292,15 @@ window.openKakaoSearch = function() {
   window.open(url, '_blank');
   input.value = '';
   input.blur();
+};
+
+// 맛집 카드 버튼 토글 (이름 탭)
+window.toggleRestCard = function(id) {
+  const actions = document.getElementById('ractions-' + id);
+  if (!actions) return;
+  const card = document.getElementById('card-' + id);
+  const isOpen = actions.classList.toggle('open');
+  if (card) card.classList.toggle('expanded', isOpen);
 };
 
 // ── gb 버튼 햅틱 진동 (안드로이드, iOS는 자동 무시) ──
