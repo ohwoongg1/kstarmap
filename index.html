@@ -1628,8 +1628,14 @@ window.closeOnboard = function() {
   const overlay = document.getElementById('onboardOverlay');
   if (!overlay) return;
   overlay.classList.add('hide');
-  setTimeout(() => overlay.remove(), 500);
-  // ★ 오늘 날짜 저장 (내일 다시 표시)
+  setTimeout(() => {
+    overlay.remove();
+    // 성지순례 첫 탭 초기화
+    const firstNav = document.querySelector('.pnav');
+    if (firstNav && typeof setPage === 'function') {
+      setPage('pilgrim', firstNav);
+    }
+  }, 500);
   const today = new Date().toISOString().slice(0,10);
   localStorage.setItem('starspoon_onboarded', today);
 };
