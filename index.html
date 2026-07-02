@@ -3550,7 +3550,8 @@ window.showNearbyRests = function(lat, lng, placeName) {
   if (titleEl) titleEl.textContent = placeName + ' 주변 맛집';
   if (countEl) countEl.textContent = '가까운 순 ' + nearby.length + '곳';
   if (body) {
-    body.innerHTML = nearby.map(d => {
+    const backBtn = `<button onclick="filterPilgrim()" style="display:flex;align-items:center;gap:6px;width:100%;padding:11px 14px;margin-bottom:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;-webkit-tap-highlight-color:transparent"><span style="font-size:15px">←</span> 성지 목록으로 돌아가기</button>`;
+    body.innerHTML = backBtn + nearby.map(d => {
       const distStr = d._nearbyDist < 1000
         ? Math.round(d._nearbyDist) + 'm'
         : (d._nearbyDist / 1000).toFixed(1) + 'km';
