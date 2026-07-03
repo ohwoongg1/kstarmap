@@ -1635,6 +1635,7 @@ window.setOnboardLang = function(lang) {
     btn.classList.toggle('on', l === lang);
   });
   localStorage.setItem('starspoon_lang', lang);
+  if (window.applyUILang) window.applyUILang();
 };
 
 // 저장된 언어 적용
@@ -3297,11 +3298,12 @@ function filterPilgrim() {
   _pilgrimFiltered = data;
   _pilgrimSearchQ = '';
   _pilgrimPage = 0;
-  const title = _pilgrimContent || (_pilgrimType === 'all' ? '성지순례' : _pilgrimType === 'drama' ? '드라마 촬영지' : _pilgrimType === 'artist' ? '한류스타 방문지' : '영화 촬영지');
+  const _en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  const title = _pilgrimContent || (_pilgrimType === 'all' ? (_en?'Pilgrimage':'성지순례') : _pilgrimType === 'drama' ? (_en?'Drama Locations':'드라마 촬영지') : _pilgrimType === 'artist' ? (_en?'K-Star Spots':'한류스타 방문지') : (_en?'Movie Locations':'영화 촬영지'));
   const titleEl = document.getElementById('pilgrimListTitle');
   const countEl = document.getElementById('pilgrimListCount');
   if (titleEl) titleEl.textContent = title;
-  if (countEl) countEl.textContent = data.length + '곳';
+  if (countEl) countEl.textContent = data.length + (((localStorage.getItem('starspoon_lang')||'en')!=='ko')?' places':'곳');
   renderPilgrimList(data.slice(0, PILGRIM_PER_PAGE));
   renderPilgrimPins(data.slice(0, 100));
 }
@@ -3375,12 +3377,13 @@ function renderPilgrimList(items, append = false) {
   const body = document.getElementById('pilgrimListBody');
   if (!body) return;
   if (!items.length && !append) {
-    body.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text3)">결과가 없어요</div>';
+    body.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text3)">' + (((localStorage.getItem('starspoon_lang')||'en')!=='ko')?'No results':'결과가 없어요') + '</div>';
     return;
   }
   const html = items.map(d => {
     const badgeClass = d.mediaType === 'artist' ? 'p-badge-artist' : d.mediaType === 'movie' ? 'p-badge-movie' : 'p-badge-drama';
-    const badgeText = d.typeLabel || (d.mediaType === 'artist' ? '한류스타' : d.mediaType === 'movie' ? '영화' : '드라마');
+    const _enB = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+    const badgeText = _enB ? (d.mediaType === 'artist' ? 'K-Star' : d.mediaType === 'movie' ? 'Movie' : 'Drama') : (d.typeLabel || (d.mediaType === 'artist' ? '한류스타' : d.mediaType === 'movie' ? '영화' : '드라마'));
     const distStr = d._dist ? (d._dist < 1000 ? d._dist+'m' : (d._dist/1000).toFixed(1)+'km') : '';
     const placeName = d.placeName || d.name || '';
     const _ko = (localStorage.getItem('starspoon_lang') || 'en') === 'ko';
@@ -3419,7 +3422,7 @@ function renderPilgrimList(items, append = false) {
   const total = _pilgrimSearchQ ? _pilgrimSearchResults.length : _pilgrimFiltered.length;
   const shown = (_pilgrimPage + 1) * PILGRIM_PER_PAGE;
   if (shown < total) {
-    body.insertAdjacentHTML('beforeend', `<div id="pilgrimMoreBtn" style="padding:16px;text-align:center"><button onclick="loadMorePilgrim()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 24px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer">더보기 (${total - shown}곳 남음)</button></div>`);
+    body.insertAdjacentHTML('beforeend', `<div id="pilgrimMoreBtn" style="padding:16px;text-align:center"><button onclick="loadMorePilgrim()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 24px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer">${((localStorage.getItem('starspoon_lang')||'en')!=='ko') ? 'Load more (' + (total - shown) + ' left)' : '더보기 (' + (total - shown) + '곳 남음)'}</button></div>`);
   }
 }
 
@@ -3465,8 +3468,8 @@ window.doPilgrimSearch = function(q) {
 
   const titleEl = document.getElementById('pilgrimListTitle');
   const countEl = document.getElementById('pilgrimListCount');
-  if (titleEl) titleEl.textContent = '"' + _pilgrimSearchQ + '" 검색';
-  if (countEl) countEl.textContent = _pilgrimSearchResults.length + '곳';
+  if (titleEl) titleEl.textContent = (((localStorage.getItem('starspoon_lang')||'en')!=='ko') ? 'Search: "' + _pilgrimSearchQ + '"' : '"' + _pilgrimSearchQ + '" 검색');
+  if (countEl) countEl.textContent = _pilgrimSearchResults.length + (((localStorage.getItem('starspoon_lang')||'en')!=='ko')?' places':'곳');
   _pilgrimPage = 0;
   renderPilgrimList(_pilgrimSearchResults.slice(0, PILGRIM_PER_PAGE));
   renderPilgrimPins(_pilgrimSearchResults.slice(0, 100));
@@ -3559,10 +3562,11 @@ window.showNearbyRests = function(lat, lng, placeName) {
   const body = document.getElementById('pilgrimListBody');
   const titleEl = document.getElementById('pilgrimListTitle');
   const countEl = document.getElementById('pilgrimListCount');
-  if (titleEl) titleEl.textContent = placeName + ' 주변 맛집';
-  if (countEl) countEl.textContent = '가까운 순 ' + nearby.length + '곳';
+  const _enN = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  if (titleEl) titleEl.textContent = _enN ? ('Restaurants near ' + placeName) : (placeName + ' 주변 맛집');
+  if (countEl) countEl.textContent = (((localStorage.getItem('starspoon_lang')||'en')!=='ko') ? nearby.length + ' nearby' : '가까운 순 ' + nearby.length + '곳');
   if (body) {
-    const backBtn = `<div style="position:sticky;top:0;z-index:10;background:var(--bg);padding:2px 0 8px;margin-bottom:4px"><button onclick="filterPilgrim()" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;background:var(--bg2);border:1.5px solid var(--gold);border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer;-webkit-tap-highlight-color:transparent"><span style="font-size:15px">←</span> 성지 목록으로 돌아가기</button></div>`;
+    const backBtn = `<div style="position:sticky;top:0;z-index:10;background:var(--bg);padding:2px 0 8px;margin-bottom:4px"><button onclick="filterPilgrim()" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 14px;background:var(--bg2);border:1.5px solid var(--gold);border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer;-webkit-tap-highlight-color:transparent"><span style="font-size:15px">←</span> ${_enN ? 'Back to pilgrim list' : '성지 목록으로 돌아가기'}</button></div>`;
     body.innerHTML = backBtn + nearby.map(d => {
       const distStr = d._nearbyDist < 1000
         ? Math.round(d._nearbyDist) + 'm'
@@ -8315,6 +8319,22 @@ window.openKakaoSearch = function() {
 };
 
 // 맛집 카드 버튼 토글 (이름 탭)
+// UI 정적 텍스트 언어 적용
+window.applyUILang = function() {
+  const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  const ps = document.getElementById('pilgrimSearch');
+  if (ps) ps.placeholder = en ? 'Drama, actor, or place' : '드라마명, 배우명, 장소명 검색';
+  const fmap = en ? {all:'🎬 All', drama:'📺 Drama', artist:'⭐ K-Star', movie:'🎥 Movie'}
+                  : {all:'🎬 전체', drama:'📺 드라마', artist:'⭐ 한류스타', movie:'🎥 영화'};
+  document.querySelectorAll('.p-filter').forEach(b => { const k=b.dataset.type; if (fmap[k]) b.textContent = fmap[k]; });
+  const navLabels = en ? ['Pilgrimage','Food Map','Course','Saved'] : ['성지순례','맛집지도','코스짜기','저장'];
+  document.querySelectorAll('.pnav span:last-child').forEach((el,i) => { if (navLabels[i]) el.textContent = navLabels[i]; });
+  document.querySelectorAll('#pilgrimMap button').forEach(b => {
+    if (b.textContent.includes('내 주변') || b.textContent.includes('Nearby')) b.textContent = en ? '📍 Nearby' : '📍 내 주변';
+  });
+};
+document.addEventListener('DOMContentLoaded', function(){ window.applyUILang(); });
+
 window.toggleRestCard = function(id) {
   const actions = document.getElementById('ractions-' + id);
   if (!actions) return;
