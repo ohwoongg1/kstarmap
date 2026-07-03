@@ -3343,9 +3343,13 @@ function buildPilgrimContentBar() {
     return b[1] - a[1];                            // 둘 다 없으면 개수순
   }).slice(0, 15);
 
+  const _ko = (localStorage.getItem('starspoon_lang') || 'en') === 'ko';
+  const enMap = {};
+  if (!_ko) filtered.forEach(d => { if (d.title && d.title_en && !enMap[d.title]) enMap[d.title] = d.title_en; });
   bar.innerHTML = sorted.map(([title, cnt]) => {
-    const short = title.length > 12 ? title.slice(0, 12) + '…' : title;
-    return `<button class="p-content-pill${_pilgrimContent===title?' on':''}" onclick="selectPilgrimContent('${title.replace(/'/g,"\\'")}',this)" title="${title}">${short} <span style="opacity:0.6">${cnt}</span></button>`;
+    const label = (!_ko && enMap[title]) ? enMap[title] : title;
+    const short = label.length > 18 ? label.slice(0, 18) + '…' : label;
+    return `<button class="p-content-pill${_pilgrimContent===title?' on':''}" onclick="selectPilgrimContent('${title.replace(/'/g,"\\'")}',this)" title="${label}">${short} <span style="opacity:0.6">${cnt}</span></button>`;
   }).join('');
 }
 
@@ -3368,8 +3372,10 @@ function renderPilgrimList(items, append = false) {
     const badgeText = d.typeLabel || (d.mediaType === 'artist' ? '한류스타' : d.mediaType === 'movie' ? '영화' : '드라마');
     const distStr = d._dist ? (d._dist < 1000 ? d._dist+'m' : (d._dist/1000).toFixed(1)+'km') : '';
     const placeName = d.placeName || d.name || '';
-    const story = d.story || '';
-    const titleShort = (d.title||'').length > 16 ? (d.title||'').slice(0,16)+'…' : (d.title||'');
+    const _ko = (localStorage.getItem('starspoon_lang') || 'en') === 'ko';
+    const story = (_ko ? d.story : (d.story_en || d.story)) || '';
+    const _t = (_ko ? d.title : (d.title_en || d.title)) || '';
+    const titleShort = _t.length > 22 ? _t.slice(0,22)+'…' : _t;
     return `<div class="p-card" id="pcard-${d._id}" onclick="togglePilgrimCard('${d._id}',this)">
       <div class="p-card-head">
         <div style="flex:1;min-width:0">
