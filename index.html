@@ -3196,6 +3196,14 @@ let _pilgrimMap = window._pilgrimMap = null;
 let _pilgrimMarkers = window._pilgrimMarkers = [];
 let _pilgrimType = 'all';
 let _pilgrimContent = null;
+// pill 선택: 같은 것 다시 누르면 해제(토글), 다른 것 누르면 전환
+function selectPilgrimContent(title, btn) {
+  _pilgrimContent = (_pilgrimContent === title) ? null : title;
+  document.querySelectorAll('.p-content-pill').forEach(b => b.classList.remove('on'));
+  if (_pilgrimContent && btn) btn.classList.add('on');
+  filterPilgrim();
+}
+window.selectPilgrimContent = selectPilgrimContent;
 
 // module 스크립트에서 로드한 데이터를 일반 스크립트 변수에 동기화
 window.syncPilgrimVars = function() {
