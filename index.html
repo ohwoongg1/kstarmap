@@ -3230,6 +3230,8 @@ async function initPilgrimPage() {
         center: new kakao.maps.LatLng(myLat || 37.5665, myLng || 126.9780),
         level: myLat ? 6 : 7
       });
+      // 지도 이동/줌이 끝날 때마다 현재 화면 범위의 성지 핀을 다시 그림
+      kakao.maps.event.addListener(_pilgrimMap, 'idle', renderPilgrimPinsInView);
     setTimeout(() => {
       try { _pilgrimMap.relayout(); } catch(e) {}
       // 위치 확인 후 내 위치로 이동
@@ -3535,6 +3537,25 @@ window.togglePilgrimCard = function(id, cardEl) {
 };
 
 // 지도 핀 그리기
+// 현재 지도 화면(bounds) 안에 있는 성지들만 핀으로 표시 (최대 150개)
+function renderPilgrimPinsInView() {
+  if (!_pilgrimMap) return;
+  const src = _pilgrimSearchQ ? _pilgrimSearchResults : _pilgrimFiltered;
+  if (!src || !src.length) return;
+  let bounds;
+  try { bounds = _pilgrimMap.getBounds(); } catch(e) { return; }
+  const inView = [];
+  for (const d of src) {
+    if (!d.lat || !d.lng) continue;
+    if (bounds.contain(new kakao.maps.LatLng(d.lat, d.lng))) {
+      inView.push(d);
+      if (inView.length >= 150) break;
+    }
+  }
+  renderPilgrimPins(inView);
+}
+window.renderPilgrimPinsInView = renderPilgrimPinsInView;
+
 function renderPilgrimPins(items) {
   if (!_pilgrimMap) return;
   _pilgrimMarkers.forEach(m => { try { m.setMap(null); } catch(e) {} });
