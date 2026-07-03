@@ -905,10 +905,10 @@ input::placeholder{color:var(--text3) !important;opacity:1}
   <div class="onboard-eyebrow" id="onboardEyebrow">그들이 앉았던, 그 자리</div>
 
   <div class="onboard-curators">
-    <span class="onboard-curator"><span>🎬</span><span>드라마</span></span>
-    <span class="onboard-curator"><span>⭐</span><span>한류스타</span></span>
-    <span class="onboard-curator"><span>🎥</span><span>영화</span></span>
-    <span class="onboard-curator"><span>🍽️</span><span>맛집</span></span>
+    <span class="onboard-curator"><span>🎬</span><span class="stamp-label">드라마</span></span>
+    <span class="onboard-curator"><span>⭐</span><span class="stamp-label">한류스타</span></span>
+    <span class="onboard-curator"><span>🎥</span><span class="stamp-label">영화</span></span>
+    <span class="onboard-curator"><span>🍽️</span><span class="stamp-label">맛집</span></span>
   </div>
 
   <div class="onboard-title" id="onboardTitle">한류 성지를 직접<br><em>걸어보세요</em></div>
@@ -1570,42 +1570,48 @@ const ONBOARD_LANGS = {
     title: '한류 성지를 직접<br><em>걸어보세요</em>',
     sub: '드라마 촬영지, 스타 방문지, 영화 로케이션<br>모두 한 곳에서 코스로 만들어보세요',
     btn: '성지 지도 펼치기',
-    skip: '✕ 오늘 하루 닫기'
+    skip: '✕ 오늘 하루 닫기',
+    stamps: ['드라마','한류스타','영화','맛집']
   },
   en: {
     eyebrow: 'K-Drama · K-Star · K-Movie · K-Food',
     title: 'Walk the<br><em>Hallyu Pilgrimage</em>',
     sub: 'Drama filming locations, star-visited spots,<br>movie sets — all in one map with guided tours',
     btn: 'Open Pilgrim Map',
-    skip: '✕ Close for today'
+    skip: '✕ Close for today',
+    stamps: ['Drama','K-Star','Movie','Food']
   },
   ja: {
     eyebrow: 'Kドラマ · Kスター · K映画 · K-Food',
     title: '韓流の聖地を<br><em>直接歩いてみよう</em>',
     sub: 'ドラマ撮影地・スター訪問地・映画ロケ地<br>すべてを一つのマップでコースに',
     btn: '聖地マップを開く',
-    skip: '✕ 今日は閉じる'
+    skip: '✕ 今日は閉じる',
+    stamps: ['ドラマ','スター','映画','グルメ']
   },
   zh: {
     eyebrow: 'K剧 · 韩星 · 韩影 · 韩食',
     title: '亲自走一遍<br><em>韩流圣地</em>',
     sub: '韩剧拍摄地、明星到访处、电影取景地<br>全部集中在一张地图，定制专属路线',
     btn: '打开圣地地图',
-    skip: '✕ 今天不再显示'
+    skip: '✕ 今天不再显示',
+    stamps: ['韩剧','韩星','电影','美食']
   },
   tw: {
     eyebrow: 'K劇 · 韓星 · 韓影 · 韓食',
     title: '親自走一遍<br><em>韓流聖地</em>',
     sub: '韓劇拍攝地、明星到訪處、電影取景地<br>全部集中在一張地圖，打造專屬路線',
     btn: '打開聖地地圖',
-    skip: '✕ 今天不再顯示'
+    skip: '✕ 今天不再顯示',
+    stamps: ['韓劇','韓星','電影','美食']
   },
   es: {
     eyebrow: 'K-Drama · K-Star · K-Cine · K-Food',
     title: 'Camina por los<br><em>lugares del Hallyu</em>',
     sub: 'Locaciones de dramas, lugares visitados por estrellas<br>y sets de películas — todo en un mapa con rutas',
     btn: 'Abrir mapa de peregrinación',
-    skip: '✕ Cerrar por hoy'
+    skip: '✕ Cerrar por hoy',
+    stamps: ['Drama','K-Star','Cine','Comida']
   }
 };
 
@@ -1617,6 +1623,11 @@ window.setOnboardLang = function(lang) {
   document.getElementById('onboardSub').innerHTML = data.sub;
   document.getElementById('onboardBtn').textContent = data.btn;
   document.getElementById('onboardSkip').textContent = data.skip;
+  if (data.stamps) {
+    document.querySelectorAll('.onboard-curator .stamp-label').forEach((el, i) => {
+      if (data.stamps[i]) el.textContent = data.stamps[i];
+    });
+  }
   // 선택된 언어 버튼 강조
   ['ko','en','ja','zh','tw','es'].forEach(l => {
     const btn = document.getElementById('lang' + l.charAt(0).toUpperCase() + l.slice(1));
