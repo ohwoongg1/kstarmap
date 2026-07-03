@@ -676,6 +676,9 @@ input[type=range].m-radius-input{width:100%;height:4px;accent-color:var(--gold);
 .gb .gb-tx{font-size:11.5px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 a.gb,a.gb:visited,a.gb:hover{color:var(--text2);text-decoration:none}
 .gb.gb-on{border-color:var(--gold);color:var(--gold);background:var(--gold-bg)}
+.more-lang{padding:11px 4px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s ease}
+.more-lang:active{transform:scale(.94)}
+.more-lang.on{border-color:var(--gold);color:var(--gold);background:var(--gold-bg);font-weight:700}
 .rest-actions{display:none;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .rest-actions.open{display:grid}
 .rest-name-arrow{display:inline-block;font-size:10px;color:var(--text3);margin-left:4px;transition:transform .2s}
@@ -1000,6 +1003,28 @@ input::placeholder{color:var(--text3) !important;opacity:1}
   <div class="pnav" onclick="setPage('saved',this)">
     <i class="ti ti-heart" style="font-size:18px"></i>
     <span>저장</span>
+  </div>
+  <div class="pnav" onclick="openMoreMenu()">
+    <i class="ti ti-menu-2" style="font-size:18px"></i>
+    <span>더보기</span>
+  </div>
+</div>
+
+<!-- ── 더보기 메뉴 시트 ── -->
+<div id="moreMenuOverlay" style="display:none;position:fixed;inset:0;z-index:9998;flex-direction:column;justify-content:flex-end" onclick="if(event.target===this)closeMoreMenu()">
+  <div style="flex:1;background:rgba(0,0,0,0.4)" onclick="closeMoreMenu()"></div>
+  <div style="background:var(--bg);border-radius:20px 20px 0 0;padding:18px 16px 40px">
+    <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>
+    <div id="moreMenuLangTitle" style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">언어 / Language</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px">
+      <button class="more-lang" data-lang="ko" onclick="setAppLang('ko')">🇰🇷 한국어</button>
+      <button class="more-lang" data-lang="en" onclick="setAppLang('en')">🇺🇸 English</button>
+      <button class="more-lang" data-lang="ja" onclick="setAppLang('ja')">🇯🇵 日本語</button>
+      <button class="more-lang" data-lang="zh" onclick="setAppLang('zh')">🇨🇳 中文</button>
+      <button class="more-lang" data-lang="tw" onclick="setAppLang('tw')">🇹🇼 繁體</button>
+      <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
+    </div>
+    <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
   </div>
 </div>
 
@@ -8319,6 +8344,31 @@ window.openKakaoSearch = function() {
 };
 
 // 맛집 카드 버튼 토글 (이름 탭)
+// ── 더보기 메뉴 ──
+window.openMoreMenu = function() {
+  const ov = document.getElementById('moreMenuOverlay');
+  if (!ov) return;
+  ov.style.display = 'flex';
+  const cur = localStorage.getItem('starspoon_lang') || 'en';
+  ov.querySelectorAll('.more-lang').forEach(b => b.classList.toggle('on', b.dataset.lang === cur));
+  const en = cur !== 'ko';
+  const soon = document.getElementById('moreMenuSoon');
+  if (soon) soon.textContent = en ? '✨ Community board & more coming soon' : '✨ 게시판 등 새 기능 준비 중';
+};
+window.closeMoreMenu = function() {
+  const ov = document.getElementById('moreMenuOverlay');
+  if (ov) ov.style.display = 'none';
+};
+window.setAppLang = function(lang) {
+  localStorage.setItem('starspoon_lang', lang);
+  if (window.applyUILang) window.applyUILang();
+  // 성지 리스트/pill 언어 즉시 반영
+  if (window._pilgrimLoaded && window.buildPilgrimContentBar && window.filterPilgrim) {
+    try { window.buildPilgrimContentBar(); window.filterPilgrim(); } catch(e) {}
+  }
+  window.closeMoreMenu();
+};
+
 // UI 정적 텍스트 언어 적용
 window.applyUILang = function() {
   const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
@@ -8327,7 +8377,7 @@ window.applyUILang = function() {
   const fmap = en ? {all:'🎬 All', drama:'📺 Drama', artist:'⭐ K-Star', movie:'🎥 Movie'}
                   : {all:'🎬 전체', drama:'📺 드라마', artist:'⭐ 한류스타', movie:'🎥 영화'};
   document.querySelectorAll('.p-filter').forEach(b => { const k=b.dataset.type; if (fmap[k]) b.textContent = fmap[k]; });
-  const navLabels = en ? ['Pilgrimage','Food Map','Course','Saved'] : ['성지순례','맛집지도','코스짜기','저장'];
+  const navLabels = en ? ['Pilgrimage','Food Map','Course','Saved','More'] : ['성지순례','맛집지도','코스짜기','저장','더보기'];
   document.querySelectorAll('.pnav span:last-child').forEach((el,i) => { if (navLabels[i]) el.textContent = navLabels[i]; });
   document.querySelectorAll('#pilgrimMap button').forEach(b => {
     if (b.textContent.includes('내 주변') || b.textContent.includes('Nearby')) b.textContent = en ? '📍 Nearby' : '📍 내 주변';
