@@ -3443,6 +3443,9 @@ function renderPilgrimList(items, append = false) {
         <button class="gb" onclick="event.stopPropagation();addToGlobalBasket({id:'${d._id}',name:'${placeName.replace(/'/g,"\\'")}',lat:${d.lat||0},lng:${d.lng||0},type:'pilgrim',icon:'${d.placeIcon||"📍"}',celeb:''})"><span class="gb-ic">🗺️</span><span class="gb-tx">코스담기</span></button>
         <button class="gb" onclick="event.stopPropagation();showNearbyRests(${d.lat||0},${d.lng||0},'${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">🍽️</span><span class="gb-tx">주변맛집</span></button>
         <button class="gb" onclick="event.stopPropagation();shareKakaoPilgrim('${d._id}','${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">💛</span><span class="gb-tx">공유</span></button>
+        ${d.addr ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📍</span><span class="detail-text">${d.addr}</span></div>` : ''}
+        ${d.operTime ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">🕐</span><span class="detail-text">${d.operTime}</span></div>` : ''}
+        ${d.tel ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📞</span><a class="detail-text detail-phone" href="tel:${String(d.tel).replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()">${d.tel}</a></div>` : ''}
       </div>
     </div>`;
   }).join('');
