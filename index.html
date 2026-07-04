@@ -1028,7 +1028,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.6</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.8</div>
   </div>
 </div>
 
@@ -4590,7 +4590,8 @@ window.setPage = function(page, el) {
       try {
         const c = map.getCenter();
         map.relayout();
-        map.setCenter(myLat && myLng ? new kakao.maps.LatLng(myLat, myLng) : c);
+        if (typeof mCoursePolyline !== 'undefined' && mCoursePolyline) map.setCenter(c);
+        else map.setCenter(myLat && myLng ? new kakao.maps.LatLng(myLat, myLng) : c);
       } catch(e) {}
     }, 100);
   }
@@ -6218,6 +6219,11 @@ window.confirmMCourse = function() {
   const places = nearestNeighborSort(_rawPlaces, mCourseBasePlace.lat, mCourseBasePlace.lng);
   if (!places.length) { showToast('장소를 먼저 선택해주세요'); return; }
   document.getElementById('mCourseOverlay').classList.remove('show');
+  // ★ 코스는 맛집지도 캔버스에 그려짐 → 그 페이지로 전환
+  if (typeof setPage === 'function') {
+    const navs = document.querySelectorAll('.pnav');
+    setPage('main', navs[1] || null);
+  }
 
   // 기존 코스 제거
   if (mCoursePolyline) { mCoursePolyline.setMap(null); mCoursePolyline = null; }
@@ -6267,6 +6273,8 @@ window.confirmMCourse = function() {
   // 상단 UI(검색바+큐레이터strip) 높이만큼 padding 확보
   const topPad = window.innerWidth <= 768 ? 140 : 80;
   map.setBounds(bounds, topPad);
+  // 탭 전환 relayout(100ms) 후 코스 범위 재적용
+  setTimeout(() => { try { map.relayout(); map.setBounds(bounds, topPad); } catch(e) {} }, 350);
 
   // 상단 UI 아래로 지도 살짝 내리기 (모바일에서 핀이 검색바에 가리지 않게)
   if (window.innerWidth <= 768) {
@@ -7270,6 +7278,14 @@ window.stopCourseAnim = function() {
 window.startCourseAnim = async function() {
   if (_animRunning) return;
   _animRunning = true;
+  // 다른 탭에서 실행했으면 맛집지도로 전환
+  const _ml = document.getElementById('mainLayout');
+  if (_ml && _ml.style.display === 'none' && typeof setPage === 'function') {
+    const navs = document.querySelectorAll('.pnav');
+    setPage('main', navs[1] || null);
+    await new Promise(r => setTimeout(r, 350));
+    try { map.relayout(); } catch(e) {}
+  }
   const btn = document.getElementById('courseAnimBtn');
   btn.disabled = true;
   btn.innerHTML = '⟳ 이동 중...';
@@ -7309,11 +7325,10 @@ window.startCourseAnim = async function() {
   const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="38" viewBox="0 0 36 42"><path d="M18 0C8 0 0 8 0 18c0 12 18 24 18 24S36 30 36 18C36 8 28 0 18 0z" fill="#1A1A18"/><text x="18" y="25" text-anchor="middle" font-size="13" fill="white">📍</text></svg>`;
   new kakao.maps.Marker({map, position:allPoints[0], image:new kakao.maps.MarkerImage('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(baseSvg), new kakao.maps.Size(32,38),{offset:new kakao.maps.Point(16,38)}), zIndex:5});
 
-  // 🥄 스푼 캐릭터 마커 (KStarMap brand!)
+  // ⭐ 별K 캐릭터 마커 (KStarMap brand!)
   const spoonSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">
-    <circle cx="28" cy="28" r="27" fill="#F59E0B" stroke="#fff" stroke-width="2.5"/>
-    <circle cx="28" cy="28" r="22" fill="#FFF9E6"/>
-    <text x="28" y="36" text-anchor="middle" font-size="24">🥄</text>
+    <path d="M28,2 L34.5,19.1 L52.7,20 L38.5,31.4 L43.3,49 L28,39 L12.7,49 L17.5,31.4 L3.3,20 L21.5,19.1 Z" fill="#F59E0B" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+    <text x="28" y="33" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff" font-family="Georgia,serif">K</text>
   </svg>`;
   _animMarker = new kakao.maps.Marker({
     map, position:allPoints[0],
