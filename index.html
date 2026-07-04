@@ -1028,7 +1028,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.3</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.4</div>
   </div>
 </div>
 
@@ -5578,7 +5578,7 @@ window.showToast = showToast;
 window.openNavigation = function(destName, destLat, destLng) {
   const naverAppUrl = `nmap://route/walk?dlat=${destLat}&dlng=${destLng}&dname=${encodeURIComponent(destName)}&appname=kstarmap`;
   const naverWebUrl = `https://map.naver.com/p/directions/-/-/${destLng},${destLat},${encodeURIComponent(destName)},PLACE_POI/-/walk`;
-  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}`;
+  const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destName)}%20${destLat},${destLng}`;
   showNavSheet(destName, naverAppUrl, naverWebUrl, googleUrl);
 };
 
@@ -5588,8 +5588,8 @@ function showNavSheet(destName, appUrl, webUrl, googleUrl) {
   if (existing) existing.remove();
   const ko = (localStorage.getItem('starspoon_lang') || 'en') === 'ko';
   const t = ko
-    ? {title:'\uD83D\uDDFA\uFE0F \uAE38\uCC3E\uAE30', naver:'\uB124\uC774\uBC84\uC9C0\uB3C4 \uC571\uC73C\uB85C \uAE38\uCC3E\uAE30', naverSub:'\uC571\uC774 \uC124\uCE58\uB41C \uACBD\uC6B0', google:'Google \uC9C0\uB3C4\uB85C \uAE38\uCC3E\uAE30', googleSub:'\uC804 \uC138\uACC4 \uC5B4\uB514\uC11C\uB098', web:'\uC6F9\uC5D0\uC11C \uAE38\uCC3E\uAE30 (\uB124\uC774\uBC84)', close:'\u2715 \uB2EB\uAE30'}
-    : {title:'\uD83D\uDDFA\uFE0F Directions', naver:'Open in Naver Map app', naverSub:'If installed', google:'Open in Google Maps', googleSub:'Works worldwide', web:'Naver Map on web', close:'\u2715 Close'};
+    ? {title:'\uD83D\uDDFA\uFE0F \uAE38\uCC3E\uAE30', naver:'\uB124\uC774\uBC84\uC9C0\uB3C4 \uC571\uC73C\uB85C \uAE38\uCC3E\uAE30', naverSub:'\uC571\uC774 \uC124\uCE58\uB41C \uACBD\uC6B0', google:'Google \uC9C0\uB3C4\uC5D0\uC11C \uC7A5\uC18C \uBCF4\uAE30', googleSub:'\uC0AC\uC9C4\u00B7\uB9AC\uBDF0\u00B7\uC601\uC5C5\uC2DC\uAC04 \uD655\uC778 \uD6C4 \uAE38\uCC3E\uAE30', web:'\uC6F9\uC5D0\uC11C \uAE38\uCC3E\uAE30 (\uB124\uC774\uBC84)', close:'\u2715 \uB2EB\uAE30'}
+    : {title:'\uD83D\uDDFA\uFE0F Directions', naver:'Open in Naver Map app', naverSub:'If installed', google:'View place on Google Maps', googleSub:'Photos, reviews, hours \u2014 then navigate', web:'Naver Map on web', close:'\u2715 Close'};
 
   const sheet = document.createElement('div');
   sheet.id = 'navSheet';
