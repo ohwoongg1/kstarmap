@@ -3545,17 +3545,20 @@ function renderPilgrimPinsInView() {
   if (!_pilgrimMap) return;
   const src = _pilgrimSearchQ ? _pilgrimSearchResults : _pilgrimFiltered;
   if (!src || !src.length) return;
-  let bounds;
-  try { bounds = _pilgrimMap.getBounds(); } catch(e) { return; }
+  let bounds, center;
+  try { bounds = _pilgrimMap.getBounds(); center = _pilgrimMap.getCenter(); } catch(e) { return; }
+  const clat = center.getLat(), clng = center.getLng();
   const inView = [];
   for (const d of src) {
     if (!d.lat || !d.lng) continue;
     if (bounds.contain(new kakao.maps.LatLng(d.lat, d.lng))) {
+      // 지도 중심에서의 거리로 정렬해 중심 주변부터 고르게 표시
+      d._cdist = (d.lat - clat) * (d.lat - clat) + (d.lng - clng) * (d.lng - clng);
       inView.push(d);
-      if (inView.length >= 150) break;
     }
   }
-  renderPilgrimPins(inView);
+  inView.sort((a, b) => a._cdist - b._cdist);
+  renderPilgrimPins(inView.slice(0, 150));
 }
 window.renderPilgrimPinsInView = renderPilgrimPinsInView;
 
