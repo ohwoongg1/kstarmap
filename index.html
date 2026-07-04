@@ -3404,7 +3404,7 @@ function buildPilgrimContentBar() {
 // 더보기 페이지
 let _pilgrimPage = 0;
 const PILGRIM_PER_PAGE = 30;
-let _pilgrimSearchQ = '';
+let _pilgrimSearchQ = ''; try { Object.defineProperty(window,'_pilgrimSearchQ',{get:()=>_pilgrimSearchQ}); } catch(e) {}
 let _pilgrimSearchResults = [];
 
 // 리스트 렌더 (페이지네이션)
@@ -7903,18 +7903,25 @@ window.switchResultTab = switchResultTab;
 window.loadPilgrimData = async function() {
   const listBody = document.getElementById('pilgrimListBody');
   if (listBody) listBody.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text3);font-size:13px"><div style="font-size:32px;margin-bottom:8px">🎬</div>성지 데이터 불러오는 중...</div>';
-  try {
-    // 이미 import된 collection, getDocs, query, limit 직접 사용
-    const q = query(collection(db, 'pilgrimages'), limit(9999));
-    const snap = await getDocs(q);
-    window._pilgrimData = snap.docs.map(d => ({...d.data(), _id: d.id}));
+  const applyData = (docs, isFull) => {
+    window._pilgrimData = docs.map(d => ({...d.data(), _id: d.id}));
     window._pilgrimLoaded = true;
-    if (window.showToast) showToast('🎬 성지 ' + window._pilgrimData.length + '곳 로드 완료!');
-    // 일반 스크립트 변수에 동기화 (핵심!)
     if (window.syncPilgrimVars) window.syncPilgrimVars();
     if (window.buildPilgrimContentBar) window.buildPilgrimContentBar();
-    if (window.filterPilgrim) window.filterPilgrim();
+    // 사용자가 검색 중이면 검색 결과를 전체 데이터로 재실행, 아니면 필터 재적용
+    const sq = window._pilgrimSearchQ || '';
+    if (isFull && sq && window.doPilgrimSearch) window.doPilgrimSearch(sq);
+    else if (window.filterPilgrim) window.filterPilgrim();
+  };
+  try {
+    // 1단계: 500개만 빨리 받아 즉시 표시
+    const snap1 = await getDocs(query(collection(db, 'pilgrimages'), limit(500)));
+    applyData(snap1.docs, false);
     setTimeout(() => { try { window._pilgrimMap && window._pilgrimMap.relayout(); } catch(e) {} }, 100);
+    // 2단계: 전체를 백그라운드로 받아 교체
+    const snap2 = await getDocs(query(collection(db, 'pilgrimages'), limit(9999)));
+    applyData(snap2.docs, true);
+    if (window.showToast) showToast('🎬 성지 ' + window._pilgrimData.length + '곳 로드 완료!');
   } catch(e) {
     console.error('pilgrim 로드 오류:', e);
     const lb = document.getElementById('pilgrimListBody');
