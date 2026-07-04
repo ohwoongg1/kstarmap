@@ -1028,7 +1028,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.5</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.6</div>
   </div>
 </div>
 
@@ -1326,7 +1326,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <div class="m-course-footer-info" id="mCourseSelectedInfo">장소를 선택해주세요</div>
     </div>
     <div class="m-course-body" id="mCourseBody">
-      <div class="m-course-empty"><i class="ti ti-map-pin" style="font-size:36px;display:block;margin-bottom:10px;opacity:0.25"></i>기준 장소를 검색하면<br>주변 맛집·명소가 카테고리별로 나와요!</div>
+      <div class="m-course-empty"><i class="ti ti-map-pin" style="font-size:36px;display:block;margin-bottom:10px;opacity:0.25"></i>기준 장소를 검색하면<br>주변 성지·맛집·명소가 카테고리별로 나와요!</div>
     </div>
   </div>
 </div>
@@ -5877,7 +5877,7 @@ window.clearMCourseInput = function() {
   if (inp) inp.value = '';
   if (clearBtn) clearBtn.style.display = 'none';
   document.getElementById('mCourseBody').innerHTML =
-    '<div class="m-course-empty"><i class="ti ti-map-pin" style="font-size:36px;display:block;margin-bottom:10px;opacity:0.25"></i>기준 장소를 검색하면<br>주변 맛집·명소가 카테고리별로 나와요!</div>';
+    '<div class="m-course-empty"><i class="ti ti-map-pin" style="font-size:36px;display:block;margin-bottom:10px;opacity:0.25"></i>기준 장소를 검색하면<br>주변 성지·맛집·명소가 카테고리별로 나와요!</div>';
   mCourseBasePlace = null;
   mCourseSelected = {};
   window._mCoursePlaces = {};
@@ -5890,7 +5890,7 @@ window.resetMCourse = function() {
   document.getElementById('mCourseInput').value = '';
   const c = document.getElementById('mCourseInputClear');
   if (c) c.style.display = 'none';
-  document.getElementById('mCourseBody').innerHTML = '<div class="m-course-empty"><i class="ti ti-map-pin" style="font-size:36px;display:block;margin-bottom:10px;opacity:0.25"></i>기준 장소를 검색하면<br>주변 맛집·명소가 카테고리별로 나와요!</div>';
+  document.getElementById('mCourseBody').innerHTML = '<div class="m-course-empty"><i class="ti ti-map-pin" style="font-size:36px;display:block;margin-bottom:10px;opacity:0.25"></i>기준 장소를 검색하면<br>주변 성지·맛집·명소가 카테고리별로 나와요!</div>';
   mCourseBasePlace = null;
   mCourseSelected = {};
   window._mCoursePlaces = {};
@@ -5957,6 +5957,11 @@ async function loadMCourseData() {
   }
   updateMCourseFooter();
 
+  // 성지 데이터가 아직 없으면 먼저 로드 (앱 부팅 시 대부분 이미 로드됨)
+  if ((!window._pilgrimData || !window._pilgrimData.length) && window.loadPilgrimData) {
+    try { await window.loadPilgrimData(); } catch(e) {}
+  }
+
   const center = new kakao.maps.LatLng(mCourseBasePlace.lat, mCourseBasePlace.lng);
   const ps = new kakao.maps.services.Places();
 
@@ -5980,6 +5985,29 @@ async function loadMCourseData() {
   }).sort((a,b) => a._mCourseDist - b._mCourseDist);
 
   let sectionsHTML = '';
+
+  // ── 성지 (드라마/한류스타/영화) — 반경 내 항목을 작품/배우 칩으로 필터 ──
+  const pAll = (window._pilgrimData || []).map(d => {
+    if (!d.lat || !d.lng) return null;
+    const dlat = d.lat - mCourseBasePlace.lat, dlng = d.lng - mCourseBasePlace.lng;
+    const dist = Math.sqrt(dlat*dlat + dlng*dlng) * 111320;
+    if (dist > mCourseRadius) return null;
+    return {
+      id: 'pil_' + d._id, name: d.placeName || d.title || '',
+      sub: (d.title || '') + ' · ' + (d.area || ''),
+      dist: Math.round(dist), badge: 'badge-star',
+      badgeText: d.mediaType === 'artist' ? '한류스타' : d.mediaType === 'movie' ? '영화' : '드라마',
+      lat: d.lat, lng: d.lng, type: 'pilgrim',
+      _title: d.title || '', _actors: d.actors || [],
+      _mt: (d.mediaType === 'artist' || d.mediaType === 'movie') ? d.mediaType : 'drama'
+    };
+  }).filter(Boolean).sort((a, b) => a.dist - b.dist);
+
+  const pGroups = [['drama','📺','드라마 촬영지'],['artist','⭐','한류스타 방문지'],['movie','🎥','영화 촬영지']];
+  for (const [gk, gem, glb] of pGroups) {
+    const gi = pAll.filter(x => x._mt === gk);
+    if (gi.length) sectionsHTML += buildMCoursePilgrimSection(gem, glb, gk, gi);
+  }
 
   if (starItems.length) {
     sectionsHTML += buildMCourseSection('⭐', '스타 맛집', starItems.map(d => ({
@@ -6020,24 +6048,76 @@ async function loadMCourseData() {
   body.innerHTML = sectionsHTML;
 }
 
+function mCoursePlaceItemHTML(item) {
+  const distStr = item.dist < 1000 ? item.dist + 'm' : (item.dist/1000).toFixed(1) + 'km';
+  const isOn = mCourseSelected[item.id];
+  const safeId = item.id.replace(/'/g, '_');
+  window._mCoursePlaces = window._mCoursePlaces || {};
+  window._mCoursePlaces[safeId] = item;
+  return `<div class="m-course-place-item" onclick="toggleMCoursePlace('${safeId}')">
+    <div class="m-course-place-cb${isOn ? ' on' : ''}" id="mcb_${safeId}">
+      ${isOn ? '<i class="ti ti-check" style="font-size:12px;color:#fff"></i>' : ''}
+    </div>
+    <div class="m-course-place-info">
+      <div class="m-course-place-name">${item.name}</div>
+      <div class="m-course-place-sub">${item.sub} · ${distStr}</div>
+    </div>
+    <span class="m-course-place-badge ${item.badge}">${item.badgeText}</span>
+  </div>`;
+}
+
+function mcpListHTML(items) {
+  const cap = 25;
+  let h = items.slice(0, cap).map(mCoursePlaceItemHTML).join('');
+  if (items.length > cap) h += '<div style="text-align:center;font-size:11px;color:var(--text3);padding:6px 0">외 ' + (items.length - cap) + '곳 — 칩으로 좁혀보세요</div>';
+  return h;
+}
+
+// 성지 섹션: 작품/배우 칩 필터 포함
+function buildMCoursePilgrimSection(emoji, label, groupKey, items) {
+  window._mCourseP = window._mCourseP || {};
+  window._mCourseP[groupKey] = items;
+  const tCnt = {}, aCnt = {};
+  items.forEach(d => {
+    if (d._title) tCnt[d._title] = (tCnt[d._title] || 0) + 1;
+    (d._actors || []).forEach(a => { aCnt[a] = (aCnt[a] || 0) + 1; });
+  });
+  const topT = Object.entries(tCnt).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const topA = groupKey === 'artist' ? [] : Object.entries(aCnt).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const chipDefs = [{kind:'', val:'', label:'전체'}];
+  topT.forEach(([t,c]) => chipDefs.push({kind:'title', val:t, label:(t.length>10?t.slice(0,10)+'…':t)+' '+c}));
+  topA.forEach(([a,c]) => chipDefs.push({kind:'actor', val:a, label:'👤'+a+' '+c}));
+  window._mCoursePChips = window._mCoursePChips || {};
+  window._mCoursePChips[groupKey] = chipDefs;
+  const chipsHTML = chipDefs.map((c, i) =>
+    `<button class="m-course-dist-chip${i===0?' on':''}" style="white-space:nowrap;flex-shrink:0" onclick="filterMCourseP('${groupKey}',${i},this)">${c.label}</button>`
+  ).join('');
+  return `<div class="m-course-cat-section">
+    <div class="m-course-cat-hd">
+      <span class="m-course-cat-hd-left">${emoji} ${label} <span class="m-course-cat-count">(${items.length})</span></span>
+    </div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch">${chipsHTML}</div>
+    <div id="mcp_list_${groupKey}">${mcpListHTML(items)}</div>
+  </div>`;
+}
+
+window.filterMCourseP = function(groupKey, chipIdx, el) {
+  const items = (window._mCourseP || {})[groupKey] || [];
+  const chip = ((window._mCoursePChips || {})[groupKey] || [])[chipIdx];
+  if (!chip) return;
+  const f = !chip.kind ? items
+    : chip.kind === 'title' ? items.filter(d => d._title === chip.val)
+    : items.filter(d => (d._actors || []).includes(chip.val));
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll('.m-course-dist-chip').forEach(b => b.classList.remove('on'));
+    el.classList.add('on');
+  }
+  const c = document.getElementById('mcp_list_' + groupKey);
+  if (c) c.innerHTML = mcpListHTML(f);
+};
+
 function buildMCourseSection(emoji, label, items) {
-  const itemsHTML = items.map(item => {
-    const distStr = item.dist < 1000 ? item.dist + 'm' : (item.dist/1000).toFixed(1) + 'km';
-    const isOn = mCourseSelected[item.id];
-    const safeId = item.id.replace(/'/g, '_');
-    window._mCoursePlaces = window._mCoursePlaces || {};
-    window._mCoursePlaces[safeId] = item;
-    return `<div class="m-course-place-item" onclick="toggleMCoursePlace('${safeId}')">
-      <div class="m-course-place-cb${isOn ? ' on' : ''}" id="mcb_${safeId}">
-        ${isOn ? '<i class="ti ti-check" style="font-size:12px;color:#fff"></i>' : ''}
-      </div>
-      <div class="m-course-place-info">
-        <div class="m-course-place-name">${item.name}</div>
-        <div class="m-course-place-sub">${item.sub} · ${distStr}</div>
-      </div>
-      <span class="m-course-place-badge ${item.badge}">${item.badgeText}</span>
-    </div>`;
-  }).join('');
+  const itemsHTML = items.map(mCoursePlaceItemHTML).join('');
 
   return `<div class="m-course-cat-section">
     <div class="m-course-cat-hd">
