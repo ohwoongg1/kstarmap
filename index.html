@@ -1028,7 +1028,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.1</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.2</div>
   </div>
 </div>
 
@@ -3448,7 +3448,7 @@ function renderPilgrimList(items, append = false) {
         <button class="gb" onclick="event.stopPropagation();showNearbyRests(${d.lat||0},${d.lng||0},'${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">🍽️</span><span class="gb-tx">${_enB?'Food Nearby':'주변맛집'}</span></button>
         <button class="gb" onclick="event.stopPropagation();shareKakaoPilgrim('${d._id}','${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">💛</span><span class="gb-tx">${_enB?'Share':'공유'}</span></button>
         ${d.addr ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📍</span><span class="detail-text">${d.addr}</span></div>` : ''}
-        ${d.operTime ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">🕐</span><span class="detail-text">${d.operTime}</span></div>` : ''}
+        ${d.operTime ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">🕐</span><span class="detail-text">${_enB && window.convertOperTimeEn ? convertOperTimeEn(d.operTime) : d.operTime}</span></div>` : ''}
         ${d.tel ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📞</span><a class="detail-text detail-phone" href="tel:${String(d.tel).replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()">${d.tel}</a></div>` : ''}
       </div>
     </div>`;
@@ -3658,6 +3658,21 @@ window.showNearbyRests = function(lat, lng, placeName) {
 // 카카오 공유
 window.shareKakaoPilgrim = function(id, name) {
   const shareUrl = 'https://www.kstarmap.com';
+  const _en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  if (_en) {
+    // 영어 모드: 폰 네이티브 공유 시트 (인스타/LINE/WhatsApp 등 자동)
+    if (navigator.share) {
+      navigator.share({
+        title: name + ' — KStarMap',
+        text: '🎬 ' + name + ' — K-drama & K-star pilgrimage spot. Find it on KStarMap!',
+        url: shareUrl
+      }).catch(() => {});
+    } else {
+      // 데스크톱 등 미지원 환경: 링크 복사
+      try { navigator.clipboard.writeText(shareUrl + ' — ' + name); if (window.showToast) showToast('🔗 Link copied!'); } catch(e) {}
+    }
+    return;
+  }
   safeKakaoShare({
     objectType: 'feed',
     content: {
@@ -8413,6 +8428,31 @@ window.setAppLang = function(lang) {
     try { window.buildPilgrimContentBar(); window.filterPilgrim(); } catch(e) {}
   }
   window.closeMoreMenu();
+};
+
+// 운영시간 한국어 → 영어 규칙 변환 ("매일 09시 - 21시" → "Daily 09:00 - 21:00")
+window.convertOperTimeEn = function(s) {
+  if (!s) return s;
+  let t = String(s);
+  // 오후 N시 → 24시간제
+  t = t.replace(/\uC624\uD6C4\s*(\d{1,2})\uC2DC\s*(\d{1,2})\uBD84/g, (m,h,mm) => (parseInt(h)<12?parseInt(h)+12:h)+':'+String(mm).padStart(2,'0'));
+  t = t.replace(/\uC624\uD6C4\s*(\d{1,2})\uC2DC/g, (m,h) => (parseInt(h)<12?parseInt(h)+12:h)+':00');
+  t = t.replace(/\uC624\uC804\s*(\d{1,2})\uC2DC\s*(\d{1,2})\uBD84/g, (m,h,mm) => String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'));
+  t = t.replace(/\uC624\uC804\s*(\d{1,2})\uC2DC/g, (m,h) => String(h).padStart(2,'0')+':00');
+  // N시 M분 / N시
+  t = t.replace(/(\d{1,2})\uC2DC\s*(\d{1,2})\uBD84/g, (m,h,mm) => String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'));
+  t = t.replace(/(\d{1,2})\uC2DC/g, (m,h) => String(h).padStart(2,'0')+':00');
+  // 요일/단어
+  const words = [
+    ['\uC5F0\uC911\uBB34\uD734','Open all year'],['\uB9E4\uC77C','Daily'],['\uD3C9\uC77C','Weekdays'],['\uC8FC\uB9D0','Weekends'],
+    ['\uACF5\uD734\uC77C','Holidays'],['\uC6D4\uC694\uC77C','Mon'],['\uD654\uC694\uC77C','Tue'],['\uC218\uC694\uC77C','Wed'],
+    ['\uBAA9\uC694\uC77C','Thu'],['\uAE08\uC694\uC77C','Fri'],['\uD1A0\uC694\uC77C','Sat'],['\uC77C\uC694\uC77C','Sun'],
+    ['\uC6D4','Mon'],['\uD654','Tue'],['\uC218','Wed'],['\uBAA9','Thu'],['\uAE08','Fri'],['\uD1A0','Sat'],['\uC77C','Sun'],
+    ['\uD734\uBB34','Closed'],['\uD734\uC28D','Break'],['\uBE0C\uB808\uC774\uD06C\uD0C0\uC784','Break'],
+    ['\uB77C\uC2A4\uD2B8\uC624\uB354','Last order'],['\uC0C1\uC2DC\uAC1C\uBC29','Always open'],['\uBD80\uD130','from'],['\uAE4C\uC9C0','to']
+  ];
+  for (const [k,v] of words) t = t.split(k).join(v);
+  return t;
 };
 
 // UI 정적 텍스트 언어 적용
