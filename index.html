@@ -1029,7 +1029,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.9</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.10</div>
   </div>
 </div>
 
@@ -1947,14 +1947,14 @@ function stopConfetti() {
 // ── 구글 로그인 ──
 window.loginWithGoogle = async function() {
   try {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isMobile) {
-      await signInWithRedirect(auth, googleProvider);
-      return;
-    }
+    // 모바일도 팝업 방식 (redirect는 사파리 ITP로 세션 유실됨)
     const result = await signInWithPopup(auth, googleProvider);
     await handleGoogleUser(result.user);
-  } catch(e) { showToast('로그인 실패: ' + e.message); }
+    if (window.showToast) showToast('✅ 로그인 완료!');
+  } catch(e) {
+    if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return;
+    showToast('로그인 실패: ' + e.message);
+  }
 };
 
 async function handleGoogleUser(user) {
