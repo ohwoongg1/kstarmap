@@ -1028,7 +1028,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.4</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.5</div>
   </div>
 </div>
 
@@ -3089,79 +3089,10 @@ function renderPins() {
       info.style.cssText = 'font-size:11px;color:#9A9A96;margin-bottom:10px';
       info.textContent = d.cat + ' · ' + d.area;
 
-      // 2열 버튼 그리드
-      const grid = document.createElement('div');
-      grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px';
 
-      const btnStyle2 = 'font-size:12px;border-radius:8px;padding:7px 6px;font-weight:600;text-align:center;text-decoration:none;display:block;cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1)';
-      const aKakao = document.createElement('a');
-      aKakao.href = '#';
-      aKakao.target = '_blank'; aKakao.textContent = '🟢 길찾기';
-      aKakao.style.cssText = btnStyle2 + ';color:#F59E0B;border:1.5px solid #F59E0B';
-      aKakao.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openNavigation(d.name, d.lat, d.lng); });
-      aKakao.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); openNavigation(d.name, d.lat, d.lng); }, {passive:false});
-
-      const ytQ = ['투스타','쓰리스타','대장','사령관'].includes(d.celeb) ? (d.celebs||[d.celeb]).join(' ')+' '+d.name : (d.celeb||'')+' '+d.name;
-      const aYt = document.createElement('a');
-      aYt.href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(ytQ);
-      aYt.target = '_blank'; aYt.textContent = '▶️ 영상';
-      aYt.style.cssText = btnStyle2 + ';color:#FF0000;border:1.5px solid #FF0000';
-
-      const aNaver = document.createElement('a');
-      aNaver.href = 'https://map.naver.com/p/search/' + encodeURIComponent(d.name + ' 예약');
-      aNaver.target = '_blank'; aNaver.textContent = '📅 예약';
-      aNaver.style.cssText = btnStyle2 + ';color:#03C75A;border:1.5px solid #03C75A';
-
-      const saveBtn = document.createElement('button');
-      saveBtn.style.cssText = btnStyle2 + ';background:none;cursor:pointer;border:1.5px solid ' + (isSaved?'#F59E0B':'#D4D3CF') + ';color:' + (isSaved?'#F59E0B':'#6B6B67');
-      saveBtn.textContent = isSaved ? '❤️ 저장됨' : '🤍 저장';
-      const doSave = (e) => { e.preventDefault(); e.stopPropagation(); toggleSave(d.id); saveBtn.textContent = savedList.includes(d.id)?'❤️ 저장됨':'🤍 저장'; };
-      saveBtn.addEventListener('click', doSave);
-      saveBtn.addEventListener('touchend', doSave, {passive:false});
-
-      grid.appendChild(aKakao); grid.appendChild(aYt);
-      grid.appendChild(aNaver); grid.appendChild(saveBtn);
-
-      // ★ 코스담기 버튼 (핵심 - 이스케이프 없이 클로저로 직접 참조)
-      const courseBtn = document.createElement('button');
-      courseBtn.style.cssText = 'width:100%;padding:9px;background:#F59E0B;border:none;border-radius:9px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:6px;-webkit-tap-highlight-color:rgba(0,0,0,0.1)';
-      courseBtn.textContent = '🗺️ 코스담기';
-      const doCourseAdd = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        addToGlobalBasket({id: d.id, name: d.name, lat: d.lat, lng: d.lng, type: 'star', icon: icon, celeb: d.celeb});
-        if(window._openPinPopup){window._openPinPopup.setMap(null);window._openPinPopup=null;}
-      };
-      courseBtn.addEventListener('click', doCourseAdd);
-      courseBtn.addEventListener('touchend', doCourseAdd, {passive:false});
-
-      // 하단 2버튼
-      const botGrid = document.createElement('div');
-      botGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:6px';
-      const kakaoBtn = document.createElement('button');
-      kakaoBtn.style.cssText = 'font-size:11px;color:#3A1D1D;border:1px solid #F0D000;border-radius:8px;padding:6px;background:#FEE500;cursor:pointer;font-weight:600;-webkit-tap-highlight-color:rgba(0,0,0,0.1)';
-      kakaoBtn.textContent = '💛 카카오공유';
-      const doKakao = (e) => { e.preventDefault(); e.stopPropagation(); shareKakaoPC(d.id); };
-      kakaoBtn.addEventListener('click', doKakao);;
-      kakaoBtn.addEventListener('touchend', doKakao, {passive:false});
-      const commentBtn = document.createElement('button');
-      commentBtn.style.cssText = 'font-size:11px;color:#6B6B67;border:1px solid #D4D3CF;border-radius:8px;padding:6px;background:none;cursor:pointer;font-weight:600;-webkit-tap-highlight-color:rgba(0,0,0,0.1)';
-      // ★ 댓글평점 → 식당정보(네이버) 교체
-      commentBtn.textContent = '🍽️ 식당정보';
-      commentBtn.style.cssText = 'font-size:11px;color:#03C75A;border:1px solid #03C75A;border-radius:8px;padding:6px;background:none;cursor:pointer;font-weight:600;-webkit-tap-highlight-color:rgba(0,0,0,0.1)';
-      const doInfo = (e) => {
-        e.preventDefault(); e.stopPropagation();
-        if(window._openPinPopup){window._openPinPopup.setMap(null);window._openPinPopup=null;}
-        openPlaceInfo(d.name, d.lat, d.lng);
-      };
-      commentBtn.addEventListener('click', doInfo);
-      commentBtn.addEventListener('touchend', doInfo, {passive:false});
-      botGrid.appendChild(kakaoBtn); botGrid.appendChild(commentBtn);
-
+      info.style.marginBottom = '2px';
       popupDiv.appendChild(closeBtn); popupDiv.appendChild(title);
       popupDiv.appendChild(who); popupDiv.appendChild(info);
-      popupDiv.appendChild(grid); popupDiv.appendChild(courseBtn);
-      popupDiv.appendChild(botGrid);
 
       const pinPopup = new kakao.maps.CustomOverlay({position: pos, content: popupDiv, yAnchor: 1.45, zIndex: 10});
       pinPopup.setMap(map);
@@ -3412,14 +3343,7 @@ let _pilgrimSearchQ = ''; try { Object.defineProperty(window,'_pilgrimSearchQ',{
 let _pilgrimSearchResults = [];
 
 // 리스트 렌더 (페이지네이션)
-function renderPilgrimList(items, append = false) {
-  const body = document.getElementById('pilgrimListBody');
-  if (!body) return;
-  if (!items.length && !append) {
-    body.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text3)">' + (((localStorage.getItem('starspoon_lang')||'en')!=='ko')?'No results':'결과가 없어요') + '</div>';
-    return;
-  }
-  const html = items.map(d => {
+function pilgrimCardHTML(d) {
     const badgeClass = d.mediaType === 'artist' ? 'p-badge-artist' : d.mediaType === 'movie' ? 'p-badge-movie' : 'p-badge-drama';
     const _enB = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
     const badgeText = _enB ? (d.mediaType === 'artist' ? 'K-Star' : d.mediaType === 'movie' ? 'Movie' : 'Drama') : (d.typeLabel || (d.mediaType === 'artist' ? '한류스타' : d.mediaType === 'movie' ? '영화' : '드라마'));
@@ -3452,7 +3376,16 @@ function renderPilgrimList(items, append = false) {
         ${d.tel ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📞</span><a class="detail-text detail-phone" href="tel:${String(d.tel).replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()">${d.tel}</a></div>` : ''}
       </div>
     </div>`;
-  }).join('');
+  }
+
+function renderPilgrimList(items, append = false) {
+  const body = document.getElementById('pilgrimListBody');
+  if (!body) return;
+  if (!items.length && !append) {
+    body.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text3)">' + (((localStorage.getItem('starspoon_lang')||'en')!=='ko')?'No results':'결과가 없어요') + '</div>';
+    return;
+  }
+  const html = items.map(pilgrimCardHTML).join('');
   if (append) {
     const moreBtn = body.querySelector('#pilgrimMoreBtn');
     if (moreBtn) moreBtn.remove();
@@ -3581,9 +3514,16 @@ function renderPilgrimPins(items) {
       title: d.placeName || ''
     });
     kakao.maps.event.addListener(marker, 'click', () => {
-      const card = document.getElementById('pcard-'+d._id);
-      if (card) card.scrollIntoView({behavior:'smooth', block:'center'});
-      togglePilgrimCard(d._id, card);
+      let card = document.getElementById('pcard-'+d._id);
+      if (!card) {
+        // 먼 곳 핀: 해당 카드를 리스트 맨 위에 생성
+        const body = document.getElementById('pilgrimListBody');
+        if (body) { body.insertAdjacentHTML('afterbegin', pilgrimCardHTML(d)); card = document.getElementById('pcard-'+d._id); }
+      }
+      if (card) {
+        card.scrollIntoView({behavior:'smooth', block:'center'});
+        togglePilgrimCard(d._id, card);
+      }
     });
     _pilgrimMarkers.push(marker);
   });
@@ -5576,8 +5516,8 @@ window.showToast = showToast;
 // ★ 현재위치 → 목적지 길찾기
 // 카카오맵: 현재위치 좌표 있으면 출발지 자동 설정
 window.openNavigation = function(destName, destLat, destLng) {
-  const naverAppUrl = `nmap://route/walk?dlat=${destLat}&dlng=${destLng}&dname=${encodeURIComponent(destName)}&appname=kstarmap`;
-  const naverWebUrl = `https://map.naver.com/p/directions/-/-/${destLng},${destLat},${encodeURIComponent(destName)},PLACE_POI/-/walk`;
+  const naverAppUrl = `nmap://place?lat=${destLat}&lng=${destLng}&name=${encodeURIComponent(destName)}&appname=kstarmap`;
+  const naverWebUrl = `https://map.naver.com/p/search/${encodeURIComponent(destName)}`;
   const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destName)}%20${destLat},${destLng}`;
   showNavSheet(destName, naverAppUrl, naverWebUrl, googleUrl);
 };
@@ -5588,8 +5528,8 @@ function showNavSheet(destName, appUrl, webUrl, googleUrl) {
   if (existing) existing.remove();
   const ko = (localStorage.getItem('starspoon_lang') || 'en') === 'ko';
   const t = ko
-    ? {title:'\uD83D\uDDFA\uFE0F \uAE38\uCC3E\uAE30', naver:'\uB124\uC774\uBC84\uC9C0\uB3C4 \uC571\uC73C\uB85C \uAE38\uCC3E\uAE30', naverSub:'\uC571\uC774 \uC124\uCE58\uB41C \uACBD\uC6B0', google:'Google \uC9C0\uB3C4\uC5D0\uC11C \uC7A5\uC18C \uBCF4\uAE30', googleSub:'\uC0AC\uC9C4\u00B7\uB9AC\uBDF0\u00B7\uC601\uC5C5\uC2DC\uAC04 \uD655\uC778 \uD6C4 \uAE38\uCC3E\uAE30', web:'\uC6F9\uC5D0\uC11C \uAE38\uCC3E\uAE30 (\uB124\uC774\uBC84)', close:'\u2715 \uB2EB\uAE30'}
-    : {title:'\uD83D\uDDFA\uFE0F Directions', naver:'Open in Naver Map app', naverSub:'If installed', google:'View place on Google Maps', googleSub:'Photos, reviews, hours \u2014 then navigate', web:'Naver Map on web', close:'\u2715 Close'};
+    ? {title:'\uD83D\uDDFA\uFE0F \uAE38\uCC3E\uAE30', naver:'\uB124\uC774\uBC84\uC9C0\uB3C4\uC5D0\uC11C \uC7A5\uC18C \uBCF4\uAE30', naverSub:'\uC7A5\uC18C \uD655\uC778 \uD6C4 \uC571\uC5D0\uC11C \uAE38\uCC3E\uAE30', google:'Google \uC9C0\uB3C4\uC5D0\uC11C \uC7A5\uC18C \uBCF4\uAE30', googleSub:'\uC0AC\uC9C4\u00B7\uB9AC\uBDF0\u00B7\uC601\uC5C5\uC2DC\uAC04 \uD655\uC778 \uD6C4 \uAE38\uCC3E\uAE30', web:'\uB124\uC774\uBC84 \uC6F9\uC5D0\uC11C \uC7A5\uC18C \uBCF4\uAE30', close:'\u2715 \uB2EB\uAE30'}
+    : {title:'\uD83D\uDDFA\uFE0F Directions', naver:'View place on Naver Map', naverSub:'Check the place, then navigate', google:'View place on Google Maps', googleSub:'Photos, reviews, hours \u2014 then navigate', web:'Naver Map on web', close:'\u2715 Close'};
 
   const sheet = document.createElement('div');
   sheet.id = 'navSheet';
