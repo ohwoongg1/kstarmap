@@ -1014,8 +1014,11 @@ input::placeholder{color:var(--text3) !important;opacity:1}
 <div id="moreMenuOverlay" style="display:none;position:fixed;inset:0;z-index:9998;flex-direction:column;justify-content:flex-end" onclick="if(event.target===this)closeMoreMenu()">
   <div style="flex:1;background:rgba(0,0,0,0.4)" onclick="closeMoreMenu()"></div>
   <div style="background:var(--bg);border-radius:20px 20px 0 0;padding:18px 16px 40px">
-    <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>
-    <div id="moreMenuLangTitle" style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">언어 / Language</div>
+    <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 4px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div id="moreMenuLangTitle" style="font-size:13px;font-weight:700;color:var(--text2)">언어 / Language</div>
+      <button onclick="closeMoreMenu()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;padding:4px 8px;line-height:1;-webkit-tap-highlight-color:transparent">✕</button>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px">
       <button class="more-lang" data-lang="ko" onclick="setAppLang('ko')">🇰🇷 한국어</button>
       <button class="more-lang" data-lang="en" onclick="setAppLang('en')">🇺🇸 English</button>
