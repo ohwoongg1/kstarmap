@@ -659,7 +659,7 @@ input[type=range].m-radius-input{width:100%;height:4px;accent-color:var(--gold);
 .p-card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
 .p-card-sub{font-size:11px;color:var(--text3)}
 .p-card-story{font-size:12px;color:var(--text2);line-height:1.5;margin-top:6px;padding:6px 10px;background:var(--bg2);border-radius:6px;border-left:3px solid var(--gold)}
-.p-card-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;display:none}
+.p-card-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;display:none}
 .p-card-actions.open{display:grid}
 /* ── gb 타일 버튼 (아이콘 위 + 라벨 아래, 중립 카드) ── */
 .gb{
@@ -676,6 +676,7 @@ input[type=range].m-radius-input{width:100%;height:4px;accent-color:var(--gold);
 .gb .gb-tx{font-size:11.5px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 a.gb,a.gb:visited,a.gb:hover{color:var(--text2);text-decoration:none}
 .gb.gb-on{border-color:var(--gold);color:var(--gold);background:var(--gold-bg)}
+.gb.gb-love{border-color:#EF4444;color:#EF4444;background:rgba(239,68,68,0.08)}
 .more-lang{padding:11px 4px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s ease}
 .more-lang:active{transform:scale(.94)}
 .more-lang.on{border-color:var(--gold);color:var(--gold);background:var(--gold-bg);font-weight:700}
@@ -1029,7 +1030,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.10</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.11</div>
   </div>
 </div>
 
@@ -2903,11 +2904,11 @@ function renderList() {
       </div>
       <div class="rest-actions" id="ractions-${d.id}">
         <a class="gb" href="#" onclick="event.preventDefault();event.stopPropagation();openNavigation('${d.name.replace(/'/g,"\\'")}',${d.lat},${d.lng})"><span class="gb-ic">🗺️</span><span class="gb-tx">길찾기</span></a>
-        <button class="gb" onclick="event.stopPropagation();toggleSave('${d.id}')"><span class="gb-ic">${isSaved?'❤️':'🤍'}</span><span class="gb-tx">${isSaved?'저장됨':'저장'}</span></button>
+        <button class="gb${isSaved?' gb-love':''}" onclick="event.stopPropagation();toggleSave('${d.id}')"><span class="gb-ic">${isSaved?'❤️':'🤍'}</span><span class="gb-tx">${isSaved?'저장됨':'저장'}</span></button>
         <a class="gb" href="${d.yt || 'https://www.youtube.com/results?search_query='+encodeURIComponent((d.celeb||'')+' '+d.name)}" target="_blank" onclick="event.stopPropagation();logVideoClick(d.celeb,d.name,d.id)"><span class="gb-ic">▶️</span><span class="gb-tx">영상</span></a>
         <button class="gb" onclick="event.stopPropagation();addCardToCourse('${d.id}','${d.name.replace(/'/g,"\\'")}',${d.lat},${d.lng},'${d.celeb}')"><span class="gb-ic">🗺️</span><span class="gb-tx">코스담기</span></button>
         <button class="gb" onclick="event.stopPropagation();openPlaceInfo('${d.name.replace(/'/g,"\\'")}',${d.lat},${d.lng})"><span class="gb-ic">🍽️</span><span class="gb-tx">식당정보</span></button>
-        <button class="gb" onclick="event.stopPropagation();shareKakaoPC('${d.id}')"><span class="gb-ic">💛</span><span class="gb-tx">공유</span></button>
+        <button class="gb" onclick="event.stopPropagation();shareKakaoPC('${d.id}')"><span class="gb-ic">📤</span><span class="gb-tx">공유</span></button>
         ${d.address ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📍</span><span class="detail-text">${d.address}</span></div>` : ''}
         ${d.phone ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📞</span><a class="detail-text detail-phone" href="tel:${d.phone}" onclick="event.stopPropagation()">${d.phone}</a></div>` : ''}
       </div>
@@ -3373,10 +3374,11 @@ function pilgrimCardHTML(d) {
       </div>
       ${story ? `<div class="p-card-story">"${story}"</div>` : ''}
       <div class="p-card-actions" id="pactions-${d._id}">
-        <a class="gb" href="#" onclick="event.preventDefault();event.stopPropagation();openNavigation('${placeName.replace(/'/g,"\\'")}',${d.lat||0},${d.lng||0})"><span class="gb-ic">🗺️</span><span class="gb-tx">${_enB?'Directions':'길찾기'}</span></a>
+        <button class="gb${isPlaceSaved('pil_'+d._id)?' gb-love':''}" id="psave-${d._id}" onclick="event.stopPropagation();togglePilgrimSaveById('${d._id}',this)"><span class="gb-ic">${isPlaceSaved('pil_'+d._id)?'❤️':'🤍'}</span><span class="gb-tx">${isPlaceSaved('pil_'+d._id)?(_enB?'Saved':'저장됨'):(_enB?'Save':'저장')}</span></button>
+        <a class="gb" href="#" onclick="event.preventDefault();event.stopPropagation();openNavigation('${placeName.replace(/'/g,"\\'")}',${d.lat||0},${d.lng||0})"><span class="gb-ic">🧭</span><span class="gb-tx">${_enB?'Directions':'길찾기'}</span></a>
         <button class="gb" onclick="event.stopPropagation();addToGlobalBasket({id:'${d._id}',name:'${placeName.replace(/'/g,"\\'")}',lat:${d.lat||0},lng:${d.lng||0},type:'pilgrim',icon:'${d.placeIcon||"📍"}',celeb:''})"><span class="gb-ic">🗺️</span><span class="gb-tx">${_enB?'Add to Course':'코스담기'}</span></button>
         <button class="gb" onclick="event.stopPropagation();showNearbyRests(${d.lat||0},${d.lng||0},'${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">🍽️</span><span class="gb-tx">${_enB?'Food Nearby':'주변맛집'}</span></button>
-        <button class="gb" onclick="event.stopPropagation();shareKakaoPilgrim('${d._id}','${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">💛</span><span class="gb-tx">${_enB?'Share':'공유'}</span></button>
+        <button class="gb" onclick="event.stopPropagation();shareKakaoPilgrim('${d._id}','${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">📤</span><span class="gb-tx">${_enB?'Share':'공유'}</span></button>
         ${d.addr ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📍</span><span class="detail-text">${_enB && d.addr_en ? d.addr_en : d.addr}</span></div>` : ''}
         ${d.operTime ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">🕐</span><span class="detail-text">${_enB && window.convertOperTimeEn ? convertOperTimeEn(d.operTime) : d.operTime}</span></div>` : ''}
         ${d.tel ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📞</span><a class="detail-text detail-phone" href="tel:${String(d.tel).replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()">${d.tel}</a></div>` : ''}
@@ -3468,6 +3470,27 @@ window.clearPilgrimSearch = function() {
 
 // 카드 탭 → 버튼 토글
 let _lastPToggle = {};
+window.togglePilgrimSaveById = function(pid, btn) {
+  const d = (window._pilgrimData || []).find(x => x._id === pid);
+  if (!d) return;
+  const _en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  const item = {
+    id: 'pil_' + pid,
+    name: d.placeName || d.title || '',
+    lat: d.lat || 0, lng: d.lng || 0,
+    icon: d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎥' : '📺',
+    sub: (d.title || '') + (d.area ? ' · ' + d.area : ''),
+    type: 'pilgrim'
+  };
+  toggleLocalPlace(item);
+  const saved = isPlaceSaved('pil_' + pid);
+  if (btn) {
+    btn.classList.toggle('gb-love', saved);
+    const ic = btn.querySelector('.gb-ic'), tx = btn.querySelector('.gb-tx');
+    if (ic) ic.textContent = saved ? '❤️' : '🤍';
+    if (tx) tx.textContent = saved ? (_en?'Saved':'저장됨') : (_en?'Save':'저장');
+  }
+};
 window.togglePilgrimCard = function(id, cardEl) {
   const now = Date.now();
   if (_lastPToggle[id] && now - _lastPToggle[id] < 300) return;
