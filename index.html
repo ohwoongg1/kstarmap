@@ -1028,7 +1028,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.2</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.3</div>
   </div>
 </div>
 
@@ -3447,7 +3447,7 @@ function renderPilgrimList(items, append = false) {
         <button class="gb" onclick="event.stopPropagation();addToGlobalBasket({id:'${d._id}',name:'${placeName.replace(/'/g,"\\'")}',lat:${d.lat||0},lng:${d.lng||0},type:'pilgrim',icon:'${d.placeIcon||"📍"}',celeb:''})"><span class="gb-ic">🗺️</span><span class="gb-tx">${_enB?'Add to Course':'코스담기'}</span></button>
         <button class="gb" onclick="event.stopPropagation();showNearbyRests(${d.lat||0},${d.lng||0},'${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">🍽️</span><span class="gb-tx">${_enB?'Food Nearby':'주변맛집'}</span></button>
         <button class="gb" onclick="event.stopPropagation();shareKakaoPilgrim('${d._id}','${placeName.replace(/'/g,"\\'")}')"><span class="gb-ic">💛</span><span class="gb-tx">${_enB?'Share':'공유'}</span></button>
-        ${d.addr ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📍</span><span class="detail-text">${d.addr}</span></div>` : ''}
+        ${d.addr ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📍</span><span class="detail-text">${_enB && d.addr_en ? d.addr_en : d.addr}</span></div>` : ''}
         ${d.operTime ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">🕐</span><span class="detail-text">${_enB && window.convertOperTimeEn ? convertOperTimeEn(d.operTime) : d.operTime}</span></div>` : ''}
         ${d.tel ? `<div class="detail-row" style="grid-column:1/-1"><span class="detail-icon">📞</span><a class="detail-text detail-phone" href="tel:${String(d.tel).replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()">${d.tel}</a></div>` : ''}
       </div>
