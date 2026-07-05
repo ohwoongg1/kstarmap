@@ -6711,23 +6711,28 @@ async function renderSavedRests() {
   }
   body.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>';
 
-  // DATA에 없는 것 Firebase에서 상세정보 포함해서 로드
+ // DATA에 없는 것 Firebase에서 상세정보 포함해서 로드 (병렬 + 타임아웃)
   const notInData = savedList.filter(id => !DATA.find(d => d.id === id));
   let extraData = [];
-  for (const id of notInData.slice(0, 50)) {
+  const results = await Promise.all(notInData.slice(0, 50).map(async (id) => {
     try {
-      const snap = await getDoc(doc(db, 'restaurants', id));
+      const snap = await Promise.race([
+        getDoc(doc(db, 'restaurants', id)),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+      ]);
       if (snap.exists()) {
         const r = snap.data();
-        extraData.push({
+        return {
           id: snap.id, name: r.name||'', celeb: r.celeb||'',
           cat: r.category||r.cat||'', area: r.area||'',
           lat: r.lat||0, lng: r.lng||0, yt: r.video_url||r.yt||'',
           address: r.address||'', avgRating: r.avgRating||0
-        });
+        };
       }
     } catch(e) {}
-  }
+    return null;
+  }));
+  extraData = results.filter(Boolean);
   const allD = [...DATA, ...extraData];
   const items = savedList.map(id => allD.find(d => d.id === id)).filter(Boolean);
   if (!items.length) {
