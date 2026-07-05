@@ -750,8 +750,8 @@ input::placeholder{color:var(--text3) !important;opacity:1}
     border-radius:20px 20px 0 0;
     box-shadow:0 -4px 20px rgba(0,0,0,0.12);
     display:flex;flex-direction:column;
-    height:36vh;
-    max-height:36vh;
+   height:28vh;
+    max-height:28vh;
     transition:height .25s cubic-bezier(.25,.46,.45,.94), max-height .25s cubic-bezier(.25,.46,.45,.94);
     width:100%;
     overflow:hidden;
@@ -1030,7 +1030,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.12</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.17</div>
   </div>
 </div>
 
@@ -1215,12 +1215,16 @@ input::placeholder{color:var(--text3) !important;opacity:1}
     <button id="savedTabCourse" onclick="setSavedTab('course')"
       style="flex:1;padding:12px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px">
       🗺️ 내 코스 <span id="savedCourseCount" style="font-size:11px;font-weight:400;color:var(--text3)"></span>
+    </button><button id="savedTabCert" onclick="setSavedTab('cert')"
+      style="flex:1;padding:12px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px">
+      📸 다녀왔어요 <span id="savedCertCount" style="font-size:11px;font-weight:400;color:var(--text3)"></span>
     </button>
   </div>
   <!-- 맛집 목록 -->
   <div id="savedPageBody"></div>
   <div id="savedPlaceBody" style="display:none"></div>
   <div id="savedCourseBody" style="display:none"></div>
+  <div id="savedCertBody" style="display:none"></div>
 </div>
 
 <div class="rank-page" id="rankPage">
@@ -2946,7 +2950,23 @@ window.toggleSave = async function(id) {
 
   const d = DATA.find(x => x.id === id);
   if (d) d.saves = (d.saves||0) + (wasSaved ? -1 : 1);
-  renderList();
+  // ★ 목록 전체를 다시 그리지 않고, 눌린 버튼만 색 변경 (카드 안 접힘)
+  const _card = document.getElementById('card-' + id);
+  if (_card) {
+    const saveBtn = _card.querySelector('.gb[onclick*="toggleSave"]');
+    if (saveBtn) {
+      const nowSaved = !wasSaved;
+      saveBtn.classList.toggle('gb-love', nowSaved);
+      const ic = saveBtn.querySelector('.gb-ic');
+      const tx = saveBtn.querySelector('.gb-tx');
+      if (ic) ic.textContent = nowSaved ? '❤️' : '🤍';
+      if (tx) tx.textContent = nowSaved ? '저장됨' : '저장';
+    }
+  }
+  // 저장 탭이 열려있으면 카운트·목록도 즉시 갱신
+  if (typeof renderSavedPage === 'function') { try { renderSavedPage(); } catch(e){} }
+  // 지도 핀 하트 상태도 갱신
+  if (typeof renderPins === 'function') { try { renderPins(); } catch(e){} }
   if (wasSaved) {
     showToast('저장 취소됐어요');
   } else {
@@ -4786,9 +4806,12 @@ function switchToMapSort() {
 // 지역 키워드 판별
 const REGION_KEYWORDS = ['서울','부산','대구','인천','광주','대전','울산','경기','강원','충북','충남','전북','전남','경북','경남','제주','세종','부천','수원','성남','고양','용인','안양','안산','화성','평택','의정부','시흥','파주','김포','광명','군포','이천','양주','오산','구리','안성','포천','의왕','하남','여주','양평','동두천','가평','연천','속초','강릉','원주','춘천','동해','태백','삼척','홍천','횡성','영월','평창','정선','철원','화천','양구','인제','고성','양양','청주','충주','제천','보은','옥천','영동','증평','진천','괴산','음성','단양','천안','공주','보령','아산','서산','논산','계룡','당진','금산','부여','서천','청양','홍성','예산','태안','전주','군산','익산','정읍','남원','김제','완주','진안','무주','장수','임실','순창','고창','부안','목포','여수','순천','나주','광양','담양','곡성','구례','고흥','보성','화순','장흥','강진','해남','영암','무안','함평','영광','장성','완도','진도','신안','포항','경주','김천','안동','구미','영주','영천','상주','문경','경산','군위','의성','청송','영양','영덕','청도','고령','성주','칠곡','예천','봉화','울진','울릉','창원','진주','통영','사천','김해','밀양','거제','양산','의령','함안','창녕','고성','남해','하동','산청','함양','거창','합천','제주시','서귀포'];
 function isRegionQuery(q) {
-  const norm = normalizeRegion(q);
-  if (norm.endsWith('구') || norm.endsWith('동') || norm.endsWith('군') || norm.endsWith('로')) return true;
-  if (REGION_KEYWORDS.some(r => norm === r || norm.startsWith(r) || q.startsWith(r))) return true;
+  const norm = normalizeRegion(q.trim());
+  // 광역시/도 단위: 정확히 일치할 때만 (서울, 부산, 경기, 강원...)
+  const METRO = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주'];
+  if (METRO.includes(norm)) return true;
+  // 시/군/구 단위: REGION_KEYWORDS에 정확히 일치할 때만 (강남구, 부천시, 전주시...)
+  if (REGION_KEYWORDS.some(r => normalizeRegion(r) === norm)) return true;
   return false;
 }
 
@@ -4820,7 +4843,55 @@ window.doSearch = async function(q) {
     await loadRestsByRegion(q.trim());
     return;
   }
+  // 랜드마크/장소 검색 (강남역, 홍대, 경복궁 등) - 카카오맵에 장소로 있으면 그리로 이동 + 주변 맛집
+  const _placeFound = await new Promise(resolve => {
+    const ps = new kakao.maps.services.Places();
+    ps.keywordSearch(q.trim(), (data, status) => {
+      if (status === kakao.maps.services.Status.OK && data.length) {
+        resolve({ lat: parseFloat(data[0].y), lng: parseFloat(data[0].x), name: data[0].place_name });
+      } else {
+        resolve(null);
+      }
+    }, { size: 1 });
+  });
 
+  if (_placeFound) {
+    // 그 장소가 등록된 가게 이름과 정확히 일치하면 → 가게 검색으로 넘김 (아래 로직)
+    const isExactRestName = DATA.some(d => d.name === q.trim());
+    if (!isExactRestName) {
+      regionFilter = '';
+      selCurator = '전체';
+      const center = new kakao.maps.LatLng(_placeFound.lat, _placeFound.lng);
+      // 전체 맛집 로드 후 그 장소 기준 거리순
+      try {
+        const snap = await getDocs(query(collection(db, 'restaurants'), limit(2000)));
+        DATA = [];
+        snap.forEach(dd => {
+          const r = dd.data();
+          if (r.hidden) return;
+          const dlat = (r.lat||37.5665) - _placeFound.lat, dlng = (r.lng||126.9780) - _placeFound.lng;
+          DATA.push({
+            id: dd.id, name: r.name||'', celeb: r.celeb||'',
+            celebs: r.celebs||[r.celeb||''], cat: r.category||r.cat||'한식',
+            area: r.area||'', comment: r.comment||'',
+            yt: r.video_url||r.yt||'', lat: r.lat||37.5665, lng: r.lng||126.9780,
+            visits: r.visits||0, saves: r.saves||0,
+            avgRating: r.avgRating||0, ratingCount: r.ratingCount||0,
+            dist: Math.sqrt(dlat*dlat + dlng*dlng) * 111320,
+          });
+        });
+        DATA.sort((a,b) => (a.dist||999999) - (b.dist||999999));
+        switchToMapSort();
+        map.setCenter(center);
+        map.setLevel(5);
+        document.getElementById('listTitle').textContent = '📍 ' + _placeFound.name + ' 주변';
+        renderList();
+        renderPins();
+        showToast('📍 ' + _placeFound.name + ' 주변 맛집을 보여드려요');
+      } catch(e) { showToast('로드 실패'); }
+      return;
+    }
+  }
   // 큐레이터 이름으로 검색하면 해당 큐레이터 데이터 자동 로드
   const matchedCurator = STAR_CURATORS.find(c => c.name === q.trim() || c.name.includes(q.trim()));
   if (matchedCurator) {
@@ -5331,8 +5402,9 @@ function renderMspResultList() {
     lastType = item._type;
 
     const inBasket = mspBasket.some(b => b.id === (item._type==='star'?item.id:item.id));
-    const distStr = item.dist != null && item.dist < 50000
-      ? (item.dist < 1000 ? Math.round(item.dist)+'m' : (item.dist/1000).toFixed(1)+'km')
+    const _dm = (item._nearbyDist != null) ? item._nearbyDist : item.dist;
+    const distStr = (_dm != null && _dm < 50000)
+      ? (_dm < 1000 ? Math.round(_dm)+'m' : (_dm/1000).toFixed(1)+'km')
       : '';
 
     if (item._type === 'star') {
@@ -6539,13 +6611,14 @@ window.setSavedTab = function(tab) {
   const restBtn   = document.getElementById('savedTabRest');
   const placeBtn  = document.getElementById('savedTabPlace');
   const courseBtn = document.getElementById('savedTabCourse');
+  const certBtn   = document.getElementById('savedTabCert');
   const restBody  = document.getElementById('savedPageBody');
   const placeBody = document.getElementById('savedPlaceBody');
   const courseBody= document.getElementById('savedCourseBody');
+  const certBody  = document.getElementById('savedCertBody');
 
-  // 모두 초기화
-  [restBtn, placeBtn, courseBtn].forEach(b => { if(b){ b.style.color='var(--text3)'; b.style.borderBottom='2px solid transparent'; }});
-  [restBody, placeBody, courseBody].forEach(b => { if(b) b.style.display='none'; });
+  [restBtn, placeBtn, courseBtn, certBtn].forEach(b => { if(b){ b.style.color='var(--text3)'; b.style.borderBottom='2px solid transparent'; }});
+  [restBody, placeBody, courseBody, certBody].forEach(b => { if(b) b.style.display='none'; });
 
   if (tab === 'rest') {
     if(restBtn){ restBtn.style.color='var(--gold)'; restBtn.style.borderBottom='2px solid var(--gold)'; }
@@ -6555,13 +6628,16 @@ window.setSavedTab = function(tab) {
     if(placeBtn){ placeBtn.style.color='var(--gold)'; placeBtn.style.borderBottom='2px solid var(--gold)'; }
     if(placeBody) placeBody.style.display='block';
     renderSavedPlaces();
+  } else if (tab === 'cert') {
+    if(certBtn){ certBtn.style.color='var(--gold)'; certBtn.style.borderBottom='2px solid var(--gold)'; }
+    if(certBody) certBody.style.display='block';
+    renderMyCerts();
   } else {
     if(courseBtn){ courseBtn.style.color='var(--gold)'; courseBtn.style.borderBottom='2px solid var(--gold)'; }
     if(courseBody) courseBody.style.display='block';
     renderSavedCourses();
   }
 
-  // ★ 항상 최상단으로 스크롤
   const savedPage = document.getElementById('savedPage');
   if (savedPage) savedPage.scrollTop = 0;
   document.documentElement.scrollTop = 0;
@@ -6578,6 +6654,77 @@ async function renderSavedPage() {
   if (courseCnt) courseCnt.textContent = getLocalCourses().length ? '(' + getLocalCourses().length + ')' : '';
   setSavedTab(_savedTab);
 }
+
+// ── 내 인증(다녀왔어요) 그리드 렌더 ──
+async function renderMyCerts() {
+  const body = document.getElementById('savedCertBody');
+  if (!body) return;
+  if (!currentUser) {
+    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><i class="ti ti-camera" style="font-size:36px;display:block;margin:0 auto 12px;opacity:0.25"></i>로그인하면 내가 다녀온 성지 인증을 모아볼 수 있어요<div style="display:flex;gap:8px;justify-content:center;margin-top:16px"><button class="btn-login-g" onclick="loginWithGoogle()"><i class="ti ti-brand-google"></i> 구글 로그인</button></div></div>';
+    return;
+  }
+  body.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>';
+  try {
+    const snap = await getDocs(query(collection(db, 'certifications'), where('uid', '==', currentUser.uid)));
+    const certs = [];
+    snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
+    certs.sort((a, b) => {
+      const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return tb - ta;
+    });
+    const certCntEl = document.getElementById('savedCertCount');
+    if (certCntEl) certCntEl.textContent = certs.length ? '(' + certs.length + ')' : '';
+    if (!certs.length) {
+      body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><i class="ti ti-camera" style="font-size:36px;display:block;margin:0 auto 12px;opacity:0.25"></i>아직 다녀온 인증이 없어요<div style="font-size:12px;margin-top:8px">성지 카드의 <strong style="color:var(--gold)">📸 다녀왔어요</strong> 버튼으로 인증을 남겨보세요!</div></div>';
+      return;
+    }
+    const uniqueTitles = new Set(certs.map(c => c.title).filter(Boolean));
+    const summaryHtml = '<div style="display:flex;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)"><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--gold)">' + certs.length + '</div><div style="font-size:11px;color:var(--text3)">다녀온 곳</div></div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--text)">' + uniqueTitles.size + '</div><div style="font-size:11px;color:var(--text3)">작품 수</div></div></div>';
+    const gridHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px 20px">' + certs.map(c => {
+      const badge = c.mediaType === 'artist' ? '한류스타' : c.mediaType === 'movie' ? '영화' : '드라마';
+      const badgeColor = c.mediaType === 'artist' ? '#B5790F' : c.mediaType === 'movie' ? '#EF4444' : '#7C3AED';
+      const place = (c.placeName || '').replace(/</g,'&lt;');
+      const title = (c.title || '').replace(/</g,'&lt;');
+      const comment = (c.comment || '').replace(/</g,'&lt;');
+      return '<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--white)" onclick="openCertDetail(\'' + c.id + '\')"><div style="position:relative;width:100%;aspect-ratio:1;background:var(--bg2)"><img src="' + (c.photoURL || '') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"><span style="position:absolute;top:6px;left:6px;background:' + badgeColor + ';color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px">' + badge + '</span></div><div style="padding:8px 9px"><div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + place + '</div><div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + title + '</div>' + (comment ? '<div style="font-size:10px;color:var(--text2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">"' + comment + '"</div>' : '') + '</div></div>';
+    }).join('') + '</div>';
+    body.innerHTML = summaryHtml + gridHtml;
+    window._myCerts = certs;
+  } catch(e) {
+    body.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:13px;color:var(--text3)">불러오기 실패<br><small style="opacity:0.6">' + (e.message || '') + '</small></div>';
+  }
+}
+window.renderMyCerts = renderMyCerts;
+
+window.openCertDetail = function(certId) {
+  const cert = (window._myCerts || []).find(c => c.id === certId);
+  if (!cert) return;
+  const old = document.getElementById('certDetailSheet');
+  if (old) old.remove();
+  const place = (cert.placeName || '').replace(/</g,'&lt;');
+  const title = (cert.title || '').replace(/</g,'&lt;');
+  const comment = (cert.comment || '').replace(/</g,'&lt;');
+  const dateStr = cert.createdAt?.toDate ? cert.createdAt.toDate().toLocaleDateString('ko-KR') : '';
+  const sheet = document.createElement('div');
+  sheet.id = 'certDetailSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML = '<div onclick="document.getElementById(\'certDetailSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.55)"></div><div style="background:var(--bg);border-radius:20px 20px 0 0;padding:14px 16px 36px;max-height:88vh;overflow-y:auto"><div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div><img src="' + (cert.photoURL || '') + '" style="width:100%;border-radius:14px;margin-bottom:12px"><div style="font-size:16px;font-weight:800;color:var(--text)">' + place + '</div><div style="font-size:12px;color:var(--text3);margin:3px 0 8px">' + title + (dateStr ? ' · ' + dateStr : '') + '</div>' + (comment ? '<div style="font-size:13px;color:var(--text2);background:var(--white);border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:12px">' + comment + '</div>' : '') + '<button onclick="deleteMyCert(\'' + cert.id + '\')" style="width:100%;padding:12px;background:none;border:1.5px solid var(--red);border-radius:12px;font-size:13px;font-weight:700;color:var(--red);cursor:pointer">🗑️ 이 인증 삭제</button></div>';
+  document.body.appendChild(sheet);
+};
+
+window.deleteMyCert = async function(certId) {
+  if (!confirm('이 인증을 삭제할까요?')) return;
+  try {
+    await deleteDoc(doc(db, 'certifications', certId));
+    const s = document.getElementById('certDetailSheet');
+    if (s) s.remove();
+    showToast('인증이 삭제됐어요');
+    renderMyCerts();
+  } catch(e) {
+    showToast('삭제 실패: ' + (e.message || e));
+  }
+};
 
 // ── 저장한 일반 장소 렌더 ──
 function renderSavedPlaces() {
@@ -6632,23 +6779,28 @@ async function renderSavedRests() {
   }
   body.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>';
 
-  // DATA에 없는 것 Firebase에서 상세정보 포함해서 로드
+ // DATA에 없는 것 Firebase에서 상세정보 포함해서 로드 (병렬 + 타임아웃)
   const notInData = savedList.filter(id => !DATA.find(d => d.id === id));
   let extraData = [];
-  for (const id of notInData.slice(0, 50)) {
+  const results = await Promise.all(notInData.slice(0, 50).map(async (id) => {
     try {
-      const snap = await getDoc(doc(db, 'restaurants', id));
+      const snap = await Promise.race([
+        getDoc(doc(db, 'restaurants', id)),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+      ]);
       if (snap.exists()) {
         const r = snap.data();
-        extraData.push({
+        return {
           id: snap.id, name: r.name||'', celeb: r.celeb||'',
           cat: r.category||r.cat||'', area: r.area||'',
           lat: r.lat||0, lng: r.lng||0, yt: r.video_url||r.yt||'',
           address: r.address||'', avgRating: r.avgRating||0
-        });
+        };
       }
     } catch(e) {}
-  }
+    return null;
+  }));
+  extraData = results.filter(Boolean);
   const allD = [...DATA, ...extraData];
   const items = savedList.map(id => allD.find(d => d.id === id)).filter(Boolean);
   if (!items.length) {
