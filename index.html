@@ -2951,6 +2951,10 @@ window.toggleSave = async function(id) {
   const d = DATA.find(x => x.id === id);
   if (d) d.saves = (d.saves||0) + (wasSaved ? -1 : 1);
   renderList();
+  // 저장 탭이 열려있으면 카운트·목록도 즉시 갱신
+  if (typeof renderSavedPage === 'function') { try { renderSavedPage(); } catch(e){} }
+  // 지도 핀 하트 상태도 갱신
+  if (typeof renderPins === 'function') { try { renderPins(); } catch(e){} }
   if (wasSaved) {
     showToast('저장 취소됐어요');
   } else {
