@@ -1030,7 +1030,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.15</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.16</div>
   </div>
 </div>
 
@@ -5402,8 +5402,9 @@ function renderMspResultList() {
     lastType = item._type;
 
     const inBasket = mspBasket.some(b => b.id === (item._type==='star'?item.id:item.id));
-    const distStr = item.dist != null && item.dist < 50000
-      ? (item.dist < 1000 ? Math.round(item.dist)+'m' : (item.dist/1000).toFixed(1)+'km')
+    const _dm = (item._nearbyDist != null) ? item._nearbyDist : item.dist;
+    const distStr = (_dm != null && _dm < 50000)
+      ? (_dm < 1000 ? Math.round(_dm)+'m' : (_dm/1000).toFixed(1)+'km')
       : '';
 
     if (item._type === 'star') {
