@@ -1030,7 +1030,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.14</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.15</div>
   </div>
 </div>
 
@@ -4843,7 +4843,55 @@ window.doSearch = async function(q) {
     await loadRestsByRegion(q.trim());
     return;
   }
+  // 랜드마크/장소 검색 (강남역, 홍대, 경복궁 등) - 카카오맵에 장소로 있으면 그리로 이동 + 주변 맛집
+  const _placeFound = await new Promise(resolve => {
+    const ps = new kakao.maps.services.Places();
+    ps.keywordSearch(q.trim(), (data, status) => {
+      if (status === kakao.maps.services.Status.OK && data.length) {
+        resolve({ lat: parseFloat(data[0].y), lng: parseFloat(data[0].x), name: data[0].place_name });
+      } else {
+        resolve(null);
+      }
+    }, { size: 1 });
+  });
 
+  if (_placeFound) {
+    // 그 장소가 등록된 가게 이름과 정확히 일치하면 → 가게 검색으로 넘김 (아래 로직)
+    const isExactRestName = DATA.some(d => d.name === q.trim());
+    if (!isExactRestName) {
+      regionFilter = '';
+      selCurator = '전체';
+      const center = new kakao.maps.LatLng(_placeFound.lat, _placeFound.lng);
+      // 전체 맛집 로드 후 그 장소 기준 거리순
+      try {
+        const snap = await getDocs(query(collection(db, 'restaurants'), limit(2000)));
+        DATA = [];
+        snap.forEach(dd => {
+          const r = dd.data();
+          if (r.hidden) return;
+          const dlat = (r.lat||37.5665) - _placeFound.lat, dlng = (r.lng||126.9780) - _placeFound.lng;
+          DATA.push({
+            id: dd.id, name: r.name||'', celeb: r.celeb||'',
+            celebs: r.celebs||[r.celeb||''], cat: r.category||r.cat||'한식',
+            area: r.area||'', comment: r.comment||'',
+            yt: r.video_url||r.yt||'', lat: r.lat||37.5665, lng: r.lng||126.9780,
+            visits: r.visits||0, saves: r.saves||0,
+            avgRating: r.avgRating||0, ratingCount: r.ratingCount||0,
+            dist: Math.sqrt(dlat*dlat + dlng*dlng) * 111320,
+          });
+        });
+        DATA.sort((a,b) => (a.dist||999999) - (b.dist||999999));
+        switchToMapSort();
+        map.setCenter(center);
+        map.setLevel(5);
+        document.getElementById('listTitle').textContent = '📍 ' + _placeFound.name + ' 주변';
+        renderList();
+        renderPins();
+        showToast('📍 ' + _placeFound.name + ' 주변 맛집을 보여드려요');
+      } catch(e) { showToast('로드 실패'); }
+      return;
+    }
+  }
   // 큐레이터 이름으로 검색하면 해당 큐레이터 데이터 자동 로드
   const matchedCurator = STAR_CURATORS.find(c => c.name === q.trim() || c.name.includes(q.trim()));
   if (matchedCurator) {
