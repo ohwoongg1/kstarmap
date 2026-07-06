@@ -1030,7 +1030,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.23</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.24</div>
   </div>
 </div>
 
@@ -1496,7 +1496,7 @@ window.addToGlobalBasket = window.addToGlobalBasket || function(item) {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, where, limit, serverTimestamp, increment, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, where, limit, serverTimestamp, increment, getCountFromServer, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
 
 const firebaseConfig = {
@@ -6771,17 +6771,98 @@ function feedCardHTML(c) {
   const slides = photos.map(u => '<img src="' + u + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;aspect-ratio:1">').join('');
   const counter = multi ? '<span class="feed-counter" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 9px;border-radius:10px">1/' + photos.length + '</span>' : '';
   const dots = multi ? '<div class="feed-dots" style="display:flex;justify-content:center;gap:5px;padding:8px 0 2px">' + photos.map((_,i)=>'<span style="width:6px;height:6px;border-radius:50%;background:' + (i===0?'var(--gold)':'var(--border2)') + '"></span>').join('') + '</div>' : '';
-  const tags = [c.title, c.mediaType==='drama'?null:null].filter(Boolean);
   const hashtag = c.title ? '<span style="color:#185FA5">#' + esc(c.title).replace(/\s/g,'') + '</span>' : '';
-  return '<div class="feed-card" style="background:var(--bg);border-radius:14px;margin:10px 12px;overflow:hidden;border:1px solid var(--border)">' +
+  // 좋아요 상태
+  const likedBy = c.likedBy || [];
+  const liked = currentUser && likedBy.indexOf(currentUser.uid) !== -1;
+  const likeCount = (typeof c.likeCount === 'number') ? c.likeCount : likedBy.length;
+  const heartColor = liked ? '#D4537E' : 'var(--text2)';
+  const heartFill = liked ? '#D4537E' : 'none';
+  const heartSVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="' + heartFill + '" stroke="' + heartColor + '" stroke-width="2" style="display:block"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg>';
+  const likeBar = '<div style="display:flex;align-items:center;gap:16px;padding:8px 12px 2px">' +
+    '<button class="feed-like-btn" data-id="' + c.id + '" onclick="toggleFeedLike(\'' + c.id + '\',this)" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:6px">' +
+      '<span class="feed-heart">' + heartSVG + '</span>' +
+      '<span class="feed-like-count" style="font-size:13px;font-weight:700;color:var(--text)">' + (likeCount || 0) + '</span>' +
+    '</button></div>';
+  return '<div class="feed-card" data-id="' + c.id + '" style="background:var(--bg);border-radius:14px;margin:10px 12px;overflow:hidden;border:1px solid var(--border)">' +
     '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px">' + avatar +
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + uname + '</div>' +
       '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ' + place + (work?' · '+work:'') + '</div></div>' +
       '<span style="background:' + badgeColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0">' + badge + '</span></div>' +
-    '<div style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + '</div>' + dots +
-    (comment ? '<div style="padding:8px 12px 4px;font-size:13px;color:var(--text);line-height:1.5"><span style="font-weight:700">' + uname + '</span> ' + comment + ' ' + hashtag + '</div>' : (hashtag ? '<div style="padding:8px 12px 4px;font-size:13px">' + hashtag + '</div>' : '')) +
+    '<div class="feed-photo-wrap" data-id="' + c.id + '" ondblclick="dblLikeFeed(\'' + c.id + '\',this)" style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + '<div class="feed-big-heart" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease"><svg viewBox="0 0 24 24" width="90" height="90" fill="#fff" stroke="none"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg></div></div>' + dots +
+    likeBar +
+    (comment ? '<div style="padding:6px 12px 4px;font-size:13px;color:var(--text);line-height:1.5"><span style="font-weight:700">' + uname + '</span> ' + comment + ' ' + hashtag + '</div>' : (hashtag ? '<div style="padding:6px 12px 4px;font-size:13px">' + hashtag + '</div>' : '')) +
     '<div style="padding:2px 12px 12px;font-size:11px;color:var(--text3)">' + timeAgo(c.createdAt) + '</div>' +
     '</div>';
+}
+
+// 피드 좋아요 토글
+window._feedData = window._feedData || {};
+window.toggleFeedLike = async function(certId, btn) {
+  const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  if (!currentUser) {
+    showToast(en ? '🔒 Sign in to like — tap More' : '🔒 로그인이 필요해요 — 더보기에서 로그인!');
+    if (window.openMoreMenu) openMoreMenu();
+    return;
+  }
+  const c = window._feedData[certId];
+  if (!c) return;
+  const likedBy = c.likedBy || [];
+  const wasLiked = likedBy.indexOf(currentUser.uid) !== -1;
+  // 낙관적 UI 업데이트
+  if (wasLiked) {
+    c.likedBy = likedBy.filter(u => u !== currentUser.uid);
+    c.likeCount = Math.max(0, (c.likeCount || likedBy.length) - 1);
+  } else {
+    c.likedBy = [...likedBy, currentUser.uid];
+    c.likeCount = (c.likeCount || likedBy.length) + 1;
+  }
+  updateFeedHeartUI(certId);
+  try {
+    await updateDoc(doc(db, 'certifications', certId), {
+      likedBy: wasLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid),
+      likeCount: increment(wasLiked ? -1 : 1)
+    });
+  } catch(e) {
+    // 실패 시 롤백
+    c.likedBy = likedBy;
+    c.likeCount = (c.likeCount || likedBy.length);
+    updateFeedHeartUI(certId);
+    showToast((en ? 'Failed: ' : '실패: ') + (e.message || e));
+  }
+};
+
+// 더블탭 좋아요 (항상 좋아요 추가, 큰 하트 애니메이션)
+window.dblLikeFeed = function(certId, wrap) {
+  if (!currentUser) { toggleFeedLike(certId); return; }
+  const c = window._feedData[certId];
+  if (!c) return;
+  const likedBy = c.likedBy || [];
+  const big = wrap.querySelector('.feed-big-heart');
+  if (big) {
+    big.style.transform = 'translate(-50%,-50%) scale(1)';
+    big.style.opacity = '0.9';
+    setTimeout(() => { big.style.transform = 'translate(-50%,-50%) scale(0)'; big.style.opacity = '0'; }, 550);
+  }
+  if (likedBy.indexOf(currentUser.uid) === -1) {
+    toggleFeedLike(certId);
+  }
+};
+
+// 특정 카드의 하트/카운트 UI 갱신
+function updateFeedHeartUI(certId) {
+  const c = window._feedData[certId];
+  if (!c) return;
+  const liked = currentUser && (c.likedBy || []).indexOf(currentUser.uid) !== -1;
+  document.querySelectorAll('.feed-card[data-id="' + certId + '"]').forEach(card => {
+    const heart = card.querySelector('.feed-heart svg');
+    const cnt = card.querySelector('.feed-like-count');
+    if (heart) {
+      heart.setAttribute('fill', liked ? '#D4537E' : 'none');
+      heart.setAttribute('stroke', liked ? '#D4537E' : 'var(--text2)');
+    }
+    if (cnt) cnt.textContent = c.likeCount || 0;
+  });
 }
 
 async function renderPublicFeed(force) {
@@ -6799,6 +6880,8 @@ async function renderPublicFeed(force) {
       _feedLoaded = true;
       return;
     }
+    window._feedData = {};
+    certs.forEach(c => { window._feedData[c.id] = c; });
     body.innerHTML = certs.map(feedCardHTML).join('');
     // 캐러셀 카운터/점 동기화
     body.querySelectorAll('.feed-card').forEach(card => {
