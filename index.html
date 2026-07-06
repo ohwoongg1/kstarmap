@@ -1030,7 +1030,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.19</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.20</div>
   </div>
 </div>
 
@@ -3508,7 +3508,8 @@ window.clearPilgrimSearch = function() {
 let _lastPToggle = {};
 // ── 다녀왔어요 인증 ──
 const storage = getStorage(app);
-let _certFile = null;
+let _certFiles = [];
+const MAX_CERT_PHOTOS = 10;
 
 window.openCertSheet = function(pid) {
   const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
@@ -3519,7 +3520,7 @@ window.openCertSheet = function(pid) {
   }
   const d = (window._pilgrimData || []).find(x => x._id === pid);
   if (!d) return;
-  _certFile = null;
+  _certFiles = [];
   const old = document.getElementById('certSheet');
   if (old) old.remove();
   const name = (en ? (d.placeName || d.title_en || d.title) : (d.placeName || d.title)) || '';
@@ -3534,27 +3535,58 @@ window.openCertSheet = function(pid) {
       <div style="font-size:16px;font-weight:800;color:var(--text)">📸 ${en?'I was here!':'다녀왔어요'}</div>
       <div style="font-size:12px;color:var(--text3);margin:3px 0 14px">${name}${title?' · '+title:''}</div>
       <label id="certPickBox" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;background:var(--bg2);border:2px dashed var(--border2);border-radius:14px;cursor:pointer;overflow:hidden">
-        <span id="certPickInner" style="text-align:center;color:var(--text3);font-size:13px"><span style="font-size:34px;display:block;margin-bottom:6px">📷</span>${en?'Tap to take a photo or choose one':'탭해서 사진 찍기 또는 앨범에서 선택'}</span>
-        <img id="certPreview" style="display:none;width:100%;max-height:280px;object-fit:cover;border-radius:12px">
-        <input id="certFileInput" type="file" accept="image/*" style="display:none">
+        <span id="certPickInner" style="text-align:center;color:var(--text3);font-size:13px"><span style="font-size:34px;display:block;margin-bottom:6px">📷</span>${en?'Tap to add photos (up to 10)':'탭해서 사진 추가 (최대 10장)'}</span>
+        <input id="certFileInput" type="file" accept="image/*" multiple style="display:none">
       </label>
+      <div id="certThumbs" style="display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px"></div>
       <textarea id="certComment" maxlength="200" placeholder="${en?'Say something about this moment (optional)':'이 순간에 대해 한마디 (선택)'}" style="width:100%;box-sizing:border-box;margin-top:12px;padding:11px 12px;background:var(--white);border:1px solid var(--border2);border-radius:12px;font-family:inherit;font-size:13px;color:var(--text);resize:none;height:70px"></textarea>
       <button id="certSubmitBtn" onclick="submitCert('${pid}')" disabled style="width:100%;margin-top:12px;padding:14px;background:var(--border2);border:none;border-radius:12px;font-size:15px;font-weight:800;color:#fff;cursor:pointer">${en?'Post':'게시하기'}</button>
     </div>`;
   document.body.appendChild(sheet);
   const inp = document.getElementById('certFileInput');
   inp.addEventListener('change', () => {
-    const f = inp.files && inp.files[0];
-    if (!f) return;
-    _certFile = f;
-    const img = document.getElementById('certPreview');
-    img.src = URL.createObjectURL(f);
-    img.style.display = 'block';
-    document.getElementById('certPickInner').style.display = 'none';
-    const btn = document.getElementById('certSubmitBtn');
-    btn.disabled = false;
-    btn.style.background = 'var(--gold)';
+    const picked = Array.from(inp.files || []);
+    if (!picked.length) return;
+    for (const f of picked) {
+      if (_certFiles.length >= MAX_CERT_PHOTOS) break;
+      _certFiles.push(f);
+    }
+    inp.value = '';
+    renderCertThumbs();
   });
+};
+
+// 선택한 사진 썸네일 렌더 (삭제 버튼 포함)
+function renderCertThumbs() {
+  const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  const wrap = document.getElementById('certThumbs');
+  const inner = document.getElementById('certPickInner');
+  const btn = document.getElementById('certSubmitBtn');
+  const box = document.getElementById('certPickBox');
+  if (!wrap) return;
+  if (!_certFiles.length) {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    if (inner) inner.style.display = 'block';
+    if (box) box.style.minHeight = '150px';
+    if (btn) { btn.disabled = true; btn.style.background = 'var(--border2)'; btn.textContent = en ? 'Post' : '게시하기'; }
+    return;
+  }
+  if (inner) inner.style.display = 'none';
+  if (box) box.style.minHeight = '54px';
+  wrap.style.display = 'grid';
+  wrap.innerHTML = _certFiles.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return '<div style="position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--bg2)">' +
+      '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover">' +
+      '<button onclick="removeCertPhoto(' + i + ')" style="position:absolute;top:3px;right:3px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>' +
+      '<span style="position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:1px 5px;border-radius:6px">' + (i+1) + '</span></div>';
+  }).join('');
+  if (btn) { btn.disabled = false; btn.style.background = 'var(--gold)'; btn.textContent = (en ? 'Post ' : '게시하기 ') + '(' + _certFiles.length + ')'; }
+}
+window.removeCertPhoto = function(i) {
+  _certFiles.splice(i, 1);
+  renderCertThumbs();
 };
 
 async function resizeImage(file, maxW) {
@@ -3575,17 +3607,21 @@ async function resizeImage(file, maxW) {
 
 window.submitCert = async function(pid) {
   const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
-  if (!currentUser || !_certFile) return;
+  if (!currentUser || !_certFiles.length) return;
   const d = (window._pilgrimData || []).find(x => x._id === pid);
   if (!d) return;
   const btn = document.getElementById('certSubmitBtn');
   btn.disabled = true;
-  btn.textContent = en ? 'Uploading…' : '올리는 중…';
+  const total = _certFiles.length;
   try {
-    const blob = await resizeImage(_certFile, 1280);
-    const path = 'certs/' + currentUser.uid + '/' + Date.now() + '.jpg';
-    const snap = await uploadBytes(storageRef(storage, path), blob, {contentType: 'image/jpeg'});
-    const url = await getDownloadURL(snap.ref);
+    const urls = [];
+    for (let i = 0; i < _certFiles.length; i++) {
+      btn.textContent = (en ? 'Uploading… ' : '올리는 중… ') + (i+1) + '/' + total;
+      const blob = await resizeImage(_certFiles[i], 1280);
+      const path = 'certs/' + currentUser.uid + '/' + Date.now() + '_' + i + '.jpg';
+      const snap = await uploadBytes(storageRef(storage, path), blob, {contentType: 'image/jpeg'});
+      urls.push(await getDownloadURL(snap.ref));
+    }
     await addDoc(collection(db, 'certifications'), {
       uid: currentUser.uid,
       userName: (currentUserData && currentUserData.displayName) || currentUser.displayName || '',
@@ -3596,16 +3632,18 @@ window.submitCert = async function(pid) {
       title: d.title || '', title_en: d.title_en || '',
       mediaType: d.mediaType || 'drama',
       actors: d.actors || [],
-      photoURL: url,
+      photoURLs: urls,
+      photoURL: urls[0],
       comment: (document.getElementById('certComment')?.value || '').trim(),
       createdAt: serverTimestamp()
     });
     const s = document.getElementById('certSheet');
     if (s) s.remove();
     showToast(en ? '🎉 Posted! Your visit is on record.' : '🎉 인증 완료! 내 기록에 남았어요');
+    if (typeof renderMyCerts === 'function' && document.getElementById('savedCertBody')) renderMyCerts();
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = en ? 'Post' : '게시하기';
+    btn.textContent = (en ? 'Post ' : '게시하기 ') + '(' + total + ')';
     showToast((en ? 'Upload failed: ' : '업로드 실패: ') + (e.message || e));
   }
 };
@@ -6706,7 +6744,9 @@ async function renderMyCerts() {
       const place = (c.placeName || '').replace(/</g,'&lt;');
       const title = (c.title || '').replace(/</g,'&lt;');
       const comment = (c.comment || '').replace(/</g,'&lt;');
-      return '<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--white)" onclick="openCertDetail(\'' + c.id + '\')"><div style="position:relative;width:100%;aspect-ratio:1;background:var(--bg2)"><img src="' + (c.photoURL || '') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"><span style="position:absolute;top:6px;left:6px;background:' + badgeColor + ';color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px">' + badge + '</span></div><div style="padding:8px 9px"><div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + place + '</div><div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + title + '</div>' + (comment ? '<div style="font-size:10px;color:var(--text2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">"' + comment + '"</div>' : '') + '</div></div>';
+      const _photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
+      const _multiBadge = _photos.length > 1 ? '<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px">\u{1F4F7} ' + _photos.length + '</span>' : '';
+      return '<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--white)" onclick="openCertDetail(\'' + c.id + '\')"><div style="position:relative;width:100%;aspect-ratio:1;background:var(--bg2)"><img src="' + (_photos[0] || '') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"><span style="position:absolute;top:6px;left:6px;background:' + badgeColor + ';color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px">' + badge + '</span>' + _multiBadge + '</div><div style="padding:8px 9px"><div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + place + '</div><div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + title + '</div>' + (comment ? '<div style="font-size:10px;color:var(--text2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">"' + comment + '"</div>' : '') + '</div></div>';
     }).join('') + '</div>';
     body.innerHTML = summaryHtml + gridHtml;
     window._myCerts = certs;
@@ -6725,11 +6765,27 @@ window.openCertDetail = function(certId) {
   const title = (cert.title || '').replace(/</g,'&lt;');
   const comment = (cert.comment || '').replace(/</g,'&lt;');
   const dateStr = cert.createdAt?.toDate ? cert.createdAt.toDate().toLocaleDateString('ko-KR') : '';
+  const photos = (cert.photoURLs && cert.photoURLs.length) ? cert.photoURLs : (cert.photoURL ? [cert.photoURL] : []);
+  const multi = photos.length > 1;
+  const slides = photos.map(u => '<img src="' + u + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;border-radius:14px;object-fit:cover">').join('');
+  const dots = multi ? '<div id="certDetDots" style="display:flex;justify-content:center;gap:5px;margin:8px 0 4px">' + photos.map((_,i) => '<span data-i="' + i + '" style="width:6px;height:6px;border-radius:50%;background:' + (i===0?'var(--gold)':'var(--border2)') + '"></span>').join('') + '</div>' : '';
+  const counter = multi ? '<span id="certDetCounter" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 9px;border-radius:10px">1/' + photos.length + '</span>' : '';
+  const carousel = '<div style="position:relative;margin-bottom:12px"><div id="certDetTrack" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;gap:0;border-radius:14px;scrollbar-width:none">' + slides + '</div>' + counter + '</div>' + dots;
   const sheet = document.createElement('div');
   sheet.id = 'certDetailSheet';
   sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
-  sheet.innerHTML = '<div onclick="document.getElementById(\'certDetailSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.55)"></div><div style="background:var(--bg);border-radius:20px 20px 0 0;padding:14px 16px 36px;max-height:88vh;overflow-y:auto"><div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div><img src="' + (cert.photoURL || '') + '" style="width:100%;border-radius:14px;margin-bottom:12px"><div style="font-size:16px;font-weight:800;color:var(--text)">' + place + '</div><div style="font-size:12px;color:var(--text3);margin:3px 0 8px">' + title + (dateStr ? ' · ' + dateStr : '') + '</div>' + (comment ? '<div style="font-size:13px;color:var(--text2);background:var(--white);border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:12px">' + comment + '</div>' : '') + '<button onclick="deleteMyCert(\'' + cert.id + '\')" style="width:100%;padding:12px;background:none;border:1.5px solid var(--red);border-radius:12px;font-size:13px;font-weight:700;color:var(--red);cursor:pointer">🗑️ 이 인증 삭제</button></div>';
+  sheet.innerHTML = '<div onclick="document.getElementById(\'certDetailSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.55)"></div><div style="background:var(--bg);border-radius:20px 20px 0 0;padding:14px 16px 36px;max-height:88vh;overflow-y:auto"><div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>' + carousel + '<div style="font-size:16px;font-weight:800;color:var(--text)">' + place + '</div><div style="font-size:12px;color:var(--text3);margin:3px 0 8px">' + title + (dateStr ? ' · ' + dateStr : '') + '</div>' + (comment ? '<div style="font-size:13px;color:var(--text2);background:var(--white);border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:12px">' + comment + '</div>' : '') + '<button onclick="deleteMyCert(\'' + cert.id + '\')" style="width:100%;padding:12px;background:none;border:1.5px solid var(--red);border-radius:12px;font-size:13px;font-weight:700;color:var(--red);cursor:pointer">🗑️ 이 인증 삭제</button></div>';
   document.body.appendChild(sheet);
+  if (multi) {
+    const track = document.getElementById('certDetTrack');
+    const counterEl = document.getElementById('certDetCounter');
+    const dotsWrap = document.getElementById('certDetDots');
+    track.addEventListener('scroll', () => {
+      const idx = Math.round(track.scrollLeft / track.clientWidth);
+      if (counterEl) counterEl.textContent = (idx+1) + '/' + photos.length;
+      if (dotsWrap) Array.from(dotsWrap.children).forEach((d,i) => d.style.background = (i===idx ? 'var(--gold)' : 'var(--border2)'));
+    }, {passive:true});
+  }
 };
 
 window.deleteMyCert = async function(certId) {
