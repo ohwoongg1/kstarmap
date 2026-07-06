@@ -1030,7 +1030,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.18</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.19</div>
   </div>
 </div>
 
@@ -1187,8 +1187,8 @@ input::placeholder{color:var(--text3) !important;opacity:1}
 
   <!-- 리스트 바텀시트 -->
   <div id="pilgrimSheet" style="height:15vh;background:var(--bg);border-top:1px solid var(--border);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;will-change:scroll-position;flex-shrink:0">
-    <div style="text-align:center;padding:6px"><div style="width:36px;height:4px;background:var(--border2);border-radius:2px;display:inline-block"></div></div>
-    <div style="padding:0 14px 6px;display:flex;align-items:center;justify-content:space-between">
+    <div onclick="togglePilgrimSheet()" style="text-align:center;padding:6px;cursor:pointer"><div style="width:36px;height:4px;background:var(--border2);border-radius:2px;display:inline-block"></div></div>
+    <div onclick="togglePilgrimSheet()" style="padding:0 14px 6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer">
       <span id="pilgrimListTitle" style="font-size:13px;font-weight:700;color:var(--text)">성지순례</span>
       <span id="pilgrimListCount" style="font-size:12px;color:var(--text3)"></span>
     </div>
@@ -3168,6 +3168,15 @@ function selectPilgrimContent(title, btn) {
 }
 window.selectPilgrimContent = selectPilgrimContent;
 
+// 핸들바/제목 탭 → 시트 펼침/접힘 토글
+window.togglePilgrimSheet = function() {
+  const sheet = document.getElementById('pilgrimSheet');
+  if (!sheet) return;
+  const h = parseFloat(sheet.style.height) || 15;
+  sheet.style.transition = 'height .3s ease';
+  sheet.style.height = (h < 40) ? '55vh' : '15vh';
+};
+
 // module 스크립트에서 로드한 데이터를 일반 스크립트 변수에 동기화
 window.syncPilgrimVars = function() {
   _pilgrimData = window._pilgrimData || [];
@@ -3195,6 +3204,11 @@ async function initPilgrimPage() {
       });
       // 지도 이동/줌이 끝날 때마다 현재 화면 범위의 성지 핀을 다시 그림
       kakao.maps.event.addListener(_pilgrimMap, 'idle', renderPilgrimPinsInView);
+      // 지도 빈 곳 클릭 → 시트 접기
+      kakao.maps.event.addListener(_pilgrimMap, 'click', function() {
+        const _sheet = document.getElementById('pilgrimSheet');
+        if (_sheet) { _sheet.style.transition = 'height .3s ease'; _sheet.style.height = '15vh'; }
+      });
     setTimeout(() => {
       try { _pilgrimMap.relayout(); } catch(e) {}
       // 위치 확인 후 내 위치로 이동
@@ -3676,8 +3690,13 @@ function renderPilgrimPins(items) {
         if (body) { body.insertAdjacentHTML('afterbegin', pilgrimCardHTML(d)); card = document.getElementById('pcard-'+d._id); }
       }
       if (card) {
-        card.scrollIntoView({behavior:'smooth', block:'center'});
-        togglePilgrimCard(d._id, card);
+        // 핀 클릭 시 시트를 위로 펼쳐 카드가 보이게
+        const _sheet = document.getElementById('pilgrimSheet');
+        if (_sheet) { _sheet.style.transition = 'height .3s ease'; _sheet.style.height = '55vh'; }
+        setTimeout(() => {
+          card.scrollIntoView({behavior:'smooth', block:'start'});
+          togglePilgrimCard(d._id, card);
+        }, 60);
       }
     });
     _pilgrimMarkers.push(marker);
