@@ -1030,7 +1030,7 @@ input::placeholder{color:var(--text3) !important;opacity:1}
       <button class="more-lang" data-lang="es" onclick="setAppLang('es')">🇪🇸 Español</button>
     </div>
     <div id="moreMenuSoon" style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 2px">✨ 게시판 등 새 기능 준비 중</div>
-    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.21</div>
+    <div style="text-align:center;font-size:10px;color:var(--border2);padding-top:6px">v0.9.22</div>
   </div>
 </div>
 
@@ -1176,7 +1176,15 @@ input::placeholder{color:var(--text3) !important;opacity:1}
     </div>
     <!-- 콘텐츠 선택 pill -->
     <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:6px;-webkit-overflow-scrolling:touch" id="pilgrimContentBar"></div>
+    <!-- 지도/피드 토글 -->
+    <div style="display:flex;gap:0;margin-top:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:3px">
+      <button id="pvTabMap" onclick="setPilgrimView('map')" style="flex:1;padding:7px;font-size:13px;font-weight:700;border:none;border-radius:8px;background:var(--gold);color:#fff;cursor:pointer">🗺️ 지도</button>
+      <button id="pvTabFeed" onclick="setPilgrimView('feed')" style="flex:1;padding:7px;font-size:13px;font-weight:700;border:none;border-radius:8px;background:none;color:var(--text3);cursor:pointer">📸 피드</button>
+    </div>
   </div>
+
+  <!-- 지도 뷰 (지도 + 시트) -->
+  <div id="pilgrimMapView" style="flex:1;min-height:0;display:flex;flex-direction:column">
 
   <!-- 지도 -->
   <div id="pilgrimMap" style="flex:1;min-height:0;position:relative">
@@ -1195,6 +1203,17 @@ input::placeholder{color:var(--text3) !important;opacity:1}
     <div id="pilgrimListBody" style="padding:0 14px 80px">
       <div style="text-align:center;padding:40px 0;color:var(--text3);font-size:13px">
         <div style="font-size:32px;margin-bottom:8px">🎬</div>
+        불러오는 중...
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- 피드 뷰 (공개 인증 피드) -->
+  <div id="pilgrimFeedView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg2);padding-bottom:70px">
+    <div id="pilgrimFeedBody">
+      <div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:13px">
+        <div style="font-size:32px;margin-bottom:8px">📸</div>
         불러오는 중...
       </div>
     </div>
@@ -3510,6 +3529,7 @@ let _lastPToggle = {};
 const storage = getStorage(app);
 let _certFiles = [];
 const MAX_CERT_PHOTOS = 10;
+let _feedLoaded = false;
 
 window.openCertSheet = function(pid) {
   const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
@@ -3641,6 +3661,7 @@ window.submitCert = async function(pid) {
     if (s) s.remove();
     showToast(en ? '🎉 Posted! Your visit is on record.' : '🎉 인증 완료! 내 기록에 남았어요');
     if (typeof renderMyCerts === 'function' && document.getElementById('savedCertBody')) renderMyCerts();
+    _feedLoaded = false;
   } catch(e) {
     btn.disabled = false;
     btn.textContent = (en ? 'Post ' : '게시하기 ') + '(' + total + ')';
@@ -6713,6 +6734,114 @@ async function renderSavedPage() {
 }
 
 // ── 내 인증(다녀왔어요) 그리드 렌더 ──
+// ── 공개 인증 피드 (Phase 2) ──
+
+// 상대시간 표시 (방금 전 / N분 전 / N시간 전 / N일 전 / 날짜)
+function timeAgo(ts) {
+  if (!ts || !ts.toMillis) return '';
+  const diff = Date.now() - ts.toMillis();
+  const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return en ? 'just now' : '방금 전';
+  if (m < 60) return en ? (m + 'm ago') : (m + '분 전');
+  const h = Math.floor(m / 60);
+  if (h < 24) return en ? (h + 'h ago') : (h + '시간 전');
+  const d = Math.floor(h / 24);
+  if (d < 7) return en ? (d + 'd ago') : (d + '일 전');
+  const dt = ts.toDate();
+  return (dt.getMonth()+1) + (en ? '/' : '월 ') + dt.getDate() + (en ? '' : '일');
+}
+
+// 인스타 스타일 피드 카드 HTML
+function feedCardHTML(c) {
+  const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
+  if (!photos.length) return '';
+  const esc = s => (s || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const uname = esc(c.userName) || (en ? 'Anonymous' : '익명');
+  const place = esc(en ? (c.placeName || '') : (c.placeName || ''));
+  const work = esc(en ? (c.title_en || c.title || '') : (c.title || ''));
+  const comment = esc(c.comment);
+  const avatar = c.userPhoto
+    ? '<img src="' + c.userPhoto + '" style="width:34px;height:34px;border-radius:50%;object-fit:cover">'
+    : '<div style="width:34px;height:34px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--text3)">' + (uname[0] || '★') + '</div>';
+  const badge = c.mediaType === 'artist' ? (en?'K-Star':'한류스타') : c.mediaType === 'movie' ? (en?'Movie':'영화') : (en?'Drama':'드라마');
+  const badgeColor = c.mediaType === 'artist' ? '#B5790F' : c.mediaType === 'movie' ? '#EF4444' : '#7C3AED';
+  const multi = photos.length > 1;
+  const slides = photos.map(u => '<img src="' + u + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;aspect-ratio:1">').join('');
+  const counter = multi ? '<span class="feed-counter" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 9px;border-radius:10px">1/' + photos.length + '</span>' : '';
+  const dots = multi ? '<div class="feed-dots" style="display:flex;justify-content:center;gap:5px;padding:8px 0 2px">' + photos.map((_,i)=>'<span style="width:6px;height:6px;border-radius:50%;background:' + (i===0?'var(--gold)':'var(--border2)') + '"></span>').join('') + '</div>' : '';
+  const tags = [c.title, c.mediaType==='drama'?null:null].filter(Boolean);
+  const hashtag = c.title ? '<span style="color:#185FA5">#' + esc(c.title).replace(/\s/g,'') + '</span>' : '';
+  return '<div class="feed-card" style="background:var(--bg);border-radius:14px;margin:10px 12px;overflow:hidden;border:1px solid var(--border)">' +
+    '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px">' + avatar +
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + uname + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ' + place + (work?' · '+work:'') + '</div></div>' +
+      '<span style="background:' + badgeColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0">' + badge + '</span></div>' +
+    '<div style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + '</div>' + dots +
+    (comment ? '<div style="padding:8px 12px 4px;font-size:13px;color:var(--text);line-height:1.5"><span style="font-weight:700">' + uname + '</span> ' + comment + ' ' + hashtag + '</div>' : (hashtag ? '<div style="padding:8px 12px 4px;font-size:13px">' + hashtag + '</div>' : '')) +
+    '<div style="padding:2px 12px 12px;font-size:11px;color:var(--text3)">' + timeAgo(c.createdAt) + '</div>' +
+    '</div>';
+}
+
+async function renderPublicFeed(force) {
+  const body = document.getElementById('pilgrimFeedBody');
+  if (!body) return;
+  if (_feedLoaded && !force) return;
+  const en = (localStorage.getItem('starspoon_lang')||'en') !== 'ko';
+  body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:13px"><div style="font-size:32px;margin-bottom:8px">📸</div>' + (en?'Loading…':'불러오는 중...') + '</div>';
+  try {
+    const snap = await getDocs(query(collection(db, 'certifications'), orderBy('createdAt', 'desc'), limit(50)));
+    const certs = [];
+    snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
+    if (!certs.length) {
+      body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:14px"><div style="font-size:38px;margin-bottom:10px">📸</div>' + (en?'No visits yet':'아직 인증이 없어요') + '<div style="font-size:12px;margin-top:8px">' + (en?'Be the first! Tap a pin → I was here':'첫 인증을 남겨보세요! 핀 탭 → 📸 다녀왔어요') + '</div></div>';
+      _feedLoaded = true;
+      return;
+    }
+    body.innerHTML = certs.map(feedCardHTML).join('');
+    // 캐러셀 카운터/점 동기화
+    body.querySelectorAll('.feed-card').forEach(card => {
+      const track = card.querySelector('.feed-track');
+      const counter = card.querySelector('.feed-counter');
+      const dots = card.querySelector('.feed-dots');
+      if (!track || (!counter && !dots)) return;
+      track.addEventListener('scroll', () => {
+        const idx = Math.round(track.scrollLeft / track.clientWidth);
+        const n = track.children.length;
+        if (counter) counter.textContent = (idx+1) + '/' + n;
+        if (dots) Array.from(dots.children).forEach((dd,i)=> dd.style.background = (i===idx?'var(--gold)':'var(--border2)'));
+      }, {passive:true});
+    });
+    _feedLoaded = true;
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px">' + (en?'Failed to load':'불러오기 실패') + '<br><small style="opacity:0.6">' + (e.message||'') + '</small></div>';
+  }
+}
+window.renderPublicFeed = renderPublicFeed;
+
+// 지도/피드 뷰 전환
+window.setPilgrimView = function(view) {
+  const mapView = document.getElementById('pilgrimMapView');
+  const feedView = document.getElementById('pilgrimFeedView');
+  const tabMap = document.getElementById('pvTabMap');
+  const tabFeed = document.getElementById('pvTabFeed');
+  if (!mapView || !feedView) return;
+  if (view === 'feed') {
+    mapView.style.display = 'none';
+    feedView.style.display = 'block';
+    if (tabFeed) { tabFeed.style.background = 'var(--gold)'; tabFeed.style.color = '#fff'; }
+    if (tabMap) { tabMap.style.background = 'none'; tabMap.style.color = 'var(--text3)'; }
+    renderPublicFeed();
+  } else {
+    feedView.style.display = 'none';
+    mapView.style.display = 'flex';
+    if (tabMap) { tabMap.style.background = 'var(--gold)'; tabMap.style.color = '#fff'; }
+    if (tabFeed) { tabFeed.style.background = 'none'; tabFeed.style.color = 'var(--text3)'; }
+    if (_pilgrimMap) setTimeout(() => { try { _pilgrimMap.relayout(); } catch(e){} }, 50);
+  }
+};
+
 async function renderMyCerts() {
   const body = document.getElementById('savedCertBody');
   if (!body) return;
