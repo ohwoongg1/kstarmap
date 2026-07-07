@@ -124,7 +124,8 @@
         <button onclick="openNavigation()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px"><span style="font-size:18px">🧭</span><span style="font-size:10px;font-weight:700">길찾기</span></button>
       </div>
       <div id="sheetExtra">
-        <div style="font-size:14px;font-weight:800;margin-bottom:10px">📸 이곳의 인증</div>
+        <div id="sheetInfo"></div>
+        <div style="font-size:14px;font-weight:800;margin:16px 0 10px">📸 이곳의 인증</div>
         <div id="sheetCerts" style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>
       </div>
     </div>
@@ -225,7 +226,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.3.5';
+const VERSION = 'map v0.3.6';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -625,6 +626,33 @@ function openPlaceSheet(place) {
   document.getElementById('sheetPin').style.background = place.color;
   // 저장 버튼 상태 반영
   updateSaveBtnUI(currentPlaceSaved());
+  // 성지 상세 정보 (story·배우·주소)
+  const info = document.getElementById('sheetInfo');
+  if (info) {
+    const raw = place.raw || {};
+    const esc = s => (s||'').replace(/</g,'&lt;');
+    let html = '';
+    if (place.type === 'pilgrim') {
+      const badge = raw.mediaType === 'artist' ? '한류스타' : raw.mediaType === 'movie' ? '영화' : '드라마';
+      const badgeColor = raw.mediaType === 'artist' ? '#B5790F' : raw.mediaType === 'movie' ? '#EF4444' : '#7C3AED';
+      const actors = Array.isArray(raw.actors) ? raw.actors.join(', ') : (raw.actors||'');
+      const story = raw.story || '';
+      const addr = raw.address || raw.area || '';
+      html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+        '<span style="background:' + badgeColor + ';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px">' + badge + '</span>' +
+        (raw.title ? '<span style="font-size:14px;font-weight:800;color:var(--text)">' + esc(raw.title) + '</span>' : '') + '</div>';
+      if (actors) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🎭 ' + esc(actors) + '</div>';
+      if (addr) html += '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">📍 ' + esc(addr) + '</div>';
+      if (story) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--gold);border-radius:6px;padding:10px 12px">' + esc(story) + '</div>';
+    } else if (place.type === 'rest') {
+      const celeb = raw.celeb || '';
+      const cat = raw.cat || raw.category || '';
+      const comment = raw.comment || '';
+      if (cat || celeb) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🍽️ ' + esc(cat) + (celeb?' · '+esc(celeb):'') + '</div>';
+      if (comment) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px">' + esc(comment) + '</div>';
+    }
+    info.innerHTML = html;
+  }
   // 인증 영역 초기화 (펼칠 때 로드)
   const certs = document.getElementById('sheetCerts');
   if (certs) certs.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">위로 올리면 이곳의 인증을 볼 수 있어요</div>';
