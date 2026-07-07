@@ -226,7 +226,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.3.7';
+const VERSION = 'map v0.3.8';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -259,7 +259,11 @@ function initMap() {
     document.getElementById('searchHereBtn').style.display = 'flex';
   });
   // 지도 빈 곳 탭 → 시트 닫기
-  kakao.maps.event.addListener(map, 'click', closePlaceSheet);
+  kakao.maps.event.addListener(map, 'click', function() {
+    closePlaceSheet();
+    // 검색 핀 제거 (초기 상태로)
+    if (_searchMarkers.length) { clearMarkers(_searchMarkers); }
+  });
 
   // 내 위치
   if (navigator.geolocation) {
@@ -1421,6 +1425,23 @@ window.onAuthChanged = function(user) {
   const myView = document.getElementById('myView');
   if (myView && myView.style.display !== 'none' && window.renderMyPage) window.renderMyPage();
 };
+
+// 칩 바 마우스 드래그 + 휠 가로 스크롤 (PC)
+(function setupBarDrag() {
+  const bar = document.getElementById('contentBar');
+  if (!bar) return;
+  let down = false, startX = 0, startScroll = 0, moved = false;
+  bar.addEventListener('mousedown', e => { down = true; moved = false; startX = e.pageX; startScroll = bar.scrollLeft; });
+  window.addEventListener('mousemove', e => {
+    if (!down) return;
+    const dx = e.pageX - startX;
+    if (Math.abs(dx) > 4) moved = true;
+    bar.scrollLeft = startScroll - dx;
+  });
+  window.addEventListener('mouseup', () => { down = false; });
+  bar.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+  bar.addEventListener('wheel', e => { if (e.deltaY !== 0) { bar.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+})();
 
 // ── 시작 ──
 function boot() {
