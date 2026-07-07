@@ -137,7 +137,9 @@
 <script type="module">
 // ── Firebase ──
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, limit } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, getDocs, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC5nf84GbQQ_5vIDwhIvTZ5zPqf7nrnSxU",
@@ -149,7 +151,39 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-window._mapDB = { db, collection, getDocs, query, limit };
+const auth = getAuth(app);
+const storage = getStorage(app);
+const googleProvider = new GoogleAuthProvider();
+
+window._mapDB = { db, collection, doc, getDoc, setDoc, addDoc, getDocs, query, where, orderBy, limit, serverTimestamp };
+window._mapAuth = { auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged };
+window._mapStorage = { storage, storageRef, uploadBytes, getDownloadURL };
+
+// ── 로그인 ──
+window.currentUser = null;
+window.loginWithGoogle = async function() {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    const userRef = doc(db, 'users', user.uid);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        displayName: user.displayName || user.email?.split('@')[0] || '사용자',
+        photoURL: user.photoURL || '', email: user.email || '',
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+    }
+    if (window.showToast) window.showToast('✅ 로그인 완료!');
+  } catch(e) {
+    if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return;
+    if (window.showToast) window.showToast('로그인 실패: ' + e.message);
+  }
+};
+onAuthStateChanged(auth, (user) => {
+  window.currentUser = user;
+  if (window.onAuthChanged) window.onAuthChanged(user);
+});
 </script>
 
 <script>
@@ -160,7 +194,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.1.9';
+const VERSION = 'map v0.2.0';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -478,10 +512,134 @@ function collapseSheet() {
 })();
 
 // ── 인증 (다음 단계에서 연결) ──
+// ── 인증 (index.html 검증 방식 이식) ──
+let _certFiles = [];
+const MAX_CERT_PHOTOS = 10;
+
+async function resizeImage(file, maxW) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => resolve(b || file), 'image/jpeg', 0.82);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 window.startCert = function() {
   if (!_selectedPlace) return;
-  showToast('📸 인증 기능은 곧 연결됩니다 (' + _selectedPlace.name + ')');
-  // TODO: 로그인 확인 → 사진 업로드 → certifications 저장
+  if (!window.currentUser) {
+    showToast('🔒 로그인이 필요해요');
+    if (window.loginWithGoogle) window.loginWithGoogle();
+    return;
+  }
+  _certFiles = [];
+  const p = _selectedPlace;
+  const old = document.getElementById('certSheet');
+  if (old) old.remove();
+  const sheet = document.createElement('div');
+  sheet.id = 'certSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'certSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.45)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:16px 16px calc(28px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto">' +
+      '<div style="position:relative;height:22px;margin-bottom:10px"><div style="width:40px;height:4px;background:var(--border2);border-radius:2px;position:absolute;left:50%;transform:translateX(-50%);top:4px"></div><button onclick="document.getElementById(\'certSheet\').remove()" style="position:absolute;right:0;top:-4px;width:30px;height:30px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:16px;cursor:pointer">✕</button></div>' +
+      '<div style="font-size:16px;font-weight:800;color:var(--text)">📸 다녀왔어요</div>' +
+      '<div style="font-size:12px;color:var(--text3);margin:3px 0 14px">' + escCert(p.name) + '</div>' +
+      '<label id="certPickBox" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;background:var(--bg2);border:2px dashed var(--border2);border-radius:14px;cursor:pointer;overflow:hidden">' +
+        '<span id="certPickInner" style="text-align:center;color:var(--text3);font-size:13px"><span style="font-size:34px;display:block;margin-bottom:6px">📷</span>탭해서 사진 추가 (최대 10장)</span>' +
+        '<input id="certFileInput" type="file" accept="image/*" multiple style="display:none">' +
+      '</label>' +
+      '<div id="certThumbs" style="display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px"></div>' +
+      '<textarea id="certComment" placeholder="한마디 남기기 (선택)" maxlength="200" style="width:100%;margin-top:12px;padding:11px 12px;border:1px solid var(--border);border-radius:11px;font-size:14px;resize:none;height:70px;box-sizing:border-box;font-family:inherit"></textarea>' +
+      '<button id="certSubmitBtn" disabled onclick="submitCert()" style="width:100%;margin-top:12px;padding:14px;background:var(--border2);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">게시하기</button>' +
+    '</div>';
+  document.body.appendChild(sheet);
+  const inp = document.getElementById('certFileInput');
+  inp.addEventListener('change', () => {
+    const picked = Array.from(inp.files || []);
+    for (const f of picked) { if (_certFiles.length >= MAX_CERT_PHOTOS) break; _certFiles.push(f); }
+    inp.value = '';
+    renderCertThumbs();
+  });
+};
+function escCert(s){return (s||'').replace(/</g,'&lt;');}
+
+function renderCertThumbs() {
+  const wrap = document.getElementById('certThumbs');
+  const inner = document.getElementById('certPickInner');
+  const btn = document.getElementById('certSubmitBtn');
+  const box = document.getElementById('certPickBox');
+  if (!wrap) return;
+  if (!_certFiles.length) {
+    wrap.style.display = 'none'; wrap.innerHTML = '';
+    if (inner) inner.style.display = 'block';
+    if (box) box.style.minHeight = '150px';
+    if (btn) { btn.disabled = true; btn.style.background = 'var(--border2)'; btn.textContent = '게시하기'; }
+    return;
+  }
+  if (inner) inner.style.display = 'none';
+  if (box) box.style.minHeight = '54px';
+  wrap.style.display = 'grid';
+  wrap.innerHTML = _certFiles.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return '<div style="position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--bg2)">' +
+      '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover">' +
+      '<button onclick="removeCertPhoto(' + i + ')" style="position:absolute;top:3px;right:3px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;font-size:13px;cursor:pointer">✕</button>' +
+      '<span style="position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:1px 5px;border-radius:6px">' + (i+1) + '</span></div>';
+  }).join('');
+  if (btn) { btn.disabled = false; btn.style.background = 'var(--gold)'; btn.textContent = '게시하기 (' + _certFiles.length + ')'; }
+}
+window.removeCertPhoto = function(i) { _certFiles.splice(i, 1); renderCertThumbs(); };
+
+window.submitCert = async function() {
+  if (!window.currentUser || !_certFiles.length || !_selectedPlace) return;
+  const p = _selectedPlace;
+  const { db, collection, addDoc, serverTimestamp } = window._mapDB;
+  const { storage, storageRef, uploadBytes, getDownloadURL } = window._mapStorage;
+  const btn = document.getElementById('certSubmitBtn');
+  btn.disabled = true;
+  const total = _certFiles.length;
+  try {
+    const urls = [];
+    for (let i = 0; i < _certFiles.length; i++) {
+      btn.textContent = '올리는 중… ' + (i+1) + '/' + total;
+      const blob = await resizeImage(_certFiles[i], 1280);
+      const path = 'certs/' + window.currentUser.uid + '/' + Date.now() + '_' + i + '.jpg';
+      const snap = await uploadBytes(storageRef(storage, path), blob, {contentType:'image/jpeg'});
+      urls.push(await getDownloadURL(snap.ref));
+    }
+    const raw = p.raw || {};
+    await addDoc(collection(db, 'certifications'), {
+      uid: window.currentUser.uid,
+      userName: window.currentUser.displayName || '',
+      userPhoto: window.currentUser.photoURL || '',
+      placeId: raw._id || '',
+      placeKey: 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4),
+      placeName: p.name || '',
+      placeType: p.type || 'search',      // search=임의장소, pilgrim=성지, rest=맛집
+      title: raw.title || '',
+      mediaType: raw.mediaType || '',
+      lat: p.lat || 0, lng: p.lng || 0,
+      address: raw.address || raw.area || '',
+      photoURLs: urls, photoURL: urls[0],
+      comment: (document.getElementById('certComment')?.value || '').trim(),
+      createdAt: serverTimestamp()
+    });
+    const s = document.getElementById('certSheet');
+    if (s) s.remove();
+    showToast('🎉 인증 완료! 내 기록에 남았어요');
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '게시하기 (' + total + ')';
+    showToast('업로드 실패: ' + (e.message || e));
+  }
 };
 
 // ── 길찾기 (네이버/카카오/구글로 넘김) ──
@@ -541,7 +699,29 @@ window.toggleFilter = function(type) {
 window.switchTab = function(tab) {
   document.querySelectorAll('.navtab').forEach(t => t.classList.remove('active'));
   event.currentTarget.classList.add('active');
+  if (tab === 'more') {
+    if (window.currentUser) {
+      if (confirm('로그아웃 할까요?')) {
+        const { auth, signOut } = window._mapAuth;
+        signOut(auth).then(() => showToast('로그아웃 됐어요'));
+      }
+    } else {
+      if (window.loginWithGoogle) window.loginWithGoogle();
+    }
+    document.querySelectorAll('.navtab')[0].classList.add('active');
+    event.currentTarget.classList.remove('active');
+    return;
+  }
   if (tab !== 'map') showToast(tab + ' 탭은 다음 단계에서 연결됩니다');
+};
+
+// 로그인 상태 변화 → 더보기 탭 라벨 갱신
+window.onAuthChanged = function(user) {
+  const moreTab = document.querySelectorAll('.navtab')[3];
+  if (moreTab) {
+    const tx = moreTab.querySelector('.tx');
+    if (tx) tx.textContent = user ? '내정보' : '로그인';
+  }
 };
 
 // ── 시작 ──
