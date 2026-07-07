@@ -41,8 +41,11 @@
   .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
 
   /* 장소 시트 */
-  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease;z-index:25;padding:12px 16px calc(16px + env(safe-area-inset-bottom))}
+  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:6px 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:80vh;overflow:hidden;display:flex;flex-direction:column}
   #placeSheet.show{transform:translateY(0)}
+  #placeSheet.expanded{height:72vh;overflow-y:auto}
+  #sheetExtra{display:none;margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
+  #placeSheet.expanded #sheetExtra{display:block}
   .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
   .place-head{display:flex;align-items:center;gap:11px}
   .place-pin{width:36px;height:36px;flex-shrink:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
@@ -100,8 +103,10 @@
     <div id="searchResults"></div>
 
     <div id="placeSheet">
+      <div id="sheetHandle" style="padding:8px 0 10px;cursor:grab;text-align:center;flex-shrink:0">
+        <div class="sheet-handle" style="margin:0 auto"></div>
+      </div>
       <button class="place-close" onclick="closePlaceSheet()">✕</button>
-      <div class="sheet-handle"></div>
       <div class="place-head">
         <div class="place-pin" id="sheetPin" style="background:var(--red)"></div>
         <div style="flex:1;min-width:0">
@@ -112,6 +117,10 @@
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
         <button onclick="openNavigation()" style="flex-shrink:0;padding:12px 16px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">🧭 길찾기</button>
+      </div>
+      <div id="sheetExtra">
+        <div style="font-size:14px;font-weight:800;margin-bottom:10px">📸 이곳의 인증</div>
+        <div id="sheetCerts" style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>
       </div>
     </div>
   </div>
@@ -153,7 +162,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.1.3';
+const VERSION = 'map v0.1.4';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -403,12 +412,42 @@ function openPlaceSheet(place) {
   document.getElementById('sheetName').textContent = place.name;
   document.getElementById('sheetSub').textContent = place.sub;
   document.getElementById('sheetPin').style.background = place.color;
-  document.getElementById('placeSheet').classList.add('show');
+  const sheet = document.getElementById('placeSheet');
+  sheet.classList.remove('expanded');
+  sheet.classList.add('show');
 }
 window.closePlaceSheet = function() {
-  document.getElementById('placeSheet').classList.remove('show');
+  const sheet = document.getElementById('placeSheet');
+  sheet.classList.remove('show');
+  sheet.classList.remove('expanded');
   _selectedPlace = null;
 };
+
+// 시트 펼침/접힘 토글
+function toggleSheetExpand() {
+  document.getElementById('placeSheet').classList.toggle('expanded');
+}
+// 핸들바 드래그 + 탭
+(function setupSheetDrag() {
+  const handle = document.getElementById('sheetHandle');
+  const sheet = document.getElementById('placeSheet');
+  if (!handle) return;
+  let startY = 0, moved = false;
+  const onStart = (y) => { startY = y; moved = false; };
+  const onMove = (y) => {
+    const dy = y - startY;
+    if (Math.abs(dy) > 30) moved = true;
+    if (dy < -40) sheet.classList.add('expanded');      // 위로 → 펼침
+    else if (dy > 40) {
+      if (sheet.classList.contains('expanded')) sheet.classList.remove('expanded'); // 펼친 상태서 아래로 → 접힘
+      else closePlaceSheet();                            // 접힌 상태서 아래로 → 닫힘
+    }
+  };
+  handle.addEventListener('touchstart', e => onStart(e.touches[0].clientY), {passive:true});
+  handle.addEventListener('touchmove', e => onMove(e.touches[0].clientY), {passive:true});
+  handle.addEventListener('touchend', () => { if (!moved) toggleSheetExpand(); });
+  handle.addEventListener('click', () => { if (!moved) toggleSheetExpand(); });
+})();
 
 // ── 인증 (다음 단계에서 연결) ──
 window.startCert = function() {
