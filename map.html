@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>KStarMap · 통합지도</title>
+<meta name="description" content="한류 성지·맛집을 한 지도에서. 어디든 검색하고, 가본 곳을 사진으로 인증하세요.">
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services"></script>
+<style>
+  :root{
+    --bg:#ffffff; --bg2:#f5f4ef; --white:#ffffff;
+    --text:#1a1a1a; --text2:#4a4a48; --text3:#8a8a85;
+    --border:#e6e4dc; --border2:#cfcdc4;
+    --gold:#B5790F; --gold-bg:rgba(181,121,15,0.1);
+    --red:#E24B4A; --blue:#378ADD; --amber:#EF9F27;
+    --shadow:0 2px 10px rgba(0,0,0,0.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg2);color:var(--text)}
+  #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+  /* 상단바 */
+  .topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);flex-shrink:0;z-index:30}
+  .logo{display:flex;align-items:center;gap:5px;font-size:17px;font-weight:800;color:var(--gold);flex-shrink:0}
+  .searchbar{flex:1;display:flex;align-items:center;gap:7px;background:var(--bg2);border-radius:22px;padding:9px 14px;border:1px solid transparent}
+  .searchbar:focus-within{border-color:var(--gold);background:var(--white)}
+  .searchbar input{flex:1;border:none;outline:none;background:none;font-size:14px;color:var(--text)}
+  .searchbar input::placeholder{color:var(--text3)}
+
+  /* 필터 칩 */
+  .filterbar{display:flex;gap:6px;padding:8px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+  .filterbar::-webkit-scrollbar{display:none}
+  .chip{display:flex;align-items:center;gap:5px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer;transition:all .15s}
+  .chip.off{opacity:0.4}
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+
+  /* 지도 */
+  #mapWrap{flex:1;position:relative;min-height:0}
+  #map{width:100%;height:100%}
+  .my-loc-btn{position:absolute;bottom:16px;right:14px;width:44px;height:44px;border-radius:50%;background:var(--white);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer;font-size:20px;z-index:20}
+  .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
+
+  /* 장소 시트 */
+  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease;z-index:25;padding:12px 16px calc(16px + env(safe-area-inset-bottom))}
+  #placeSheet.show{transform:translateY(0)}
+  .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
+  .place-head{display:flex;align-items:center;gap:11px}
+  .place-pin{width:36px;height:36px;flex-shrink:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+  .place-name{font-size:15px;font-weight:800;color:var(--text)}
+  .place-sub{font-size:12px;color:var(--text3);margin-top:2px}
+  .cert-btn{width:100%;margin-top:12px;padding:12px;background:var(--gold);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+  .place-close{position:absolute;top:12px;right:14px;width:28px;height:28px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:15px;cursor:pointer}
+
+  /* 검색 결과 리스트 */
+  #searchResults{position:absolute;top:0;left:0;right:0;background:var(--bg);max-height:100%;overflow-y:auto;z-index:28;display:none}
+  .sr-item{padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer}
+  .sr-item:active{background:var(--bg2)}
+  .sr-name{font-size:14px;font-weight:700;color:var(--text)}
+  .sr-addr{font-size:12px;color:var(--text3);margin-top:3px}
+  .sr-cat{font-size:11px;color:var(--gold);margin-top:2px}
+
+  /* 하단 탭 */
+  .bottomnav{display:flex;background:var(--bg);border-top:0.5px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+  .navtab{flex:1;text-align:center;padding:9px 0 8px;cursor:pointer;color:var(--text3)}
+  .navtab.active{color:var(--gold)}
+  .navtab .ic{font-size:20px;line-height:1}
+  .navtab .tx{font-size:10.5px;margin-top:3px;font-weight:600}
+
+  /* 토스트 */
+  #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,0.85);color:#fff;padding:11px 20px;border-radius:22px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:9999;pointer-events:none;max-width:88%;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .spin{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp 0.7s linear infinite;margin:40px auto}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="logo">⭐ KStar</div>
+    <div class="searchbar">
+      <span style="font-size:15px;color:var(--text3)">🔍</span>
+      <input id="searchInput" type="text" placeholder="장소·주소 검색 (예: 중앙고등학교)" autocomplete="off">
+      <span id="searchClear" style="display:none;font-size:16px;color:var(--text3);cursor:pointer">✕</span>
+    </div>
+  </div>
+
+  <div class="filterbar">
+    <div class="chip" id="chipSearch" onclick="toggleFilter('search')"><span class="dot" style="background:var(--red)"></span>검색</div>
+    <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
+    <div class="chip" id="chipRest" onclick="toggleFilter('rest')"><span class="dot" style="background:var(--amber)"></span>맛집</div>
+  </div>
+
+  <div id="mapWrap">
+    <div id="map"></div>
+    <button class="search-here-btn" id="searchHereBtn" onclick="searchThisArea()">🔄 이 지역 다시 검색</button>
+    <button class="my-loc-btn" onclick="goMyLocation()">📍</button>
+
+    <div id="searchResults"></div>
+
+    <div id="placeSheet">
+      <button class="place-close" onclick="closePlaceSheet()">✕</button>
+      <div class="sheet-handle"></div>
+      <div class="place-head">
+        <div class="place-pin" id="sheetPin" style="background:var(--red)"></div>
+        <div style="flex:1;min-width:0">
+          <div class="place-name" id="sheetName">장소명</div>
+          <div class="place-sub" id="sheetSub">주소 · 정보</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
+        <button onclick="openNavigation()" style="flex-shrink:0;padding:12px 16px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">🧭 길찾기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottomnav">
+    <div class="navtab active" onclick="switchTab('map')"><div class="ic">🗺️</div><div class="tx">지도</div></div>
+    <div class="navtab" onclick="switchTab('feed')"><div class="ic">📸</div><div class="tx">피드</div></div>
+    <div class="navtab" onclick="switchTab('saved')"><div class="ic">🔖</div><div class="tx">저장</div></div>
+    <div class="navtab" onclick="switchTab('more')"><div class="ic">☰</div><div class="tx">더보기</div></div>
+  </div>
+
+</div>
+
+<div id="toast"><span id="toastMsg"></span></div>
+
+<script type="module">
+// ── Firebase ──
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, limit } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC5nf84GbQQ_5vIDwhIvTZ5zPqf7nrnSxU",
+  authDomain: "starspoon-120d7.firebaseapp.com",
+  projectId: "starspoon-120d7",
+  storageBucket: "starspoon-120d7.firebasestorage.app",
+  messagingSenderId: "672370227821",
+  appId: "1:672370227821:web:aea1d9c6ca8587842a5d64"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window._mapDB = { db, collection, getDocs, query, limit };
+</script>
+
+<script>
+// ── 전역 상태 ──
+let map = null;
+let myLat = 37.5665, myLng = 126.9780;
+let _pilgrimData = [], _restData = [];
+let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
+let _filters = { search: true, pilgrim: true, rest: true };
+let _selectedPlace = null;
+const VERSION = 'map v0.1.1';
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastT);
+  window._toastT = setTimeout(() => t.classList.remove('show'), 2800);
+}
+window.showToast = showToast;
+
+// ── 지도 초기화 ──
+function initMap() {
+  const container = document.getElementById('map');
+  map = new kakao.maps.Map(container, {
+    center: new kakao.maps.LatLng(myLat, myLng),
+    level: 5
+  });
+  window._map = map;
+
+  // 지도 이동 후 → "이 지역 검색" 버튼 표시 + 뷰포트 핀 갱신
+  kakao.maps.event.addListener(map, 'idle', () => {
+    renderPilgrimPinsInView();
+    renderRestPinsInView();
+  });
+  kakao.maps.event.addListener(map, 'dragend', () => {
+    document.getElementById('searchHereBtn').style.display = 'flex';
+  });
+  // 지도 빈 곳 탭 → 시트 닫기
+  kakao.maps.event.addListener(map, 'click', closePlaceSheet);
+
+  // 내 위치
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+      map.setCenter(new kakao.maps.LatLng(myLat, myLng));
+      addMyLocationMarker();
+    }, () => {}, { timeout: 5000 });
+  }
+
+  // 데이터 로드
+  loadAllData();
+}
+
+function addMyLocationMarker() {
+  const dot = new kakao.maps.CustomOverlay({
+    position: new kakao.maps.LatLng(myLat, myLng),
+    content: '<div style="width:16px;height:16px;background:#4285F4;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 2px rgba(66,133,244,0.3)"></div>',
+    zIndex: 5
+  });
+  dot.setMap(map);
+}
+
+window.goMyLocation = function() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+      map.setCenter(new kakao.maps.LatLng(myLat, myLng));
+      map.setLevel(4);
+    }, () => showToast('위치를 가져올 수 없어요'), { timeout: 5000 });
+  }
+};
+
+// ── 데이터 로드 ──
+async function loadAllData() {
+  const { db, collection, getDocs, query, limit } = window._mapDB;
+  try {
+    // 성지 (500개 먼저)
+    const ps = await getDocs(query(collection(db, 'pilgrimages'), limit(500)));
+    _pilgrimData = ps.docs.map(d => ({ ...d.data(), _id: d.id }));
+    renderPilgrimPinsInView();
+    // 성지 전체 백그라운드
+    getDocs(query(collection(db, 'pilgrimages'), limit(9999))).then(full => {
+      _pilgrimData = full.docs.map(d => ({ ...d.data(), _id: d.id }));
+      renderPilgrimPinsInView();
+      showToast('🎬 성지 ' + _pilgrimData.length + '곳 로드');
+    });
+  } catch(e) { console.error('성지 로드 오류', e); }
+  try {
+    // 맛집
+    const rs = await getDocs(query(collection(db, 'restaurants'), limit(2000)));
+    _restData = rs.docs.map(d => { const r = d.data(); return {
+      _id: d.id, name: r.name||'', celeb: r.celeb||'', cat: r.category||r.cat||'한식',
+      area: r.area||'', comment: r.comment||'', lat: r.lat||0, lng: r.lng||0
+    };});
+    renderRestPinsInView();
+  } catch(e) { console.error('맛집 로드 오류', e); }
+}
+
+// ── 핀 렌더 (뷰포트 기반) ──
+// content를 실제 DOM 엘리먼트로 생성 → 클릭 리스너 직접 연결(안정적)
+function makePinEl(color, icon, handler) {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:relative;width:26px;height:26px;cursor:pointer';
+  el.innerHTML = '<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;background:' + color + ';transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:12px;pointer-events:none">' + icon + '</div>';
+  el.addEventListener('click', (e) => { e.stopPropagation(); handler(); });
+  return el;
+}
+
+function clearMarkers(arr) { arr.forEach(m => m.setMap(null)); arr.length = 0; }
+
+function renderPilgrimPinsInView() {
+  if (!map) return;
+  clearMarkers(_pilgrimMarkers);
+  if (!_filters.pilgrim) return;
+  const b = map.getBounds();
+  if (map.getLevel() > 8) return; // 너무 축소되면 성지 핀 숨김(과밀 방지)
+  let count = 0;
+  for (const d of _pilgrimData) {
+    if (!d.lat || !d.lng) continue;
+    const pos = new kakao.maps.LatLng(d.lat, d.lng);
+    if (!b.contain(pos)) continue;
+    if (count++ > 200) break;
+    const icon = d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺';
+    const el = makePinEl('#378ADD', icon, () => openPlaceSheet({
+      name: d.placeName || d.title || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
+      lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
+    }));
+    const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 3 });
+    ov.setMap(map);
+    _pilgrimMarkers.push(ov);
+  }
+}
+
+function renderRestPinsInView() {
+  if (!map) return;
+  clearMarkers(_restMarkers);
+  if (!_filters.rest) return;
+  const b = map.getBounds();
+  if (map.getLevel() > 8) return;
+  let count = 0;
+  for (const d of _restData) {
+    if (!d.lat || !d.lng) continue;
+    const pos = new kakao.maps.LatLng(d.lat, d.lng);
+    if (!b.contain(pos)) continue;
+    if (count++ > 200) break;
+    const el = makePinEl('#EF9F27', '🍽️', () => openPlaceSheet({
+      name: d.name, sub: d.cat + (d.area?' · '+d.area:'') + (d.celeb?' · '+d.celeb:''),
+      lat: d.lat, lng: d.lng, color: 'var(--amber)', type: 'rest', raw: d
+    }));
+    const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 3 });
+    ov.setMap(map);
+    _restMarkers.push(ov);
+  }
+}
+
+// ── 장소 검색 (카카오 로컬) ──
+const ps = new kakao.maps.services.Places();
+const geocoder = new kakao.maps.services.Geocoder();
+let _searchTimer = null;
+
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.trim();
+  document.getElementById('searchClear').style.display = q ? 'block' : 'none';
+  clearTimeout(_searchTimer);
+  if (!q) { hideSearchResults(); return; }
+  _searchTimer = setTimeout(() => doSearch(q), 350);
+});
+document.getElementById('searchClear').addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  hideSearchResults();
+});
+
+function doSearch(q) {
+  ps.keywordSearch(q, (data, status) => {
+    if (status === kakao.maps.services.Status.OK) {
+      showSearchResults(data);
+    } else {
+      showSearchResults([]);
+    }
+  }, { location: new kakao.maps.LatLng(myLat, myLng), radius: 20000, size: 15 });
+}
+
+function showSearchResults(items) {
+  const box = document.getElementById('searchResults');
+  if (!items.length) {
+    box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">검색 결과가 없어요</div>';
+    box.style.display = 'block';
+    return;
+  }
+  box.innerHTML = items.map((it, i) =>
+    '<div class="sr-item" onclick="pickSearchResult(' + i + ')">' +
+      '<div class="sr-name">' + esc(it.place_name) + '</div>' +
+      '<div class="sr-addr">' + esc(it.road_address_name || it.address_name || '') + '</div>' +
+      (it.category_group_name ? '<div class="sr-cat">' + esc(it.category_group_name) + '</div>' : '') +
+    '</div>'
+  ).join('');
+  box.style.display = 'block';
+  window._searchItems = items;
+}
+function hideSearchResults() { document.getElementById('searchResults').style.display = 'none'; }
+function esc(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+window.pickSearchResult = function(i) {
+  const it = window._searchItems[i];
+  if (!it) return;
+  const lat = parseFloat(it.y), lng = parseFloat(it.x);
+  hideSearchResults();
+  document.getElementById('searchInput').blur();
+  clearMarkers(_searchMarkers);
+  // 빨간 검색 핀
+  const pos = new kakao.maps.LatLng(lat, lng);
+  const el = makePinEl('#E24B4A', '📍', () => openPlaceSheet({
+    name: it.place_name,
+    sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
+    lat, lng, color: 'var(--red)', type: 'search',
+    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name }
+  }));
+  const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 6 });
+  ov.setMap(map);
+  _searchMarkers.push(ov);
+  map.setCenter(pos);
+  map.setLevel(4);
+  openPlaceSheet({
+    name: it.place_name,
+    sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
+    lat, lng, color: 'var(--red)', type: 'search',
+    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name }
+  });
+};
+
+// "이 지역 다시 검색"
+window.searchThisArea = function() {
+  document.getElementById('searchHereBtn').style.display = 'none';
+  renderPilgrimPinsInView();
+  renderRestPinsInView();
+  showToast('이 지역 성지·맛집을 표시했어요');
+};
+
+// ── 장소 시트 ──
+function openPlaceSheet(place) {
+  _selectedPlace = place;
+  document.getElementById('sheetName').textContent = place.name;
+  document.getElementById('sheetSub').textContent = place.sub;
+  document.getElementById('sheetPin').style.background = place.color;
+  document.getElementById('placeSheet').classList.add('show');
+}
+window.closePlaceSheet = function() {
+  document.getElementById('placeSheet').classList.remove('show');
+  _selectedPlace = null;
+};
+
+// ── 인증 (다음 단계에서 연결) ──
+window.startCert = function() {
+  if (!_selectedPlace) return;
+  showToast('📸 인증 기능은 곧 연결됩니다 (' + _selectedPlace.name + ')');
+  // TODO: 로그인 확인 → 사진 업로드 → certifications 저장
+};
+
+// ── 길찾기 (네이버/카카오/구글로 넘김) ──
+window.openNavigation = function() {
+  if (!_selectedPlace) return;
+  const p = _selectedPlace;
+  const name = encodeURIComponent(p.name);
+  const naverApp = 'nmap://place?lat=' + p.lat + '&lng=' + p.lng + '&name=' + name + '&appname=kstarmap';
+  const naverWeb = 'https://map.naver.com/p/search/' + name;
+  const kakaoWeb = 'https://map.kakao.com/link/to/' + name + ',' + p.lat + ',' + p.lng;
+  const googleWeb = 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng;
+
+  const old = document.getElementById('navSheet');
+  if (old) old.remove();
+  const sheet = document.createElement('div');
+  sheet.id = 'navSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'navSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.5)"></div>' +
+    '<div style="background:var(--bg);border-radius:18px 18px 0 0;padding:16px 16px calc(24px + env(safe-area-inset-bottom))">' +
+      '<div style="width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>' +
+      '<div style="font-size:15px;font-weight:800;margin-bottom:4px">🧭 길찾기</div>' +
+      '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">' + escNav(p.name) + '</div>' +
+      navBtn('🟢 네이버지도', naverApp, naverWeb) +
+      navBtn('🟡 카카오맵', kakaoWeb, kakaoWeb) +
+      navBtn('🔵 구글맵', googleWeb, googleWeb) +
+      '<button onclick="document.getElementById(\'navSheet\').remove()" style="width:100%;margin-top:8px;padding:12px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer">닫기</button>' +
+    '</div>';
+  document.body.appendChild(sheet);
+};
+function escNav(s){return (s||'').replace(/</g,'&lt;');}
+function navBtn(label, appUrl, webUrl) {
+  return '<button onclick="tryOpenNav(\'' + appUrl.replace(/'/g,"\\'") + '\',\'' + webUrl.replace(/'/g,"\\'") + '\')" style="width:100%;padding:14px;margin-bottom:8px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;text-align:left">' + label + '</button>';
+}
+window.tryOpenNav = function(appUrl, webUrl) {
+  // 앱 스킴 시도 후 실패하면 웹으로
+  const now = Date.now();
+  window.location.href = appUrl;
+  setTimeout(() => {
+    if (Date.now() - now < 1600) window.open(webUrl, '_blank');
+  }, 1000);
+  const s = document.getElementById('navSheet');
+  if (s) s.remove();
+};
+
+// ── 필터 ──
+window.toggleFilter = function(type) {
+  _filters[type] = !_filters[type];
+  const chip = document.getElementById('chip' + type.charAt(0).toUpperCase() + type.slice(1));
+  chip.classList.toggle('off', !_filters[type]);
+  if (type === 'pilgrim') renderPilgrimPinsInView();
+  if (type === 'rest') renderRestPinsInView();
+  if (type === 'search' && !_filters.search) clearMarkers(_searchMarkers);
+};
+
+// ── 하단 탭 (지도 외는 다음 단계) ──
+window.switchTab = function(tab) {
+  document.querySelectorAll('.navtab').forEach(t => t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if (tab !== 'map') showToast(tab + ' 탭은 다음 단계에서 연결됩니다');
+};
+
+// ── 시작 ──
+function boot() {
+  if (window.kakao && window.kakao.maps) {
+    kakao.maps.load(initMap);
+  } else {
+    setTimeout(boot, 100);
+  }
+}
+boot();
+console.log(VERSION);
+</script>
+</body>
+</html>
