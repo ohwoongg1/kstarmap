@@ -115,8 +115,8 @@
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
-        <button onclick="toggleSavePlace()" style="flex-shrink:0;padding:12px 14px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;font-size:18px;cursor:pointer" title="저장"><span id="saveBtnIcon">📑</span></button>
-        <button onclick="openNavigation()" style="flex-shrink:0;padding:12px 14px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">🧭</button>
+        <button onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px" title="저장"><span id="saveBtnIcon" style="font-size:18px">📑</span><span style="font-size:10px;font-weight:700">저장</span></button>
+        <button onclick="openNavigation()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px"><span style="font-size:18px">🧭</span><span style="font-size:10px;font-weight:700">길찾기</span></button>
       </div>
       <div id="sheetExtra">
         <div style="font-size:14px;font-weight:800;margin-bottom:10px">📸 이곳의 인증</div>
@@ -132,6 +132,13 @@
     </div>
     <div id="feedBody">
       <div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:13px"><div style="font-size:32px;margin-bottom:8px">📸</div>불러오는 중...</div>
+    </div>
+  </div>
+
+  <div id="savedView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)">
+    <div style="padding:14px 16px 8px;font-size:16px;font-weight:800;color:var(--text)">🔖 가고싶어요</div>
+    <div id="savedBody">
+      <div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)">불러오는 중...</div>
     </div>
   </div>
 
@@ -206,7 +213,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.2.6';
+const VERSION = 'map v0.2.7';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -620,6 +627,53 @@ function currentPlaceSaved() {
   return window.isPlaceSaved(placeSaveId(_selectedPlace));
 }
 
+// 저장 목록 렌더 (저장 탭)
+window.renderSavedList = function() {
+  const body = document.getElementById('savedBody');
+  if (!body) return;
+  const places = getLocalPlaces();
+  if (!places.length) {
+    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">🔖</div>저장한 장소가 없어요<div style="font-size:12px;margin-top:8px">지도에서 장소 → 📑 저장 버튼을 눌러보세요!</div></div>';
+    return;
+  }
+  body.innerHTML = places.map(p => {
+    const nm = (p.name||'').replace(/'/g,"\\'");
+    const sb = (p.sub||'').replace(/'/g,"\\'");
+    return '<div style="border-bottom:1px solid var(--border)">' +
+      '<div style="display:flex;align-items:center;gap:12px;padding:13px 16px 8px">' +
+        '<div style="width:40px;height:40px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">' + (p.icon||'📍') + '</div>' +
+        '<div style="flex:1;min-width:0" onclick="goSavedPlace(' + (p.lat||0) + ',' + (p.lng||0) + ')">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (p.name||'') + '</div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + (p.sub||'') + '</div>' +
+        '</div>' +
+        '<button onclick="unsaveFromList(\'' + p.id + '\')" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0">✕</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;padding:0 16px 12px">' +
+        '<button onclick="goSavedPlace(' + (p.lat||0) + ',' + (p.lng||0) + ')" style="display:flex;align-items:center;gap:4px;padding:7px 12px;background:none;border:1.5px solid var(--gold);border-radius:20px;font-size:12px;font-weight:700;color:var(--gold);cursor:pointer">🗺️ 지도에서 보기</button>' +
+        '<button onclick="navFromList(\'' + nm + '\',' + (p.lat||0) + ',' + (p.lng||0) + ')" style="display:flex;align-items:center;gap:4px;padding:7px 12px;background:none;border:1.5px solid #03C75A;border-radius:20px;font-size:12px;font-weight:700;color:#03C75A;cursor:pointer">🧭 길찾기</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+};
+window.unsaveFromList = function(id) {
+  let places = getLocalPlaces();
+  places = places.filter(p => p.id !== id);
+  setLocalPlaces(places);
+  showToast('저장 취소됐어요');
+  renderSavedList();
+};
+window.goSavedPlace = function(lat, lng) {
+  switchTabTo('map');
+  if (map && lat && lng) {
+    map.setCenter(new kakao.maps.LatLng(lat, lng));
+    map.setLevel(3);
+  }
+};
+window.navFromList = function(name, lat, lng) {
+  _selectedPlace = { name, lat, lng };
+  openNavigation();
+};
+
 
 
 const MAX_CERT_PHOTOS = 10;
@@ -973,11 +1027,25 @@ window.toggleFilter = function(type) {
 };
 
 // ── 하단 탭 (지도 외는 다음 단계) ──
+function showView(view) {
+  document.getElementById('mapWrap').style.display = (view === 'map') ? 'block' : 'none';
+  document.getElementById('feedView').style.display = (view === 'feed') ? 'block' : 'none';
+  document.getElementById('savedView').style.display = (view === 'saved') ? 'block' : 'none';
+  if (view === 'map' && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 50);
+  if (view === 'feed') renderPublicFeed();
+  if (view === 'saved') renderSavedList();
+}
+function setActiveTab(idx) {
+  const tabs = document.querySelectorAll('.navtab');
+  tabs.forEach(t => t.classList.remove('active'));
+  if (tabs[idx]) tabs[idx].classList.add('active');
+}
+window.switchTabTo = function(view) {
+  const map = { map:0, feed:1, saved:2 };
+  setActiveTab(map[view] ?? 0);
+  showView(view);
+};
 window.switchTab = function(tab) {
-  document.querySelectorAll('.navtab').forEach(t => t.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  const mapWrap = document.getElementById('mapWrap');
-  const feedView = document.getElementById('feedView');
   if (tab === 'more') {
     if (window.currentUser) {
       if (confirm('로그아웃 할까요?')) {
@@ -987,21 +1055,9 @@ window.switchTab = function(tab) {
     } else {
       if (window.loginWithGoogle) window.loginWithGoogle();
     }
-    document.querySelectorAll('.navtab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.navtab')[0].classList.add('active');
-    return;
+    return; // 더보기는 탭 이동 안 함
   }
-  if (tab === 'feed') {
-    mapWrap.style.display = 'none';
-    feedView.style.display = 'block';
-    renderPublicFeed();
-    return;
-  }
-  // 지도 (기본)
-  feedView.style.display = 'none';
-  mapWrap.style.display = 'block';
-  if (tab === 'map' && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 50);
-  if (tab === 'saved') showToast('저장 탭은 다음 단계에서 연결됩니다');
+  switchTabTo(tab);
 };
 
 // 로그인 상태 변화 → 더보기 탭 라벨 갱신
