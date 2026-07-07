@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.5.2';
+const VERSION = 'map v0.5.3';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -907,7 +907,6 @@ async function loadPlaceCerts() {
   const raw = p.raw || {};
   const groupKey = makeGroupKey(p.name, raw.title || '');
   const placeKey = 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4);
-  console.log('[이곳의인증] 조회 groupKey=', groupKey, ' placeKey=', placeKey, ' name=', p.name);
   try {
     // 장소명+작품(groupKey) 기준 조회 + 기존 데이터(placeKey) 조회 후 합침
     const [snapG, snapP] = await Promise.all([
@@ -918,7 +917,6 @@ async function loadPlaceCerts() {
     snapG.forEach(d => { map[d.id] = { id: d.id, ...d.data() }; });
     snapP.forEach(d => { if (!map[d.id]) map[d.id] = { id: d.id, ...d.data() }; });
     const certs = Object.values(map);
-    console.log('[이곳의인증] groupKey결과=', snapG.size, ' placeKey결과=', snapP.size, ' 합계=', certs.length);
     window._placeCerts = {};
     certs.forEach(c => { window._placeCerts[c.id] = c; });
     if (!certs.length) {
@@ -1176,7 +1174,9 @@ window.viewCert = function(certId) {
     '<button onclick="document.getElementById(\'certViewer\').remove()" style="position:absolute;top:14px;right:14px;width:36px;height:36px;border:none;border-radius:50%;background:rgba(255,255,255,0.2);color:#fff;font-size:18px;cursor:pointer;z-index:3">✕</button>' +
     counter +
     '<div style="position:relative"><div id="certViewTrack" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + arrows + '</div>' +
-    '<div style="padding:16px 20px;color:#fff"><div style="font-size:16px;font-weight:800">' + esc(c.placeName) + '</div><div style="font-size:12px;opacity:0.7;margin-top:2px">' + esc(c.title||'') + '</div>' + (c.comment ? '<div style="font-size:13px;margin-top:8px;opacity:0.9">' + esc(c.comment) + '</div>' : '') + '</div>';
+    '<div style="padding:16px 20px;color:#fff"><div style="font-size:16px;font-weight:800">' + esc(c.placeName) + '</div><div style="font-size:12px;opacity:0.7;margin-top:2px">' + esc(c.title||'') + '</div>' + (c.comment ? '<div style="font-size:13px;margin-top:8px;opacity:0.9">' + esc(c.comment) + '</div>' : '') +
+    ((window.currentUser && c.uid === window.currentUser.uid) ? '<button onclick="deleteCertFromViewer(\'' + c.id + '\')" style="margin-top:12px;padding:8px 16px;background:rgba(255,80,80,0.2);border:1px solid rgba(255,80,80,0.5);border-radius:8px;color:#ff6b6b;font-size:13px;font-weight:700;cursor:pointer">🗑️ ' + (isEn()?'Delete':'삭제') + '</button>' : '') +
+    '</div>';
   document.body.appendChild(v);
   if (multi) {
     const track = document.getElementById('certViewTrack');
@@ -1191,6 +1191,25 @@ window.certViewSlide = function(dir) {
   const track = document.getElementById('certViewTrack');
   if (!track) return;
   track.scrollBy({ left: dir * track.clientWidth, behavior: 'smooth' });
+};
+// 크게보기에서 인증 삭제
+window.deleteCertFromViewer = async function(certId) {
+  if (!window.currentUser) return;
+  if (!confirm(isEn() ? 'Delete this check-in?' : '이 인증을 삭제할까요?')) return;
+  const { db, doc, deleteDoc } = window._mapDB;
+  try {
+    await deleteDoc(doc(db, 'certifications', certId));
+    if (window._placeCerts) delete window._placeCerts[certId];
+    if (window._myCerts) delete window._myCerts[certId];
+    if (window._feedData) delete window._feedData[certId];
+    document.getElementById('certViewer')?.remove();
+    showToast(isEn() ? 'Deleted' : '삭제됐어요');
+    // 이곳의 인증 다시 로드
+    _sheetCertsLoaded = false;
+    if (_selectedPlace) loadPlaceCerts();
+  } catch(e) {
+    showToast((isEn()?'Failed: ':'삭제 실패: ') + (e.message||e));
+  }
 };
 
 
@@ -1306,7 +1325,6 @@ window.submitCert = async function() {
       urls.push(await getDownloadURL(snap.ref));
     }
     const raw = p.raw || {};
-    console.log('[인증저장] groupKey=', makeGroupKey(p.name, raw.title || ''), ' placeKey=', 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4), ' name=', p.name);
     await addDoc(collection(db, 'certifications'), {
       uid: window.currentUser.uid,
       userName: window.currentUser.displayName || '',
@@ -1434,7 +1452,7 @@ function feedCardHTML(c) {
   return '<div class="feed-card" data-id="' + c.id + '" style="background:var(--bg);border-radius:14px;margin:10px 12px;overflow:hidden;border:1px solid var(--border)">' +
     '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px">' + avatar +
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + uname + '</div>' +
-      '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ' + place + (work?' · '+work:'') + '</div></div>' +
+      '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="goFeedPlace(' + (c.lat||0) + ',' + (c.lng||0) + ')">📍 ' + place + (work?' · '+work:'') + '</div></div>' +
       '<span style="background:' + typeColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0">' + typeLabel + '</span>' + deleteBtn + '</div>' +
     '<div class="feed-photo-wrap" ondblclick="dblLikeFeed(\'' + c.id + '\',this)" style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + arrows + '<div class="feed-big-heart" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease"><svg viewBox="0 0 24 24" width="96" height="96" fill="#D4537E" stroke="#fff" stroke-width="1.2" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg></div></div>' + dots +
     likeBar +
@@ -1532,6 +1550,18 @@ window.feedSlide = function(btn, dir) {
   if (!track) return;
   const w = track.clientWidth;
   track.scrollBy({ left: dir * w, behavior: 'smooth' });
+};
+
+// 피드에서 장소 누르면 지도의 그 위치로
+window.goFeedPlace = function(lat, lng) {
+  if (!lat || !lng) { showToast(isEn()?'No location':'위치 정보가 없어요'); return; }
+  switchTabTo('map');
+  setTimeout(() => {
+    if (map) {
+      map.setCenter(new kakao.maps.LatLng(lat, lng));
+      map.setLevel(3);
+    }
+  }, 100);
 };
 
 // 내 인증 삭제
