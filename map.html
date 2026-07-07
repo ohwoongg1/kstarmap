@@ -89,6 +89,7 @@
       <input id="searchInput" type="text" placeholder="장소·주소 검색 (예: 중앙고등학교)" autocomplete="off">
       <span id="searchClear" style="display:none;font-size:16px;color:var(--text3);cursor:pointer">✕</span>
     </div>
+    <button id="langToggle" onclick="setLang(document.documentElement.dataset.lang==='en'?'ko':'en')" style="flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">EN</button>
   </div>
 
   <div class="filterbar">
@@ -226,7 +227,79 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.4.2';
+const VERSION = 'map v0.4.3';
+
+// ── 언어 (index.html과 통일: starspoon_lang) ──
+let LANG = localStorage.getItem('starspoon_lang') || 'ko';
+const I18N = {
+  ko: {
+    searchPlace: '장소·주소 검색 (예: 중앙고등학교)',
+    search:'검색', pilgrim:'성지', rest:'맛집',
+    hallyuSearch:'배우·드라마·그룹 검색', all:'전체',
+    tabMap:'지도', tabFeed:'피드', tabSaved:'저장', tabMy:'내정보',
+    certBtn:'📸 가본곳 · 사진 올리기', save:'저장', nav:'길찾기',
+    thisCert:'📸 이곳의 인증', noCertHere:'아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!',
+    expandHint:'위로 올리면 이곳의 인증을 볼 수 있어요',
+    feedTitle:'📸 인증 피드', savedTitle:'🔖 가고싶어요',
+    login:'구글 로그인', logout:'로그아웃',
+    searchHere:'🔄 이 지역 다시 검색',
+    hallyuPlaceholder:'좋아하는 배우, 드라마, 영화,<br>아이돌 그룹 이름을 검색해보세요',
+  },
+  en: {
+    searchPlace: 'Search place or address',
+    search:'Search', pilgrim:'Spots', rest:'Food',
+    hallyuSearch:'Search actor·drama·group', all:'All',
+    tabMap:'Map', tabFeed:'Feed', tabSaved:'Saved', tabMy:'Me',
+    certBtn:'📸 I\'ve been here · Add photo', save:'Save', nav:'Directions',
+    thisCert:'📸 Visits here', noCertHere:'No visits yet.<br>Be the first to check in!',
+    expandHint:'Swipe up to see visits here',
+    feedTitle:'📸 Visit Feed', savedTitle:'🔖 Want to visit',
+    login:'Sign in with Google', logout:'Sign out',
+    searchHere:'🔄 Search this area',
+    hallyuPlaceholder:'Search your favorite actor, drama,<br>movie, or K-pop group',
+  }
+};
+function t(key) { return (I18N[LANG] && I18N[LANG][key]) || I18N.ko[key] || key; }
+const isEn = () => LANG === 'en';
+window.setLang = function(lang) {
+  LANG = lang;
+  localStorage.setItem('starspoon_lang', lang);
+  applyLangToUI();
+  showToast(lang === 'en' ? 'Language: English' : '언어: 한국어');
+};
+function applyLangToUI() {
+  document.documentElement.dataset.lang = LANG;
+  const set = (id, key, attr) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (attr === 'ph') el.placeholder = t(key);
+    else el.textContent = t(key);
+  };
+  set('searchInput', 'searchPlace', 'ph');
+  // 필터 칩
+  const chipSearch = document.getElementById('chipSearch');
+  const chipPilgrim = document.getElementById('chipPilgrim');
+  const chipRest = document.getElementById('chipRest');
+  if (chipSearch) chipSearch.innerHTML = '<span class="dot" style="background:var(--red)"></span>' + t('search');
+  if (chipPilgrim) chipPilgrim.innerHTML = '<span class="dot" style="background:var(--blue)"></span>' + t('pilgrim');
+  if (chipRest) chipRest.innerHTML = '<span class="dot" style="background:var(--amber)"></span>' + t('rest');
+  // 하단 탭
+  const tabs = document.querySelectorAll('.navtab .tx');
+  if (tabs.length >= 4) {
+    tabs[0].textContent = t('tabMap'); tabs[1].textContent = t('tabFeed');
+    tabs[2].textContent = t('tabSaved'); tabs[3].textContent = t('tabMy');
+  }
+  // 시트 버튼
+  const certLabel = document.querySelector('#placeSheet .cert-btn');
+  if (certLabel) certLabel.textContent = t('certBtn');
+  const saveLabel = document.querySelector('#saveBtnIcon')?.nextElementSibling;
+  if (saveLabel) saveLabel.textContent = t('save');
+  // 언어 토글 버튼 라벨
+  const lt = document.getElementById('langToggle');
+  if (lt) lt.textContent = isEn() ? '한' : 'EN';
+  // 칩바/피드/저장 재렌더
+  if (window.updateContentBar) updateContentBar();
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -752,14 +825,15 @@ function openPlaceSheet(place) {
     const esc = s => (s||'').replace(/</g,'&lt;');
     let html = '';
     if (place.type === 'pilgrim') {
-      const badge = raw.mediaType === 'artist' ? '한류스타' : raw.mediaType === 'movie' ? '영화' : '드라마';
+      const badge = raw.mediaType === 'artist' ? (isEn()?'K-Star':'한류스타') : raw.mediaType === 'movie' ? (isEn()?'Movie':'영화') : (isEn()?'Drama':'드라마');
       const badgeColor = raw.mediaType === 'artist' ? '#B5790F' : raw.mediaType === 'movie' ? '#EF4444' : '#7C3AED';
       const actors = Array.isArray(raw.actors) ? raw.actors.join(', ') : (raw.actors||'');
-      const story = raw.story || '';
+      const story = (isEn() ? (raw.story_en || raw.story) : raw.story) || '';
+      const dispTitle = (isEn() ? (raw.title_en || raw.title) : raw.title) || '';
       const addr = raw.address || raw.area || '';
       html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
         '<span style="background:' + badgeColor + ';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px">' + badge + '</span>' +
-        (raw.title ? '<span style="font-size:14px;font-weight:800;color:var(--text)">' + esc(raw.title) + '</span>' : '') + '</div>';
+        (dispTitle ? '<span style="font-size:14px;font-weight:800;color:var(--text)">' + esc(dispTitle) + '</span>' : '') + '</div>';
       if (actors) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🎭 ' + esc(actors) + '</div>';
       if (addr) html += '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">📍 ' + esc(addr) + '</div>';
       if (story) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--gold);border-radius:6px;padding:10px 12px">' + esc(story) + '</div>';
@@ -1591,6 +1665,7 @@ function boot() {
   }
 }
 boot();
+applyLangToUI();
 console.log(VERSION);
 </script>
 </body>
