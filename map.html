@@ -226,7 +226,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.3.8';
+const VERSION = 'map v0.4.0';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -403,7 +403,7 @@ function updateContentBar() {
   const bar = document.getElementById('contentBar');
   if (!bar || !map) return;
   bar.style.display = 'flex';
-  let html = '<button class="c-pill" onclick="openHallyuSearch()" style="background:var(--gold);color:#fff;border-color:var(--gold)">🔍 한류검색</button>';
+  let html = '<button class="c-pill" onclick="openHallyuSearch()" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);color:var(--text3);border:1px solid var(--border2);font-weight:500;min-width:160px"><span style="color:var(--gold)">🔍</span><span>배우·드라마·그룹 검색</span></button>';
 
   // 활성 한류 필터 칩 (탭→가까운 성지 이동, ✕→해제)
   if (_hallyuFilter) {
@@ -1264,7 +1264,11 @@ function feedCardHTML(c) {
     '</button></div>';
   const arrows = multi ? '<button class="feed-arrow feed-arrow-prev" onclick="feedSlide(this,-1)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;border-radius:50%;background:rgba(0,0,0,0.4);color:#fff;font-size:16px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center">‹</button><button class="feed-arrow feed-arrow-next" onclick="feedSlide(this,1)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;border-radius:50%;background:rgba(0,0,0,0.4);color:#fff;font-size:16px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center">›</button>' : '';
   const isMine = cu && c.uid === cu.uid;
-  const deleteBtn = isMine ? '<button onclick="deleteMyCertFeed(\'' + c.id + '\')" style="background:none;border:none;padding:2px 4px;cursor:pointer;font-size:16px;color:var(--text3);flex-shrink:0" title="삭제">🗑️</button>' : '';
+  const ownerBtns = isMine ? (
+    '<button onclick="editMyCert(\'' + c.id + '\')" style="background:none;border:none;padding:2px 4px;cursor:pointer;font-size:15px;color:var(--text3);flex-shrink:0" title="수정">✏️</button>' +
+    '<button onclick="deleteMyCertFeed(\'' + c.id + '\')" style="background:none;border:none;padding:2px 4px;cursor:pointer;font-size:16px;color:var(--text3);flex-shrink:0" title="삭제">🗑️</button>'
+  ) : '';
+  const deleteBtn = ownerBtns;
   return '<div class="feed-card" data-id="' + c.id + '" style="background:var(--bg);border-radius:14px;margin:10px 12px;overflow:hidden;border:1px solid var(--border)">' +
     '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px">' + avatar +
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + uname + '</div>' +
@@ -1369,6 +1373,95 @@ window.feedSlide = function(btn, dir) {
 };
 
 // 내 인증 삭제
+// 내 인증 수정 (사진 추가/삭제 + 코멘트)
+let _editCert = null;        // 수정 중인 인증
+let _editPhotos = [];        // 기존 사진 URL 배열 (유지할 것)
+let _editNewFiles = [];      // 새로 추가할 파일
+
+window.editMyCert = function(certId) {
+  const c = window._feedData[certId];
+  if (!c || !window.currentUser || c.uid !== window.currentUser.uid) { showToast('본인 인증만 수정할 수 있어요'); return; }
+  _editCert = c;
+  _editPhotos = (c.photoURLs && c.photoURLs.length) ? [...c.photoURLs] : (c.photoURL ? [c.photoURL] : []);
+  _editNewFiles = [];
+  const old = document.getElementById('editSheet');
+  if (old) old.remove();
+  const sheet = document.createElement('div');
+  sheet.id = 'editSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'editSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.45)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:16px 16px calc(28px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto">' +
+      '<div style="position:relative;height:22px;margin-bottom:10px"><div style="width:40px;height:4px;background:var(--border2);border-radius:2px;position:absolute;left:50%;transform:translateX(-50%);top:4px"></div><button onclick="document.getElementById(\'editSheet\').remove()" style="position:absolute;right:0;top:-4px;width:30px;height:30px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:16px;cursor:pointer">✕</button></div>' +
+      '<div style="font-size:16px;font-weight:800;color:var(--text)">✏️ 인증 수정</div>' +
+      '<div style="font-size:12px;color:var(--text3);margin:3px 0 14px">' + (c.placeName||'').replace(/</g,'&lt;') + '</div>' +
+      '<div id="editThumbs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>' +
+      '<label style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:var(--bg2);border:1.5px dashed var(--border2);border-radius:11px;cursor:pointer;font-size:13px;color:var(--text3)">' +
+        '<span style="font-size:18px">📷</span> 사진 추가' +
+        '<input id="editFileInput" type="file" accept="image/*" multiple style="display:none">' +
+      '</label>' +
+      '<textarea id="editComment" maxlength="200" style="width:100%;margin-top:12px;padding:11px 12px;border:1px solid var(--border);border-radius:11px;font-size:14px;resize:none;height:70px;box-sizing:border-box;font-family:inherit">' + (c.comment||'').replace(/</g,'&lt;') + '</textarea>' +
+      '<button id="editSubmitBtn" onclick="submitEditCert()" style="width:100%;margin-top:12px;padding:14px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">저장하기</button>' +
+    '</div>';
+  document.body.appendChild(sheet);
+  renderEditThumbs();
+  document.getElementById('editFileInput').addEventListener('change', function() {
+    const picked = Array.from(this.files || []);
+    for (const f of picked) { if (_editPhotos.length + _editNewFiles.length >= 10) break; _editNewFiles.push(f); }
+    this.value = '';
+    renderEditThumbs();
+  });
+};
+function renderEditThumbs() {
+  const wrap = document.getElementById('editThumbs');
+  if (!wrap) return;
+  let html = _editPhotos.map((url, i) =>
+    '<div style="position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--bg2)"><img src="' + url + '" style="width:100%;height:100%;object-fit:cover">' +
+    '<button onclick="removeEditPhoto(' + i + ')" style="position:absolute;top:3px;right:3px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;font-size:13px;cursor:pointer">✕</button></div>'
+  ).join('');
+  html += _editNewFiles.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return '<div style="position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--bg2)"><img src="' + url + '" style="width:100%;height:100%;object-fit:cover"><span style="position:absolute;bottom:3px;left:3px;background:var(--gold);color:#fff;font-size:8px;padding:1px 5px;border-radius:5px">new</span>' +
+    '<button onclick="removeEditNewFile(' + i + ')" style="position:absolute;top:3px;right:3px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;font-size:13px;cursor:pointer">✕</button></div>';
+  }).join('');
+  wrap.innerHTML = html || '<div style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:12px;padding:14px">사진을 추가해주세요</div>';
+}
+window.removeEditPhoto = function(i) { _editPhotos.splice(i,1); renderEditThumbs(); };
+window.removeEditNewFile = function(i) { _editNewFiles.splice(i,1); renderEditThumbs(); };
+
+window.submitEditCert = async function() {
+  if (!_editCert || !window.currentUser) return;
+  if (!_editPhotos.length && !_editNewFiles.length) { showToast('사진이 최소 1장 필요해요'); return; }
+  const { db, doc, updateDoc } = window._mapDB;
+  const { storage, storageRef, uploadBytes, getDownloadURL } = window._mapStorage;
+  const btn = document.getElementById('editSubmitBtn');
+  btn.disabled = true;
+  try {
+    const urls = [..._editPhotos];
+    for (let i = 0; i < _editNewFiles.length; i++) {
+      btn.textContent = '올리는 중… ' + (i+1) + '/' + _editNewFiles.length;
+      const blob = await resizeImage(_editNewFiles[i], 1280);
+      const path = 'certs/' + window.currentUser.uid + '/' + Date.now() + '_e' + i + '.jpg';
+      const snap = await uploadBytes(storageRef(storage, path), blob, {contentType:'image/jpeg'});
+      urls.push(await getDownloadURL(snap.ref));
+    }
+    const comment = (document.getElementById('editComment')?.value || '').trim();
+    await updateDoc(doc(db, 'certifications', _editCert.id), {
+      photoURLs: urls, photoURL: urls[0], comment
+    });
+    // 로컬 데이터 갱신
+    _editCert.photoURLs = urls; _editCert.photoURL = urls[0]; _editCert.comment = comment;
+    document.getElementById('editSheet')?.remove();
+    showToast('수정됐어요');
+    _feedLoaded = false;
+    renderPublicFeed(true);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '저장하기';
+    showToast('수정 실패: ' + (e.message||e));
+  }
+};
+
 window.deleteMyCertFeed = async function(certId) {
   if (!window.currentUser) return;
   const c = window._feedData[certId];
