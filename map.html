@@ -34,6 +34,9 @@
   .chip{display:flex;align-items:center;gap:5px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer;transition:all .15s}
   .chip.off{opacity:0.4}
   .chip .dot{width:9px;height:9px;border-radius:50%}
+  #contentBar::-webkit-scrollbar{display:none}
+  .c-pill{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:15px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer}
+  .c-pill.on{background:var(--gold);border-color:var(--gold);color:#fff}
 
   /* 지도 */
   #mapWrap{flex:1;position:relative;min-height:0}
@@ -93,6 +96,8 @@
     <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
     <div class="chip" id="chipRest" onclick="toggleFilter('rest')"><span class="dot" style="background:var(--amber)"></span>맛집</div>
   </div>
+
+  <div id="contentBar" style="display:flex;gap:6px;padding:6px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
 
   <div id="mapWrap">
     <div id="map"></div>
@@ -220,7 +225,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.3.0';
+const VERSION = 'map v0.3.2';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -346,15 +351,19 @@ function makePinEl(color, icon, handler) {
 
 function clearMarkers(arr) { arr.forEach(m => m.setMap(null)); arr.length = 0; }
 
+let _contentFilter = null;  // 선택된 작품(title), null이면 전체
+
 function renderPilgrimPinsInView() {
   if (!map) return;
   clearMarkers(_pilgrimMarkers);
+  updateContentBar();
   if (!_filters.pilgrim) return;
   const b = map.getBounds();
   if (map.getLevel() > 10) return; // 너무 축소되면 성지 핀 숨김(과밀 방지)
   let count = 0;
   for (const d of _pilgrimData) {
     if (!d.lat || !d.lng) continue;
+    if (_contentFilter && d.title !== _contentFilter) continue;  // 작품 필터
     const pos = new kakao.maps.LatLng(d.lat, d.lng);
     if (!b.contain(pos)) continue;
     if (count++ > 200) break;
@@ -368,6 +377,35 @@ function renderPilgrimPinsInView() {
     _pilgrimMarkers.push(ov);
   }
 }
+
+// 화면 안 성지들의 작품을 개수순으로 칩 표시
+function updateContentBar() {
+  const bar = document.getElementById('contentBar');
+  if (!bar || !map) return;
+  if (!_filters.pilgrim || map.getLevel() > 10) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+  const b = map.getBounds();
+  const counts = {};
+  for (const d of _pilgrimData) {
+    if (!d.lat || !d.lng || !d.title) continue;
+    if (!b.contain(new kakao.maps.LatLng(d.lat, d.lng))) continue;
+    counts[d.title] = (counts[d.title] || 0) + 1;
+  }
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 20);
+  if (!sorted.length) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  let html = '<button class="c-pill' + (_contentFilter===null?' on':'') + '" onclick="selectContent(null)">전체</button>';
+  html += sorted.map(([title, cnt]) => {
+    const t = title.replace(/'/g,"\\'");
+    const short = title.length > 14 ? title.slice(0,14)+'…' : title;
+    return '<button class="c-pill' + (_contentFilter===title?' on':'') + '" onclick="selectContent(\'' + t + '\')">' + short + ' <span style="opacity:0.6">' + cnt + '</span></button>';
+  }).join('');
+  bar.innerHTML = html;
+}
+window.selectContent = function(title) {
+  _contentFilter = title;
+  renderPilgrimPinsInView();
+  if (title) showToast('🎬 ' + title + ' 성지만 표시');
+};
 
 function renderRestPinsInView() {
   if (!map) return;
@@ -409,13 +447,14 @@ document.getElementById('searchClear').addEventListener('click', () => {
 });
 
 function doSearch(q) {
+  // 전국 검색: radius 제한 없이, 내 위치는 정렬 참고용으로만
   ps.keywordSearch(q, (data, status) => {
     if (status === kakao.maps.services.Status.OK) {
       showSearchResults(data);
     } else {
       showSearchResults([]);
     }
-  }, { location: new kakao.maps.LatLng(myLat, myLng), radius: 20000, size: 15 });
+  }, { location: new kakao.maps.LatLng(myLat, myLng), size: 15, sort: kakao.maps.services.SortBy.ACCURACY });
 }
 
 function showSearchResults(items) {
