@@ -115,7 +115,8 @@
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
-        <button onclick="openNavigation()" style="flex-shrink:0;padding:12px 16px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">🧭 길찾기</button>
+        <button onclick="toggleSavePlace()" style="flex-shrink:0;padding:12px 14px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;font-size:18px;cursor:pointer" title="저장"><span id="saveBtnIcon">📑</span></button>
+        <button onclick="openNavigation()" style="flex-shrink:0;padding:12px 14px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">🧭</button>
       </div>
       <div id="sheetExtra">
         <div style="font-size:14px;font-weight:800;margin-bottom:10px">📸 이곳의 인증</div>
@@ -205,7 +206,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.2.4';
+const VERSION = 'map v0.2.6';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -436,7 +437,7 @@ window.pickSearchResult = function(i) {
     name: it.place_name,
     sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
     lat, lng, color: 'var(--red)', type: 'search',
-    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name }
+    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name }
   }));
   const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 6 });
   ov.setMap(map);
@@ -447,7 +448,7 @@ window.pickSearchResult = function(i) {
     name: it.place_name,
     sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
     lat, lng, color: 'var(--red)', type: 'search',
-    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name }
+    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name }
   });
 };
 
@@ -465,10 +466,47 @@ function openPlaceSheet(place) {
   document.getElementById('sheetName').textContent = place.name;
   document.getElementById('sheetSub').textContent = place.sub;
   document.getElementById('sheetPin').style.background = place.color;
+  // 저장 버튼 상태 반영
+  updateSaveBtnUI(currentPlaceSaved());
+  // 인증 영역 초기화 (펼칠 때 로드)
+  const certs = document.getElementById('sheetCerts');
+  if (certs) certs.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">위로 올리면 이곳의 인증을 볼 수 있어요</div>';
+  _sheetCertsLoaded = false;
   const sheet = document.getElementById('placeSheet');
   sheet.style.height = 'auto';
   sheet.dataset.expanded = '0';
   sheet.classList.add('show');
+}
+let _sheetCertsLoaded = false;
+
+// 이곳의 인증 로드 (좌표 기반)
+async function loadPlaceCerts() {
+  if (_sheetCertsLoaded || !_selectedPlace) return;
+  _sheetCertsLoaded = true;
+  const box = document.getElementById('sheetCerts');
+  if (!box) return;
+  box.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--text3);font-size:13px">불러오는 중...</div>';
+  const { db, collection, getDocs, query, where } = window._mapDB;
+  const p = _selectedPlace;
+  const placeKey = 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4);
+  try {
+    const snap = await getDocs(query(collection(db, 'certifications'), where('placeKey', '==', placeKey)));
+    const certs = [];
+    snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
+    if (!certs.length) {
+      box.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>';
+      return;
+    }
+    box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' +
+      certs.map(c => {
+        const ph = (c.photoURLs && c.photoURLs[0]) || c.photoURL || '';
+        return '<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg2)"><img src="' + ph + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' +
+          ((c.photoURLs && c.photoURLs.length > 1) ? '<span style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 4px;border-radius:5px">📷' + c.photoURLs.length + '</span>' : '') +
+          '</div>';
+      }).join('') + '</div>';
+  } catch(e) {
+    box.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px 0">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
+  }
 }
 window.closePlaceSheet = function() {
   const sheet = document.getElementById('placeSheet');
@@ -491,6 +529,7 @@ function toggleSheetExpand() {
   } else {
     sheet.style.height = '70vh';
     sheet.dataset.expanded = '1';
+    loadPlaceCerts();
   }
   console.log('[sheet] toggle → expanded:', !isExpanded);
 }
@@ -527,8 +566,62 @@ function collapseSheet() {
 })();
 
 // ── 인증 (다음 단계에서 연결) ──
-// ── 인증 (index.html 검증 방식 이식) ──
-let _certFiles = [];
+// ── 저장(가고싶어요) localStorage 시스템 (index.html과 통일) ──
+const PLACE_KEY = 'starspoon_places';   // index.html과 동일 창고
+function getLocalPlaces() {
+  try { return JSON.parse(localStorage.getItem(PLACE_KEY) || '[]'); } catch { return []; }
+}
+function setLocalPlaces(list) { localStorage.setItem(PLACE_KEY, JSON.stringify(list)); }
+window.isPlaceSaved = function(id) { return getLocalPlaces().some(p => p.id === id); };
+function toggleLocalPlace(item) {
+  let places = getLocalPlaces();
+  const idx = places.findIndex(p => p.id === item.id);
+  if (idx >= 0) {
+    places.splice(idx, 1);
+    setLocalPlaces(places);
+    showToast('저장 취소됐어요');
+  } else {
+    places.unshift(item);
+    if (places.length > 100) places = places.slice(0, 100);
+    setLocalPlaces(places);
+    showToast('🔖 ' + item.name + ' 저장됐어요!');
+  }
+  return getLocalPlaces().some(p => p.id === item.id);
+}
+
+// 선택 장소의 저장 ID를 index.html 규칙에 맞게 생성
+function placeSaveId(p) {
+  const raw = p.raw || {};
+  if (p.type === 'pilgrim' && raw._id) return 'pil_' + raw._id;      // 성지: pil_{성지ID}
+  if (p.type === 'rest' && raw._id) return 'rest_' + raw._id;        // 맛집
+  if (raw.kakaoId) return 'kakao_' + raw.kakaoId;                    // 검색 장소: kakao_{id}
+  return 'place_' + (p.lat||0).toFixed(5) + '_' + (p.lng||0).toFixed(5); // fallback: 좌표
+}
+
+// 현재 선택된 장소 저장 토글
+window.toggleSavePlace = function() {
+  if (!_selectedPlace) return;
+  const p = _selectedPlace;
+  const raw = p.raw || {};
+  const item = {
+    id: placeSaveId(p), name: p.name || '', lat: p.lat || 0, lng: p.lng || 0,
+    icon: p.type === 'rest' ? '🍽️' : p.type === 'pilgrim' ? (raw.mediaType === 'artist' ? '⭐' : raw.mediaType === 'movie' ? '🎥' : '📺') : '📍',
+    sub: p.sub || '', type: p.type === 'search' ? 'place' : p.type   // index.html은 임의장소를 'place'로
+  };
+  const nowSaved = toggleLocalPlace(item);
+  updateSaveBtnUI(nowSaved);
+};
+function updateSaveBtnUI(saved) {
+  const btn = document.getElementById('saveBtnIcon');
+  if (btn) btn.textContent = saved ? '🔖' : '📑';
+}
+function currentPlaceSaved() {
+  if (!_selectedPlace) return false;
+  return window.isPlaceSaved(placeSaveId(_selectedPlace));
+}
+
+
+
 const MAX_CERT_PHOTOS = 10;
 let _feedLoaded = false;
 
