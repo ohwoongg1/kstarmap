@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.5.5';
+const VERSION = 'map v0.5.6';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -443,7 +443,7 @@ async function loadAllData() {
     _restData = rs.docs.map(d => { const r = d.data(); return {
       _id: d.id, name: r.name||'', celeb: r.celeb||'', cat: r.category||r.cat||'한식',
       area: r.area||'', comment: r.comment||'', lat: r.lat||0, lng: r.lng||0,
-      address: r.address||'', phone: r.phone||r.tel||''
+      address: r.address||r.addr||'', phone: r.phone||r.tel||''
     };});
     renderRestPinsInView();
   } catch(e) { console.error('맛집 로드 오류', e); }
@@ -883,12 +883,13 @@ function openPlaceSheet(place) {
       if (cat || celeb) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🍽️ ' + esc(cat) + (celeb?' · '+esc(celeb):'') + '</div>';
       if (comment) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px">' + esc(comment) + '</div>';
     }
-    // 주소·전화 공통 정보 (있는 것만)
+    // 주소·전화 공통 정보 (맛집=address/phone, 성지=addr/tel)
     const addr2 = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
-    const phone = raw.phone || '';
+    const phone = raw.phone || raw.tel || '';
     let contact = '';
+    // 성지는 위에서 이미 주소 표시했으므로 공통에선 맛집/검색만 주소 추가
     if (place.type !== 'pilgrim' && addr2) contact += '<div style="font-size:12px;color:var(--text3);margin-bottom:6px">📍 ' + esc(addr2) + '</div>';
-    if (phone) contact += '<div style="font-size:12px;margin-bottom:6px">📞 <a href="tel:' + esc(phone) + '" style="color:#185FA5;text-decoration:none">' + esc(phone) + '</a></div>';
+    if (phone) contact += '<div style="font-size:12px;margin-bottom:6px">📞 <a href="tel:' + esc(String(phone).replace(/[^0-9+]/g,'')) + '" style="color:#185FA5;text-decoration:none">' + esc(phone) + '</a></div>';
     if (contact) html += '<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">' + contact + '</div>';
     info.innerHTML = html;
   }
