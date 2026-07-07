@@ -17,7 +17,8 @@
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg2);color:var(--text)}
-  #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+  #app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+  .bottomnav-fixed{flex-shrink:0}
 
   /* 상단바 */
   .topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);flex-shrink:0;z-index:30}
@@ -61,7 +62,7 @@
   .sr-cat{font-size:11px;color:var(--gold);margin-top:2px}
 
   /* 하단 탭 */
-  .bottomnav{display:flex;background:var(--bg);border-top:0.5px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+  .bottomnav{display:flex;background:var(--bg);border-top:0.5px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);position:relative;z-index:40}
   .navtab{flex:1;text-align:center;padding:9px 0 8px;cursor:pointer;color:var(--text3)}
   .navtab.active{color:var(--gold)}
   .navtab .ic{font-size:20px;line-height:1}
@@ -204,7 +205,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.2.1';
+const VERSION = 'map v0.2.2';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -257,6 +258,10 @@ function initMap() {
 
   // 데이터 로드
   loadAllData();
+
+  // 레이아웃 안정화 (모바일 주소창 대응)
+  setTimeout(() => { try { map.relayout(); } catch(e){} }, 300);
+  window.addEventListener('resize', () => { try { map.relayout(); } catch(e){} });
 }
 
 function addMyLocationMarker() {
@@ -747,7 +752,7 @@ function feedCardHTML(c) {
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + uname + '</div>' +
       '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ' + place + (work?' · '+work:'') + '</div></div>' +
       '<span style="background:' + typeColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0">' + typeLabel + '</span></div>' +
-    '<div class="feed-photo-wrap" ondblclick="dblLikeFeed(\'' + c.id + '\',this)" style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + '<div class="feed-big-heart" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease"><svg viewBox="0 0 24 24" width="90" height="90" fill="#fff" stroke="none"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg></div></div>' + dots +
+    '<div class="feed-photo-wrap" ondblclick="dblLikeFeed(\'' + c.id + '\',this)" style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + '<div class="feed-big-heart" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease"><svg viewBox="0 0 24 24" width="96" height="96" fill="#D4537E" stroke="#fff" stroke-width="1.2" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg></div></div>' + dots +
     likeBar +
     (comment ? '<div style="padding:6px 12px 4px;font-size:13px;color:var(--text);line-height:1.5"><span style="font-weight:700">' + uname + '</span> ' + comment + ' ' + hashtag + '</div>' : (hashtag ? '<div style="padding:6px 12px 4px;font-size:13px">' + hashtag + '</div>' : '')) +
     '<div style="padding:2px 12px 12px;font-size:11px;color:var(--text3)">' + timeAgo(c.createdAt) + '</div>' +
