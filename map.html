@@ -226,7 +226,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.4.1';
+const VERSION = 'map v0.4.2';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -360,6 +360,18 @@ let _contentFilter = null;  // 화면 내 작품 칩 선택(기존)
 let _hallyuFocus = null;    // 한류검색 포커스 (레벨 제한 해제)
 let _hallyuFilter = null;   // {type:'actor'|'title', value, label} — 지속 필터
 
+// 인기 작품·스타 우선순위 (앞일수록 유명 → 칩 정렬용)
+const PILGRIM_PRIORITY = [
+  '방탄소년단','슈퍼주니어','소녀시대','빅뱅','엑소','샤이니','투피엠','2PM',
+  '블랙핑크','아이유','세븐틴','스트레이키즈','트와이스','뉴진스','에스파',
+  '오징어게임','도깨비','사랑의 불시착','이태원 클라쓰','별에서 온 그대',
+  '태양의 후예','킹덤','이상한 변호사 우영우','눈물의 여왕','무빙',
+  '지금 우리 학교는','스물다섯 스물하나','청춘기록','스타트업','빈센조',
+  '갯마을 차차차','악마판사','힘쎈여자 강남순','나의 아저씨','미스터 션샤인',
+  '런닝맨','무한도전','1박2일','꽃보다 할배','우리 결혼했어요',
+  '기생충','부산행','헤어질 결심','범죄도시','올드보이','아가씨',
+];
+
 // 성지가 현재 한류 필터를 통과하는지
 function passHallyuFilter(d) {
   if (!_hallyuFilter) return true;
@@ -422,7 +434,14 @@ function updateContentBar() {
     if (!b.contain(new kakao.maps.LatLng(d.lat, d.lng))) continue;
     counts[d.title] = (counts[d.title] || 0) + 1;
   }
-  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 20);
+  const sorted = Object.entries(counts).sort((a,b) => {
+    const ai = PILGRIM_PRIORITY.indexOf(a[0]);
+    const bi = PILGRIM_PRIORITY.indexOf(b[0]);
+    if (ai !== -1 && bi !== -1) return ai - bi;   // 둘 다 인기목록 → 순위순
+    if (ai !== -1) return -1;                       // a만 인기 → 앞으로
+    if (bi !== -1) return 1;                        // b만 인기 → 앞으로
+    return b[1] - a[1];                             // 둘 다 없으면 개수순
+  }).slice(0, 20);
   html += '<button class="c-pill' + (_contentFilter===null?' on':'') + '" onclick="selectContent(null)">전체</button>';
   html += sorted.map(([title, cnt]) => {
     const t = title.replace(/'/g,"\\'");
