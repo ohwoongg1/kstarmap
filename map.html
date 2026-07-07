@@ -123,6 +123,16 @@
     </div>
   </div>
 
+  <div id="feedView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg2)">
+    <div style="padding:12px 14px 4px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:800;color:var(--text)">📸 인증 피드</div>
+      <button onclick="renderPublicFeed(true)" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">🔄</button>
+    </div>
+    <div id="feedBody">
+      <div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:13px"><div style="font-size:32px;margin-bottom:8px">📸</div>불러오는 중...</div>
+    </div>
+  </div>
+
   <div class="bottomnav">
     <div class="navtab active" onclick="switchTab('map')"><div class="ic">🗺️</div><div class="tx">지도</div></div>
     <div class="navtab" onclick="switchTab('feed')"><div class="ic">📸</div><div class="tx">피드</div></div>
@@ -137,7 +147,7 @@
 <script type="module">
 // ── Firebase ──
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, getDocs, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, getDocs, query, where, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, increment } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
 
@@ -155,7 +165,7 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
-window._mapDB = { db, collection, doc, getDoc, setDoc, addDoc, getDocs, query, where, orderBy, limit, serverTimestamp };
+window._mapDB = { db, collection, doc, getDoc, setDoc, addDoc, updateDoc, getDocs, query, where, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, increment };
 window._mapAuth = { auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged };
 window._mapStorage = { storage, storageRef, uploadBytes, getDownloadURL };
 
@@ -194,7 +204,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.2.0';
+const VERSION = 'map v0.2.1';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -515,6 +525,7 @@ function collapseSheet() {
 // ── 인증 (index.html 검증 방식 이식) ──
 let _certFiles = [];
 const MAX_CERT_PHOTOS = 10;
+let _feedLoaded = false;
 
 async function resizeImage(file, maxW) {
   return new Promise((resolve) => {
@@ -635,6 +646,7 @@ window.submitCert = async function() {
     const s = document.getElementById('certSheet');
     if (s) s.remove();
     showToast('🎉 인증 완료! 내 기록에 남았어요');
+    _feedLoaded = false;
   } catch(e) {
     btn.disabled = false;
     btn.textContent = '게시하기 (' + total + ')';
@@ -685,7 +697,144 @@ window.tryOpenNav = function(appUrl, webUrl) {
   if (s) s.remove();
 };
 
-// ── 필터 ──
+// ── 인증 피드 (index.html 검증 방식 이식) ──
+window._feedData = window._feedData || {};
+
+function timeAgo(ts) {
+  if (!ts || !ts.toMillis) return '';
+  const diff = Date.now() - ts.toMillis();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return '방금 전';
+  if (m < 60) return m + '분 전';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + '시간 전';
+  const d = Math.floor(h / 24);
+  if (d < 7) return d + '일 전';
+  const dt = ts.toDate();
+  return (dt.getMonth()+1) + '월 ' + dt.getDate() + '일';
+}
+
+function feedCardHTML(c) {
+  const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
+  if (!photos.length) return '';
+  const esc = s => (s || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const uname = esc(c.userName) || '익명';
+  const place = esc(c.placeName || '');
+  const work = esc(c.title || '');
+  const comment = esc(c.comment);
+  const cu = window.currentUser;
+  const avatar = c.userPhoto
+    ? '<img src="' + c.userPhoto + '" style="width:34px;height:34px;border-radius:50%;object-fit:cover">'
+    : '<div style="width:34px;height:34px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--text3)">' + (uname[0] || '★') + '</div>';
+  const typeLabel = c.placeType === 'rest' ? '맛집' : c.mediaType === 'artist' ? '한류스타' : c.mediaType === 'movie' ? '영화' : c.placeType === 'pilgrim' ? '드라마' : '방문';
+  const typeColor = c.placeType === 'rest' ? '#EF9F27' : c.mediaType === 'artist' ? '#B5790F' : c.mediaType === 'movie' ? '#EF4444' : c.placeType === 'pilgrim' ? '#7C3AED' : '#888';
+  const multi = photos.length > 1;
+  const slides = photos.map(u => '<img src="' + u + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;aspect-ratio:1">').join('');
+  const counter = multi ? '<span class="feed-counter" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 9px;border-radius:10px">1/' + photos.length + '</span>' : '';
+  const dots = multi ? '<div class="feed-dots" style="display:flex;justify-content:center;gap:5px;padding:8px 0 2px">' + photos.map((_,i)=>'<span style="width:6px;height:6px;border-radius:50%;background:' + (i===0?'var(--gold)':'var(--border2)') + '"></span>').join('') + '</div>' : '';
+  const hashtag = c.title ? '<span style="color:#185FA5">#' + esc(c.title).replace(/\s/g,'') + '</span>' : '';
+  const likedBy = c.likedBy || [];
+  const liked = cu && likedBy.indexOf(cu.uid) !== -1;
+  const likeCount = (typeof c.likeCount === 'number') ? c.likeCount : likedBy.length;
+  const heartSVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="' + (liked?'#D4537E':'none') + '" stroke="' + (liked?'#D4537E':'var(--text2)') + '" stroke-width="2" style="display:block"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg>';
+  const likeBar = '<div style="display:flex;align-items:center;padding:8px 12px 2px">' +
+    '<button class="feed-like-btn" onclick="toggleFeedLike(\'' + c.id + '\')" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;gap:6px">' +
+      '<span class="feed-heart">' + heartSVG + '</span>' +
+      '<span class="feed-like-count" style="font-size:13px;font-weight:700;color:var(--text)">' + (likeCount || 0) + '</span>' +
+    '</button></div>';
+  return '<div class="feed-card" data-id="' + c.id + '" style="background:var(--bg);border-radius:14px;margin:10px 12px;overflow:hidden;border:1px solid var(--border)">' +
+    '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px">' + avatar +
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + uname + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ' + place + (work?' · '+work:'') + '</div></div>' +
+      '<span style="background:' + typeColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0">' + typeLabel + '</span></div>' +
+    '<div class="feed-photo-wrap" ondblclick="dblLikeFeed(\'' + c.id + '\',this)" style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + '<div class="feed-big-heart" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease"><svg viewBox="0 0 24 24" width="90" height="90" fill="#fff" stroke="none"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg></div></div>' + dots +
+    likeBar +
+    (comment ? '<div style="padding:6px 12px 4px;font-size:13px;color:var(--text);line-height:1.5"><span style="font-weight:700">' + uname + '</span> ' + comment + ' ' + hashtag + '</div>' : (hashtag ? '<div style="padding:6px 12px 4px;font-size:13px">' + hashtag + '</div>' : '')) +
+    '<div style="padding:2px 12px 12px;font-size:11px;color:var(--text3)">' + timeAgo(c.createdAt) + '</div>' +
+    '</div>';
+}
+
+window.toggleFeedLike = async function(certId) {
+  if (!window.currentUser) { showToast('🔒 로그인이 필요해요'); if (window.loginWithGoogle) window.loginWithGoogle(); return; }
+  const c = window._feedData[certId];
+  if (!c) return;
+  const { db, doc, updateDoc, arrayUnion, arrayRemove, increment } = window._mapDB;
+  const cu = window.currentUser;
+  const likedBy = c.likedBy || [];
+  const wasLiked = likedBy.indexOf(cu.uid) !== -1;
+  if (wasLiked) { c.likedBy = likedBy.filter(u => u !== cu.uid); c.likeCount = Math.max(0, (c.likeCount||likedBy.length)-1); }
+  else { c.likedBy = [...likedBy, cu.uid]; c.likeCount = (c.likeCount||likedBy.length)+1; }
+  updateFeedHeartUI(certId);
+  try {
+    await updateDoc(doc(db, 'certifications', certId), {
+      likedBy: wasLiked ? arrayRemove(cu.uid) : arrayUnion(cu.uid),
+      likeCount: increment(wasLiked ? -1 : 1)
+    });
+  } catch(e) {
+    c.likedBy = likedBy; c.likeCount = (c.likeCount||likedBy.length);
+    updateFeedHeartUI(certId); showToast('실패: ' + (e.message||e));
+  }
+};
+
+window.dblLikeFeed = function(certId, wrap) {
+  if (!window.currentUser) { toggleFeedLike(certId); return; }
+  const c = window._feedData[certId];
+  if (!c) return;
+  const big = wrap.querySelector('.feed-big-heart');
+  if (big) {
+    big.style.transform = 'translate(-50%,-50%) scale(1)'; big.style.opacity = '0.9';
+    setTimeout(() => { big.style.transform = 'translate(-50%,-50%) scale(0)'; big.style.opacity = '0'; }, 550);
+  }
+  if ((c.likedBy||[]).indexOf(window.currentUser.uid) === -1) toggleFeedLike(certId);
+};
+
+function updateFeedHeartUI(certId) {
+  const c = window._feedData[certId];
+  if (!c) return;
+  const liked = window.currentUser && (c.likedBy||[]).indexOf(window.currentUser.uid) !== -1;
+  document.querySelectorAll('.feed-card[data-id="' + certId + '"]').forEach(card => {
+    const heart = card.querySelector('.feed-heart svg');
+    const cnt = card.querySelector('.feed-like-count');
+    if (heart) { heart.setAttribute('fill', liked?'#D4537E':'none'); heart.setAttribute('stroke', liked?'#D4537E':'var(--text2)'); }
+    if (cnt) cnt.textContent = c.likeCount || 0;
+  });
+}
+
+async function renderPublicFeed(force) {
+  const body = document.getElementById('feedBody');
+  if (!body) return;
+  if (_feedLoaded && !force) return;
+  const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
+  body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:13px"><div style="font-size:32px;margin-bottom:8px">📸</div>불러오는 중...</div>';
+  try {
+    const snap = await getDocs(query(collection(db, 'certifications'), orderBy('createdAt', 'desc'), limit(50)));
+    const certs = [];
+    snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
+    if (!certs.length) {
+      body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:14px"><div style="font-size:38px;margin-bottom:10px">📸</div>아직 인증이 없어요<div style="font-size:12px;margin-top:8px">첫 인증을 남겨보세요! 지도에서 장소 → 📸 가본곳</div></div>';
+      _feedLoaded = true; return;
+    }
+    window._feedData = {};
+    certs.forEach(c => { window._feedData[c.id] = c; });
+    body.innerHTML = certs.map(feedCardHTML).join('');
+    body.querySelectorAll('.feed-card').forEach(card => {
+      const track = card.querySelector('.feed-track');
+      const counter = card.querySelector('.feed-counter');
+      const dots = card.querySelector('.feed-dots');
+      if (!track || (!counter && !dots)) return;
+      track.addEventListener('scroll', () => {
+        const idx = Math.round(track.scrollLeft / track.clientWidth);
+        const n = track.children.length;
+        if (counter) counter.textContent = (idx+1) + '/' + n;
+        if (dots) Array.from(dots.children).forEach((dd,i)=> dd.style.background = (i===idx?'var(--gold)':'var(--border2)'));
+      }, {passive:true});
+    });
+    _feedLoaded = true;
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px">불러오기 실패<br><small style="opacity:0.6">' + (e.message||'') + '</small></div>';
+  }
+}
+window.renderPublicFeed = renderPublicFeed;
 window.toggleFilter = function(type) {
   _filters[type] = !_filters[type];
   const chip = document.getElementById('chip' + type.charAt(0).toUpperCase() + type.slice(1));
@@ -699,6 +848,8 @@ window.toggleFilter = function(type) {
 window.switchTab = function(tab) {
   document.querySelectorAll('.navtab').forEach(t => t.classList.remove('active'));
   event.currentTarget.classList.add('active');
+  const mapWrap = document.getElementById('mapWrap');
+  const feedView = document.getElementById('feedView');
   if (tab === 'more') {
     if (window.currentUser) {
       if (confirm('로그아웃 할까요?')) {
@@ -708,11 +859,21 @@ window.switchTab = function(tab) {
     } else {
       if (window.loginWithGoogle) window.loginWithGoogle();
     }
+    document.querySelectorAll('.navtab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.navtab')[0].classList.add('active');
-    event.currentTarget.classList.remove('active');
     return;
   }
-  if (tab !== 'map') showToast(tab + ' 탭은 다음 단계에서 연결됩니다');
+  if (tab === 'feed') {
+    mapWrap.style.display = 'none';
+    feedView.style.display = 'block';
+    renderPublicFeed();
+    return;
+  }
+  // 지도 (기본)
+  feedView.style.display = 'none';
+  mapWrap.style.display = 'block';
+  if (tab === 'map' && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 50);
+  if (tab === 'saved') showToast('저장 탭은 다음 단계에서 연결됩니다');
 };
 
 // 로그인 상태 변화 → 더보기 탭 라벨 갱신
