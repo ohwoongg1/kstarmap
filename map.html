@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>KStarMap · 통합지도</title>
 <meta name="description" content="한류 성지·맛집을 한 지도에서. 어디든 검색하고, 가본 곳을 사진으로 인증하세요.">
-<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services"></script>
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services&autoload=false"></script>
 <style>
   :root{
     --bg:#ffffff; --bg2:#f5f4ef; --white:#ffffff;
@@ -153,7 +153,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.1.1';
+const VERSION = 'map v0.1.2';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -172,6 +172,10 @@ function initMap() {
     level: 5
   });
   window._map = map;
+
+  // 카카오 로컬 검색 서비스 (SDK 로드 완료 후 생성)
+  ps = new kakao.maps.services.Places();
+  geocoder = new kakao.maps.services.Geocoder();
 
   // 지도 이동 후 → "이 지역 검색" 버튼 표시 + 뷰포트 핀 갱신
   kakao.maps.event.addListener(map, 'idle', () => {
@@ -261,7 +265,7 @@ function renderPilgrimPinsInView() {
   clearMarkers(_pilgrimMarkers);
   if (!_filters.pilgrim) return;
   const b = map.getBounds();
-  if (map.getLevel() > 8) return; // 너무 축소되면 성지 핀 숨김(과밀 방지)
+  if (map.getLevel() > 10) return; // 너무 축소되면 성지 핀 숨김(과밀 방지)
   let count = 0;
   for (const d of _pilgrimData) {
     if (!d.lat || !d.lng) continue;
@@ -284,7 +288,7 @@ function renderRestPinsInView() {
   clearMarkers(_restMarkers);
   if (!_filters.rest) return;
   const b = map.getBounds();
-  if (map.getLevel() > 8) return;
+  if (map.getLevel() > 10) return;
   let count = 0;
   for (const d of _restData) {
     if (!d.lat || !d.lng) continue;
@@ -301,9 +305,8 @@ function renderRestPinsInView() {
   }
 }
 
-// ── 장소 검색 (카카오 로컬) ──
-const ps = new kakao.maps.services.Places();
-const geocoder = new kakao.maps.services.Geocoder();
+// ── 장소 검색 (카카오 로컬) ── ps/geocoder는 initMap에서 생성 (SDK 로드 후)
+let ps = null, geocoder = null;
 let _searchTimer = null;
 
 document.getElementById('searchInput').addEventListener('input', function() {
