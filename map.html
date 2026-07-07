@@ -161,7 +161,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.1.7';
+const VERSION = 'map v0.1.8';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -434,36 +434,40 @@ function toggleSheetExpand() {
   const nowExpanded = sheet.classList.toggle('expanded');
   console.log('[sheet] toggle → expanded:', nowExpanded);
 }
-// 핸들바 드래그 + 탭
+function expandSheet() { document.getElementById('placeSheet').classList.add('expanded'); }
+function collapseSheet() { document.getElementById('placeSheet').classList.remove('expanded'); }
+
+// 핸들바 드래그 + 탭 (드래그 종료 시점에만 판정)
 (function setupSheetDrag() {
   const handle = document.getElementById('sheetHandle');
   const sheet = document.getElementById('placeSheet');
   if (!handle) { console.warn('[sheet] handle 없음'); return; }
   console.log('[sheet] 드래그 셋업 완료');
-  let startY = 0, moved = false;
-  const onStart = (y) => { startY = y; moved = false; };
-  const onMove = (y) => {
-    const dy = y - startY;
-    if (Math.abs(dy) > 30) moved = true;
-    if (dy < -40) sheet.classList.add('expanded');
-    else if (dy > 40) {
-      if (sheet.classList.contains('expanded')) sheet.classList.remove('expanded');
-      else closePlaceSheet();
+  let startY = 0, lastY = 0, active = false;
+
+  const start = (y) => { startY = y; lastY = y; active = true; };
+  const move = (y) => { if (active) lastY = y; };
+  const end = () => {
+    if (!active) return;
+    active = false;
+    const dy = lastY - startY;   // 음수=위로, 양수=아래로
+    if (dy < -25) {              // 위로 끌면 펼침
+      expandSheet();
+    } else if (dy > 25) {        // 아래로 끌면 접힘 (닫지 않음)
+      collapseSheet();
+    } else {                     // 거의 안 움직임 = 탭 → 토글
+      toggleSheetExpand();
     }
   };
-  // 터치 (모바일)
-  handle.addEventListener('touchstart', e => onStart(e.touches[0].clientY), {passive:true});
-  handle.addEventListener('touchmove', e => onMove(e.touches[0].clientY), {passive:true});
-  handle.addEventListener('touchend', () => { if (!moved) toggleSheetExpand(); });
-  // 마우스 (PC) — click 이벤트는 쓰지 않음(mouseup에서만 토글해 이중 실행 방지)
-  let dragging = false;
-  handle.addEventListener('mousedown', e => { dragging = true; onStart(e.clientY); e.preventDefault(); });
-  window.addEventListener('mousemove', e => { if (dragging) onMove(e.clientY); });
-  window.addEventListener('mouseup', () => {
-    if (!dragging) return;
-    dragging = false;
-    if (!moved) toggleSheetExpand();
-  });
+
+  // 터치
+  handle.addEventListener('touchstart', e => start(e.touches[0].clientY), {passive:true});
+  handle.addEventListener('touchmove', e => move(e.touches[0].clientY), {passive:true});
+  handle.addEventListener('touchend', end);
+  // 마우스
+  handle.addEventListener('mousedown', e => { start(e.clientY); e.preventDefault(); });
+  window.addEventListener('mousemove', e => move(e.clientY));
+  window.addEventListener('mouseup', end);
 })();
 
 // ── 인증 (다음 단계에서 연결) ──
