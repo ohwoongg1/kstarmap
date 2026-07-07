@@ -142,11 +142,18 @@
     </div>
   </div>
 
+  <div id="myView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)">
+    <div id="myProfile" style="padding:20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px"></div>
+    <div id="myBody">
+      <div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)">불러오는 중...</div>
+    </div>
+  </div>
+
   <div class="bottomnav">
     <div class="navtab active" onclick="switchTab('map')"><div class="ic">🗺️</div><div class="tx">지도</div></div>
     <div class="navtab" onclick="switchTab('feed')"><div class="ic">📸</div><div class="tx">피드</div></div>
     <div class="navtab" onclick="switchTab('saved')"><div class="ic">🔖</div><div class="tx">저장</div></div>
-    <div class="navtab" onclick="switchTab('more')"><div class="ic">☰</div><div class="tx">더보기</div></div>
+    <div class="navtab" onclick="switchTab('my')"><div class="ic">👤</div><div class="tx">내정보</div></div>
   </div>
 
 </div>
@@ -213,7 +220,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.2.7';
+const VERSION = 'map v0.2.8';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -674,6 +681,57 @@ window.navFromList = function(name, lat, lng) {
   openNavigation();
 };
 
+// 내정보 페이지 (프로필 + 통계 + 내 인증 그리드)
+window.renderMyPage = async function() {
+  const prof = document.getElementById('myProfile');
+  const body = document.getElementById('myBody');
+  if (!prof || !body) return;
+  const cu = window.currentUser;
+  if (!cu) {
+    prof.innerHTML = '<div style="flex:1;text-align:center"><div style="font-size:14px;color:var(--text3);margin-bottom:12px">로그인하면 내 인증을 모아볼 수 있어요</div><button onclick="loginWithGoogle()" style="padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">구글 로그인</button></div>';
+    body.innerHTML = '';
+    return;
+  }
+  const avatar = cu.photoURL
+    ? '<img src="' + cu.photoURL + '" style="width:56px;height:56px;border-radius:50%;object-fit:cover">'
+    : '<div style="width:56px;height:56px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:24px">👤</div>';
+  prof.innerHTML = avatar +
+    '<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:var(--text)">' + (cu.displayName || '사용자') + '</div>' +
+    '<div style="font-size:12px;color:var(--text3)">' + (cu.email || '') + '</div></div>' +
+    '<button onclick="doLogout()" style="padding:8px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">로그아웃</button>';
+
+  body.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>';
+  const { db, collection, getDocs, query, where } = window._mapDB;
+  try {
+    const snap = await getDocs(query(collection(db, 'certifications'), where('uid', '==', cu.uid)));
+    const certs = [];
+    snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
+    certs.sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0));
+    if (!certs.length) {
+      body.innerHTML = '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>아직 다녀온 인증이 없어요<div style="font-size:12px;margin-top:8px">지도에서 장소 → 📸 가본곳으로 남겨보세요!</div></div>';
+      return;
+    }
+    const uniqueTitles = new Set(certs.map(c => c.title).filter(Boolean));
+    const uniquePlaces = new Set(certs.map(c => c.placeKey).filter(Boolean));
+    const summary = '<div style="display:flex;gap:12px;padding:16px;border-bottom:1px solid var(--border)">' +
+      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--gold)">' + certs.length + '</div><div style="font-size:11px;color:var(--text3)">인증</div></div>' +
+      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniquePlaces.size + '</div><div style="font-size:11px;color:var(--text3)">다녀온 곳</div></div>' +
+      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniqueTitles.size + '</div><div style="font-size:11px;color:var(--text3)">작품</div></div></div>';
+    const grid = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px">' + certs.map(c => {
+      const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
+      const multi = photos.length > 1 ? '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 4px;border-radius:5px">📷' + photos.length + '</span>' : '';
+      return '<div style="position:relative;aspect-ratio:1;background:var(--bg2);overflow:hidden" onclick="switchTabTo(\'feed\')"><img src="' + (photos[0]||'') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' + multi + '</div>';
+    }).join('') + '</div>';
+    body.innerHTML = summary + grid;
+  } catch(e) {
+    body.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:13px;color:var(--text3)">불러오기 실패<br><small style="opacity:0.6">' + (e.message||'') + '</small></div>';
+  }
+};
+window.doLogout = function() {
+  const { auth, signOut } = window._mapAuth;
+  signOut(auth).then(() => { showToast('로그아웃 됐어요'); renderMyPage(); });
+};
+
 
 
 const MAX_CERT_PHOTOS = 10;
@@ -1031,9 +1089,11 @@ function showView(view) {
   document.getElementById('mapWrap').style.display = (view === 'map') ? 'block' : 'none';
   document.getElementById('feedView').style.display = (view === 'feed') ? 'block' : 'none';
   document.getElementById('savedView').style.display = (view === 'saved') ? 'block' : 'none';
+  document.getElementById('myView').style.display = (view === 'my') ? 'block' : 'none';
   if (view === 'map' && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 50);
   if (view === 'feed') renderPublicFeed();
   if (view === 'saved') renderSavedList();
+  if (view === 'my') renderMyPage();
 }
 function setActiveTab(idx) {
   const tabs = document.querySelectorAll('.navtab');
@@ -1041,32 +1101,19 @@ function setActiveTab(idx) {
   if (tabs[idx]) tabs[idx].classList.add('active');
 }
 window.switchTabTo = function(view) {
-  const map = { map:0, feed:1, saved:2 };
-  setActiveTab(map[view] ?? 0);
+  const m = { map:0, feed:1, saved:2, my:3 };
+  setActiveTab(m[view] ?? 0);
   showView(view);
 };
 window.switchTab = function(tab) {
-  if (tab === 'more') {
-    if (window.currentUser) {
-      if (confirm('로그아웃 할까요?')) {
-        const { auth, signOut } = window._mapAuth;
-        signOut(auth).then(() => showToast('로그아웃 됐어요'));
-      }
-    } else {
-      if (window.loginWithGoogle) window.loginWithGoogle();
-    }
-    return; // 더보기는 탭 이동 안 함
-  }
   switchTabTo(tab);
 };
 
 // 로그인 상태 변화 → 더보기 탭 라벨 갱신
 window.onAuthChanged = function(user) {
-  const moreTab = document.querySelectorAll('.navtab')[3];
-  if (moreTab) {
-    const tx = moreTab.querySelector('.tx');
-    if (tx) tx.textContent = user ? '내정보' : '로그인';
-  }
+  // 내정보 탭이 열려있으면 갱신
+  const myView = document.getElementById('myView');
+  if (myView && myView.style.display !== 'none' && window.renderMyPage) window.renderMyPage();
 };
 
 // ── 시작 ──
