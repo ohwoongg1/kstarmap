@@ -220,7 +220,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.2.8';
+const VERSION = 'map v0.2.9';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -720,7 +720,7 @@ window.renderMyPage = async function() {
     const grid = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px">' + certs.map(c => {
       const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
       const multi = photos.length > 1 ? '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 4px;border-radius:5px">📷' + photos.length + '</span>' : '';
-      return '<div style="position:relative;aspect-ratio:1;background:var(--bg2);overflow:hidden" onclick="switchTabTo(\'feed\')"><img src="' + (photos[0]||'') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' + multi + '</div>';
+      return '<div style="position:relative;aspect-ratio:1;background:var(--bg2);overflow:hidden;cursor:pointer" onclick="viewCertPhoto(\'' + (photos[0]||'') + '\')"><img src="' + (photos[0]||'') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' + multi + '</div>';
     }).join('') + '</div>';
     body.innerHTML = summary + grid;
   } catch(e) {
@@ -730,6 +730,19 @@ window.renderMyPage = async function() {
 window.doLogout = function() {
   const { auth, signOut } = window._mapAuth;
   signOut(auth).then(() => { showToast('로그아웃 됐어요'); renderMyPage(); });
+};
+
+// 인증 사진 크게 보기
+window.viewCertPhoto = function(url) {
+  if (!url) return;
+  const old = document.getElementById('photoViewer');
+  if (old) old.remove();
+  const v = document.createElement('div');
+  v.id = 'photoViewer';
+  v.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center';
+  v.onclick = () => v.remove();
+  v.innerHTML = '<img src="' + url + '" style="max-width:96%;max-height:90%;object-fit:contain;border-radius:8px"><button style="position:absolute;top:16px;right:16px;width:36px;height:36px;border:none;border-radius:50%;background:rgba(255,255,255,0.2);color:#fff;font-size:18px;cursor:pointer">✕</button>';
+  document.body.appendChild(v);
 };
 
 
@@ -1086,11 +1099,11 @@ window.toggleFilter = function(type) {
 
 // ── 하단 탭 (지도 외는 다음 단계) ──
 function showView(view) {
-  document.getElementById('mapWrap').style.display = (view === 'map') ? 'block' : 'none';
+  document.getElementById('mapWrap').style.display = (view === 'map') ? 'flex' : 'none';
   document.getElementById('feedView').style.display = (view === 'feed') ? 'block' : 'none';
   document.getElementById('savedView').style.display = (view === 'saved') ? 'block' : 'none';
   document.getElementById('myView').style.display = (view === 'my') ? 'block' : 'none';
-  if (view === 'map' && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 50);
+  if (view === 'map' && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 60);
   if (view === 'feed') renderPublicFeed();
   if (view === 'saved') renderSavedList();
   if (view === 'my') renderMyPage();
