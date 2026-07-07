@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.5.6';
+const VERSION = 'map v0.5.7';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -603,10 +603,10 @@ window.openHallyuSearch = function() {
   document.body.appendChild(v);
   const inp = document.getElementById('hallyuInput');
   inp.focus();
-  let t = null;
+  let _hallyuTypingTimer = null;
   inp.addEventListener('input', () => {
-    clearTimeout(t);
-    t = setTimeout(() => doHallyuSearch(inp.value.trim()), 250);
+    clearTimeout(_hallyuTypingTimer);
+    _hallyuTypingTimer = setTimeout(() => doHallyuSearch(inp.value.trim()), 250);
   });
 };
 
