@@ -226,7 +226,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.3.6';
+const VERSION = 'map v0.3.7';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -352,8 +352,20 @@ function makePinEl(color, icon, handler) {
 
 function clearMarkers(arr) { arr.forEach(m => m.setMap(null)); arr.length = 0; }
 
-let _contentFilter = null;  // 선택된 작품(title), null이면 전체
-let _hallyuFocus = null;    // 한류검색으로 포커스한 작품 (레벨 제한 해제)
+let _contentFilter = null;  // 화면 내 작품 칩 선택(기존)
+let _hallyuFocus = null;    // 한류검색 포커스 (레벨 제한 해제)
+let _hallyuFilter = null;   // {type:'actor'|'title', value, label} — 지속 필터
+
+// 성지가 현재 한류 필터를 통과하는지
+function passHallyuFilter(d) {
+  if (!_hallyuFilter) return true;
+  if (_hallyuFilter.type === 'title') return d.title === _hallyuFilter.value;
+  if (_hallyuFilter.type === 'actor') {
+    const actors = Array.isArray(d.actors) ? d.actors.join('') : (d.actors||'');
+    return actors.replace(/\s/g,'').toLowerCase().includes(_hallyuFilter.value);
+  }
+  return true;
+}
 
 function renderPilgrimPinsInView() {
   if (!map) return;
@@ -361,12 +373,13 @@ function renderPilgrimPinsInView() {
   updateContentBar();
   if (!_filters.pilgrim) return;
   const b = map.getBounds();
-  // 한류검색 포커스 작품이면 레벨 제한 해제 (전국에 흩어져도 보이게)
-  if (!_hallyuFocus && map.getLevel() > 10) return;
+  // 한류 필터/포커스가 있으면 레벨 제한 해제
+  if (!_hallyuFocus && !_hallyuFilter && map.getLevel() > 10) return;
   let count = 0;
   for (const d of _pilgrimData) {
     if (!d.lat || !d.lng) continue;
-    if (_contentFilter && d.title !== _contentFilter) continue;  // 작품 필터
+    if (_contentFilter && d.title !== _contentFilter) continue;  // 화면 작품 칩
+    if (!passHallyuFilter(d)) continue;                          // 지속 한류 필터
     const pos = new kakao.maps.LatLng(d.lat, d.lng);
     if (!b.contain(pos)) continue;
     if (count++ > 200) break;
@@ -385,7 +398,19 @@ function renderPilgrimPinsInView() {
 function updateContentBar() {
   const bar = document.getElementById('contentBar');
   if (!bar || !map) return;
-  if (!_filters.pilgrim || map.getLevel() > 10) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  let html = '<button class="c-pill" onclick="openHallyuSearch()" style="background:var(--gold);color:#fff;border-color:var(--gold)">🔍 한류검색</button>';
+
+  // 활성 한류 필터 칩 (탭→가까운 성지 이동, ✕→해제)
+  if (_hallyuFilter) {
+    html += '<button class="c-pill on" onclick="jumpToFilterNearest()" style="display:inline-flex;align-items:center;gap:6px">' +
+      _hallyuFilter.label.replace(/</g,'&lt;') +
+      '<span onclick="event.stopPropagation();clearHallyuFilter()" style="font-size:13px;opacity:0.8">✕</span></button>';
+    bar.innerHTML = html;
+    return;  // 필터 중엔 화면 작품 칩 숨김
+  }
+
+  if (!_filters.pilgrim || map.getLevel() > 10) { bar.innerHTML = html; return; }
   const b = map.getBounds();
   const counts = {};
   for (const d of _pilgrimData) {
@@ -394,9 +419,6 @@ function updateContentBar() {
     counts[d.title] = (counts[d.title] || 0) + 1;
   }
   const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 20);
-  if (!sorted.length) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
-  bar.style.display = 'flex';
-  let html = '<button class="c-pill" onclick="openHallyuSearch()" style="background:var(--gold);color:#fff;border-color:var(--gold)">🔍 한류검색</button>';
   html += '<button class="c-pill' + (_contentFilter===null?' on':'') + '" onclick="selectContent(null)">전체</button>';
   html += sorted.map(([title, cnt]) => {
     const t = title.replace(/'/g,"\\'");
@@ -405,6 +427,19 @@ function updateContentBar() {
   }).join('');
   bar.innerHTML = html;
 }
+// 활성 필터 칩 탭 → 필터 통과 성지 중 내 주변 가장 가까운 곳으로
+window.jumpToFilterNearest = function() {
+  if (!_hallyuFilter) return;
+  finishHallyuFilter(_hallyuFilter.label);
+};
+// 필터 해제
+window.clearHallyuFilter = function() {
+  _hallyuFilter = null;
+  _hallyuFocus = null;
+  renderPilgrimPinsInView();
+  showToast('필터 해제');
+};
+function renderActiveFilterChip() { updateContentBar(); }
 window.selectContent = function(title) {
   _contentFilter = title;
   if (!title) _hallyuFocus = null;  // 전체 선택 시 포커스 해제
@@ -446,7 +481,6 @@ function doHallyuSearch(q) {
   if (!box) return;
   if (!q) { box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px"><div style="font-size:34px;margin-bottom:10px">🎬</div>배우·드라마·영화·그룹명을 검색해보세요</div>'; return; }
   const lq = q.replace(/\s/g,'').toLowerCase();
-  // 성지 DB에서 작품/배우/장소 매칭
   const matched = _pilgrimData.filter(d => {
     const title = (d.title||'').replace(/\s/g,'').toLowerCase();
     const place = (d.placeName||'').replace(/\s/g,'').toLowerCase();
@@ -457,22 +491,84 @@ function doHallyuSearch(q) {
     box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">검색 결과가 없어요</div>';
     return;
   }
+  // 검색어가 배우명과 매칭되는지 (actors에 포함) → 배우 필터 항목
+  const actorMatched = matched.filter(d => {
+    const actors = (Array.isArray(d.actors) ? d.actors.join('') : (d.actors||'')).replace(/\s/g,'').toLowerCase();
+    return actors.includes(lq);
+  });
+  // 실제 배우 이름 찾기 (표시용)
+  let actorLabel = q;
+  for (const d of actorMatched) {
+    const arr = Array.isArray(d.actors) ? d.actors : [];
+    const found = arr.find(a => a.replace(/\s/g,'').toLowerCase().includes(lq));
+    if (found) { actorLabel = found; break; }
+  }
+
+  let html = '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">' + matched.length + '곳의 성지를 찾았어요</div>';
+
+  // ★ 배우 필터 항목 (맨 위, 강조)
+  if (actorMatched.length) {
+    html += '<div onclick="applyActorFilter(\'' + lq + '\',\'' + actorLabel.replace(/'/g,"\\'") + '\')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;background:var(--gold-bg)">' +
+      '<div style="width:44px;height:44px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">⭐</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:var(--gold)">' + actorLabel.replace(/</g,'&lt;') + ' 성지 전체</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">이 배우가 나온 모든 작품 ' + actorMatched.length + '곳</div></div>' +
+      '<span style="color:var(--gold);font-size:13px;font-weight:700;flex-shrink:0">필터 ›</span>' +
+    '</div>';
+  }
+
   // 작품별 그룹핑
   const byTitle = {};
   matched.forEach(d => { const t = d.title || '기타'; (byTitle[t] = byTitle[t] || []).push(d); });
   const groups = Object.entries(byTitle).sort((a,b) => b[1].length - a[1].length);
-  box.innerHTML = '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">' + matched.length + '곳의 성지를 찾았어요</div>' +
-    groups.map(([title, list]) => {
-      const d0 = list[0];
-      const icon = d0.mediaType === 'artist' ? '⭐' : d0.mediaType === 'movie' ? '🎬' : '📺';
-      const actors = Array.isArray(d0.actors) ? d0.actors.slice(0,3).join(', ') : (d0.actors||'');
-      return '<div onclick="applyHallyuResult(\'' + title.replace(/'/g,"\\'") + '\')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer">' +
-        '<div style="width:44px;height:44px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">' + icon + '</div>' +
-        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text)">' + title.replace(/</g,'&lt;') + '</div>' +
-        '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + list.length + '곳' + (actors?' · '+actors.replace(/</g,'&lt;'):'') + '</div></div>' +
-        '<span style="color:var(--gold);font-size:13px;font-weight:700;flex-shrink:0">지도 ›</span>' +
-      '</div>';
-    }).join('');
+  html += groups.map(([title, list]) => {
+    const d0 = list[0];
+    const icon = d0.mediaType === 'artist' ? '⭐' : d0.mediaType === 'movie' ? '🎬' : '📺';
+    const actors = Array.isArray(d0.actors) ? d0.actors.slice(0,3).join(', ') : (d0.actors||'');
+    return '<div onclick="applyTitleFilter(\'' + title.replace(/'/g,"\\'") + '\')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer">' +
+      '<div style="width:44px;height:44px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">' + icon + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text)">' + title.replace(/</g,'&lt;') + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + list.length + '곳' + (actors?' · '+actors.replace(/</g,'&lt;'):'') + '</div></div>' +
+      '<span style="color:var(--gold);font-size:13px;font-weight:700;flex-shrink:0">필터 ›</span>' +
+    '</div>';
+  }).join('');
+  box.innerHTML = html;
+}
+
+// 배우 필터 적용
+window.applyActorFilter = function(lq, label) {
+  _hallyuFilter = { type: 'actor', value: lq, label: '⭐ ' + label };
+  finishHallyuFilter(label);
+};
+// 작품 필터 적용
+window.applyTitleFilter = function(title) {
+  _hallyuFilter = { type: 'title', value: title, label: '🎬 ' + title };
+  finishHallyuFilter(title);
+};
+// 필터 적용 후 지도로 (내 주변 우선)
+function finishHallyuFilter(label) {
+  document.getElementById('hallyuSearch')?.remove();
+  switchTabTo('map');
+  _contentFilter = null;
+  _filters.pilgrim = true;
+  document.getElementById('chipPilgrim')?.classList.remove('off');
+  renderActiveFilterChip();
+  // 필터 통과 성지 중 내 주변 우선
+  const list = _pilgrimData.filter(d => d.lat && d.lng && passHallyuFilter(d));
+  if (!list.length) { showToast('해당 성지가 없어요'); return; }
+  const dist = (d) => { const a=(d.lat-myLat)*111, b=(d.lng-myLng)*88; return Math.sqrt(a*a+b*b); };
+  const sorted = [...list].sort((x,y) => dist(x)-dist(y));
+  const nearest = sorted[0];
+  if (dist(nearest) <= 30) {
+    const n = sorted.filter(d => dist(d) <= 30).length;
+    map.setCenter(new kakao.maps.LatLng(myLat, myLng));
+    map.setLevel(n > 1 ? 6 : 5);
+    showToast('내 주변 ' + label + ' 성지 ' + n + '곳');
+  } else {
+    map.setCenter(new kakao.maps.LatLng(nearest.lat, nearest.lng));
+    map.setLevel(6);
+    showToast('가장 가까운 ' + label + ' 성지로 이동');
+  }
+  setTimeout(() => renderPilgrimPinsInView(), 300);
 }
 
 // 검색 결과 작품 선택 → 내 주변 우선으로 표시
