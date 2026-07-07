@@ -162,7 +162,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.1.4';
+const VERSION = 'map v0.1.5';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -199,12 +199,18 @@ function initMap() {
 
   // 내 위치
   if (navigator.geolocation) {
+    showToast('📍 내 위치 찾는 중...');
     navigator.geolocation.getCurrentPosition(pos => {
       myLat = pos.coords.latitude;
       myLng = pos.coords.longitude;
       map.setCenter(new kakao.maps.LatLng(myLat, myLng));
+      map.setLevel(4);
       addMyLocationMarker();
-    }, () => {}, { timeout: 5000 });
+      renderPilgrimPinsInView();
+      renderRestPinsInView();
+    }, err => {
+      showToast('위치 권한을 허용하면 내 주변이 보여요');
+    }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
   }
 
   // 데이터 로드
@@ -446,6 +452,13 @@ function toggleSheetExpand() {
   handle.addEventListener('touchstart', e => onStart(e.touches[0].clientY), {passive:true});
   handle.addEventListener('touchmove', e => onMove(e.touches[0].clientY), {passive:true});
   handle.addEventListener('touchend', () => { if (!moved) toggleSheetExpand(); });
+  // 마우스(PC) 지원
+  let dragging = false;
+  handle.addEventListener('mousedown', e => { dragging = true; onStart(e.clientY); e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (dragging) onMove(e.clientY); });
+  window.addEventListener('mouseup', () => {
+    if (dragging) { dragging = false; if (!moved) toggleSheetExpand(); }
+  });
   handle.addEventListener('click', () => { if (!moved) toggleSheetExpand(); });
 })();
 
