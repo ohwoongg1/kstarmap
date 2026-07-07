@@ -35,7 +35,7 @@
   .chip.off{opacity:0.4}
   .chip .dot{width:9px;height:9px;border-radius:50%}
   #contentBar::-webkit-scrollbar{display:none}
-  .filterbar-float{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:15}
+  .filterbar-float{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:6px;z-index:15;align-items:flex-start}
   .filterbar-float .chip{background:rgba(255,255,255,0.92);backdrop-filter:blur(4px);box-shadow:0 1px 4px rgba(0,0,0,0.15);border:none}
   .filterbar-float .chip.off{opacity:0.55;background:rgba(255,255,255,0.7)}
   .c-pill{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:15px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer}
@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.4.5';
+const VERSION = 'map v0.4.6';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
