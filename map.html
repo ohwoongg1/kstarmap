@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.5.1';
+const VERSION = 'map v0.5.2';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -907,6 +907,7 @@ async function loadPlaceCerts() {
   const raw = p.raw || {};
   const groupKey = makeGroupKey(p.name, raw.title || '');
   const placeKey = 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4);
+  console.log('[이곳의인증] 조회 groupKey=', groupKey, ' placeKey=', placeKey, ' name=', p.name);
   try {
     // 장소명+작품(groupKey) 기준 조회 + 기존 데이터(placeKey) 조회 후 합침
     const [snapG, snapP] = await Promise.all([
@@ -917,6 +918,7 @@ async function loadPlaceCerts() {
     snapG.forEach(d => { map[d.id] = { id: d.id, ...d.data() }; });
     snapP.forEach(d => { if (!map[d.id]) map[d.id] = { id: d.id, ...d.data() }; });
     const certs = Object.values(map);
+    console.log('[이곳의인증] groupKey결과=', snapG.size, ' placeKey결과=', snapP.size, ' 합계=', certs.length);
     window._placeCerts = {};
     certs.forEach(c => { window._placeCerts[c.id] = c; });
     if (!certs.length) {
@@ -1304,6 +1306,7 @@ window.submitCert = async function() {
       urls.push(await getDownloadURL(snap.ref));
     }
     const raw = p.raw || {};
+    console.log('[인증저장] groupKey=', makeGroupKey(p.name, raw.title || ''), ' placeKey=', 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4), ' name=', p.name);
     await addDoc(collection(db, 'certifications'), {
       uid: window.currentUser.uid,
       userName: window.currentUser.displayName || '',
