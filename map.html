@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.5.3';
+const VERSION = 'map v0.5.5';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -442,7 +442,8 @@ async function loadAllData() {
     const rs = await getDocs(query(collection(db, 'restaurants'), limit(2000)));
     _restData = rs.docs.map(d => { const r = d.data(); return {
       _id: d.id, name: r.name||'', celeb: r.celeb||'', cat: r.category||r.cat||'한식',
-      area: r.area||'', comment: r.comment||'', lat: r.lat||0, lng: r.lng||0
+      area: r.area||'', comment: r.comment||'', lat: r.lat||0, lng: r.lng||0,
+      address: r.address||'', phone: r.phone||r.tel||''
     };});
     renderRestPinsInView();
   } catch(e) { console.error('맛집 로드 오류', e); }
@@ -511,7 +512,7 @@ function renderPilgrimPinsInView() {
     // 필터/작품칩이 걸려있으면 그 핀을 강조
     const highlight = !!(_hallyuFilter || _contentFilter || _hallyuFocus);
     const el = makePinEl('#378ADD', icon, () => openPlaceSheet({
-      name: (isEn() && d.placeName_en ? d.placeName_en : (d.placeName || d.title || '')), sub: (d.title||'') + (d.area?' · '+d.area:''),
+      name: (isEn() ? (d.placeName || d.title_en || d.title) : (d.placeName || d.title)) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
       lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
     }), highlight);
     const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: highlight ? 10 : 3 });
@@ -824,7 +825,7 @@ window.pickSearchResult = function(i) {
     name: it.place_name,
     sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
     lat, lng, color: 'var(--red)', type: 'search',
-    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name }
+    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
   }));
   const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 6 });
   ov.setMap(map);
@@ -835,7 +836,7 @@ window.pickSearchResult = function(i) {
     name: it.place_name,
     sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
     lat, lng, color: 'var(--red)', type: 'search',
-    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name }
+    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
   });
 };
 
@@ -868,7 +869,7 @@ function openPlaceSheet(place) {
       const actors = Array.isArray(actorsSrc) ? actorsSrc.join(', ') : (actorsSrc||'');
       const story = (isEn() ? (raw.story_en || raw.story) : raw.story) || '';
       const dispTitle = (isEn() ? (raw.title_en || raw.title) : raw.title) || '';
-      const addr = raw.address || raw.area || '';
+      const addr = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
       html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
         '<span style="background:' + badgeColor + ';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px">' + badge + '</span>' +
         (dispTitle ? '<span style="font-size:14px;font-weight:800;color:var(--text)">' + esc(dispTitle) + '</span>' : '') + '</div>';
@@ -882,6 +883,13 @@ function openPlaceSheet(place) {
       if (cat || celeb) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🍽️ ' + esc(cat) + (celeb?' · '+esc(celeb):'') + '</div>';
       if (comment) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px">' + esc(comment) + '</div>';
     }
+    // 주소·전화 공통 정보 (있는 것만)
+    const addr2 = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
+    const phone = raw.phone || '';
+    let contact = '';
+    if (place.type !== 'pilgrim' && addr2) contact += '<div style="font-size:12px;color:var(--text3);margin-bottom:6px">📍 ' + esc(addr2) + '</div>';
+    if (phone) contact += '<div style="font-size:12px;margin-bottom:6px">📞 <a href="tel:' + esc(phone) + '" style="color:#185FA5;text-decoration:none">' + esc(phone) + '</a></div>';
+    if (contact) html += '<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">' + contact + '</div>';
     info.innerHTML = html;
   }
   // 인증 영역 초기화 (펼칠 때 로드)
