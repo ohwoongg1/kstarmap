@@ -35,6 +35,9 @@
   .chip.off{opacity:0.4}
   .chip .dot{width:9px;height:9px;border-radius:50%}
   #contentBar::-webkit-scrollbar{display:none}
+  .filterbar-float{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:15}
+  .filterbar-float .chip{background:rgba(255,255,255,0.92);backdrop-filter:blur(4px);box-shadow:0 1px 4px rgba(0,0,0,0.15);border:none}
+  .filterbar-float .chip.off{opacity:0.55;background:rgba(255,255,255,0.7)}
   .c-pill{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:15px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer}
   .c-pill.on{background:var(--gold);border-color:var(--gold);color:#fff}
 
@@ -92,16 +95,15 @@
     <button id="langToggle" onclick="setLang(document.documentElement.dataset.lang==='en'?'ko':'en')" style="flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">EN</button>
   </div>
 
-  <div class="filterbar">
-    <div class="chip" id="chipSearch" onclick="toggleFilter('search')"><span class="dot" style="background:var(--red)"></span>검색</div>
-    <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
-    <div class="chip" id="chipRest" onclick="toggleFilter('rest')"><span class="dot" style="background:var(--amber)"></span>맛집</div>
-  </div>
-
   <div id="contentBar" style="display:flex;gap:6px;padding:6px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
 
   <div id="mapWrap">
     <div id="map"></div>
+    <div class="filterbar-float">
+      <div class="chip" id="chipSearch" onclick="toggleFilter('search')"><span class="dot" style="background:var(--red)"></span>검색</div>
+      <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
+      <div class="chip" id="chipRest" onclick="toggleFilter('rest')"><span class="dot" style="background:var(--amber)"></span>맛집</div>
+    </div>
     <button class="search-here-btn" id="searchHereBtn" onclick="searchThisArea()">🔄 이 지역 다시 검색</button>
     <button class="my-loc-btn" onclick="goMyLocation()">📍</button>
 
@@ -126,7 +128,7 @@
       </div>
       <div id="sheetExtra">
         <div id="sheetInfo"></div>
-        <div style="font-size:14px;font-weight:800;margin:16px 0 10px">📸 이곳의 인증</div>
+        <div id="thisCertTitle" style="font-size:14px;font-weight:800;margin:16px 0 10px">📸 이곳의 인증</div>
         <div id="sheetCerts" style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>
       </div>
     </div>
@@ -134,7 +136,7 @@
 
   <div id="feedView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg2)">
     <div style="padding:12px 14px 4px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:16px;font-weight:800;color:var(--text)">📸 인증 피드</div>
+      <div id="feedTitleEl" style="font-size:16px;font-weight:800;color:var(--text)">📸 인증 피드</div>
       <button onclick="renderPublicFeed(true)" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">🔄</button>
     </div>
     <div id="feedBody">
@@ -143,7 +145,7 @@
   </div>
 
   <div id="savedView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)">
-    <div style="padding:14px 16px 8px;font-size:16px;font-weight:800;color:var(--text)">🔖 가고싶어요</div>
+    <div id="savedTitleEl" style="padding:14px 16px 8px;font-size:16px;font-weight:800;color:var(--text)">🔖 가고싶어요</div>
     <div id="savedBody">
       <div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)">불러오는 중...</div>
     </div>
@@ -227,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.4.3';
+const VERSION = 'map v0.4.5';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -297,6 +299,11 @@ function applyLangToUI() {
   // 언어 토글 버튼 라벨
   const lt = document.getElementById('langToggle');
   if (lt) lt.textContent = isEn() ? '한' : 'EN';
+  // 정적 제목들
+  const ft = document.getElementById('feedTitleEl'); if (ft) ft.textContent = t('feedTitle');
+  const st = document.getElementById('savedTitleEl'); if (st) st.textContent = t('savedTitle');
+  const tc = document.getElementById('thisCertTitle'); if (tc) tc.textContent = t('thisCert');
+  const sh = document.getElementById('searchHereBtn'); if (sh) sh.textContent = t('searchHere');
   // 칩바/피드/저장 재렌더
   if (window.updateContentBar) updateContentBar();
 }
@@ -488,7 +495,7 @@ function updateContentBar() {
   const bar = document.getElementById('contentBar');
   if (!bar || !map) return;
   bar.style.display = 'flex';
-  let html = '<button class="c-pill" onclick="openHallyuSearch()" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);color:var(--text3);border:1px solid var(--border2);font-weight:500;min-width:160px"><span style="color:var(--gold)">🔍</span><span>배우·드라마·그룹 검색</span></button>';
+  let html = '<button class="c-pill" onclick="openHallyuSearch()" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);color:var(--text3);border:1px solid var(--border2);font-weight:500;min-width:160px"><span style="color:var(--gold)">🔍</span><span>' + t('hallyuSearch') + '</span></button>';
 
   // 활성 한류 필터 칩 (탭→가까운 성지 이동, ✕→해제)
   if (_hallyuFilter) {
@@ -515,7 +522,7 @@ function updateContentBar() {
     if (bi !== -1) return 1;                        // b만 인기 → 앞으로
     return b[1] - a[1];                             // 둘 다 없으면 개수순
   }).slice(0, 20);
-  html += '<button class="c-pill' + (_contentFilter===null?' on':'') + '" onclick="selectContent(null)">전체</button>';
+  html += '<button class="c-pill' + (_contentFilter===null?' on':'') + '" onclick="selectContent(null)">' + t('all') + '</button>';
   html += sorted.map(([title, cnt]) => {
     const t = title.replace(/'/g,"\\'");
     const short = title.length > 14 ? title.slice(0,14)+'…' : title;
@@ -1315,9 +1322,10 @@ window.openNavigation = function() {
       '<div style="width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>' +
       '<div style="font-size:15px;font-weight:800;margin-bottom:4px">🧭 길찾기</div>' +
       '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">' + escNav(p.name) + '</div>' +
-      navBtn('🟢 네이버지도', naverApp, naverWeb) +
-      navBtn('🟡 카카오맵', kakaoWeb, kakaoWeb) +
-      navBtn('🔵 구글맵', googleWeb, googleWeb) +
+      (isEn()
+        ? (navBtn('🔵 Google Maps', googleWeb, googleWeb) + navBtn('🟢 Naver Map', naverApp, naverWeb) + navBtn('🟡 Kakao Map', kakaoWeb, kakaoWeb))
+        : (navBtn('🟢 네이버지도', naverApp, naverWeb) + navBtn('🟡 카카오맵', kakaoWeb, kakaoWeb) + navBtn('🔵 구글맵', googleWeb, googleWeb))
+      ) +
       '<button onclick="document.getElementById(\'navSheet\').remove()" style="width:100%;margin-top:8px;padding:12px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer">닫기</button>' +
     '</div>';
   document.body.appendChild(sheet);
