@@ -153,7 +153,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.1.2';
+const VERSION = 'map v0.1.3';
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -224,6 +224,15 @@ window.goMyLocation = function() {
 
 // ── 데이터 로드 ──
 async function loadAllData() {
+  // Firebase(module 스크립트)가 준비될 때까지 대기
+  if (!window._mapDB) {
+    let tries = 0;
+    while (!window._mapDB && tries < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      tries++;
+    }
+    if (!window._mapDB) { console.error('Firebase 준비 실패'); showToast('데이터 연결 실패'); return; }
+  }
   const { db, collection, getDocs, query, limit } = window._mapDB;
   try {
     // 성지 (500개 먼저)
