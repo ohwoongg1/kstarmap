@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.4.6';
+const VERSION = 'map v0.4.8';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -246,6 +246,17 @@ const I18N = {
     login:'구글 로그인', logout:'로그아웃',
     searchHere:'🔄 이 지역 다시 검색',
     hallyuPlaceholder:'좋아하는 배우, 드라마, 영화,<br>아이돌 그룹 이름을 검색해보세요',
+    post:'게시하기', posting:'올리는 중…', addPhoto:'사진 추가', comment:'한마디 남기기 (선택)',
+    certTitle:'📸 다녀왔어요', editTitle:'✏️ 인증 수정', saveEdit:'저장하기',
+    noSaved:'저장한 장소가 없어요', noSavedSub:'지도에서 장소 → 저장 버튼을 눌러보세요!',
+    noMyCert:'아직 다녀온 인증이 없어요', noMyCertSub:'지도에서 장소 → 📸 가본곳으로 남겨보세요!',
+    noFeed:'아직 인증이 없어요', noFeedSub:'첫 인증을 남겨보세요! 지도에서 장소 → 📸 가본곳',
+    noResult:'검색 결과가 없어요', loading:'불러오는 중...', loadFail:'불러오기 실패',
+    loginToSee:'로그인하면 내 인증을 모아볼 수 있어요',
+    mapView:'지도에서 보기', close:'닫기',
+    statCert:'인증', statPlace:'다녀온 곳', statWork:'작품',
+    needPhoto:'사진이 최소 1장 필요해요', needLogin:'🔒 로그인이 필요해요',
+    hallyuHint:'이 배우가 나온 모든 작품', allSpots:'성지 전체',
   },
   en: {
     searchPlace: 'Search place or address',
@@ -259,6 +270,17 @@ const I18N = {
     login:'Sign in with Google', logout:'Sign out',
     searchHere:'🔄 Search this area',
     hallyuPlaceholder:'Search your favorite actor, drama,<br>movie, or K-pop group',
+    post:'Post', posting:'Uploading…', addPhoto:'Add photo', comment:'Add a note (optional)',
+    certTitle:'📸 I\'ve been here', editTitle:'✏️ Edit', saveEdit:'Save',
+    noSaved:'No saved places yet', noSavedSub:'Tap the Save button on a place!',
+    noMyCert:'No visits yet', noMyCertSub:'Tap 📸 on a place to check in!',
+    noFeed:'No visits yet', noFeedSub:'Be the first! Tap a place → 📸',
+    noResult:'No results', loading:'Loading...', loadFail:'Failed to load',
+    loginToSee:'Sign in to see your check-ins',
+    mapView:'View on map', close:'Close',
+    statCert:'Check-ins', statPlace:'Places', statWork:'Titles',
+    needPhoto:'At least 1 photo needed', needLogin:'🔒 Sign in required',
+    hallyuHint:'All titles with this actor', allSpots:'all spots',
   }
 };
 function t(key) { return (I18N[LANG] && I18N[LANG][key]) || I18N.ko[key] || key; }
@@ -426,10 +448,14 @@ async function loadAllData() {
 
 // ── 핀 렌더 (뷰포트 기반) ──
 // content를 실제 DOM 엘리먼트로 생성 → 클릭 리스너 직접 연결(안정적)
-function makePinEl(color, icon, handler) {
+function makePinEl(color, icon, handler, highlight) {
   const el = document.createElement('div');
-  el.style.cssText = 'position:relative;width:26px;height:26px;cursor:pointer';
-  el.innerHTML = '<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;background:' + color + ';transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:12px;pointer-events:none">' + icon + '</div>';
+  const size = highlight ? 36 : 26;
+  el.style.cssText = 'position:relative;width:' + size + 'px;height:' + size + 'px;cursor:pointer;z-index:' + (highlight ? 10 : 3);
+  const pinColor = highlight ? '#B5790F' : color;
+  const ring = highlight ? 'box-shadow:0 0 0 3px rgba(181,121,15,0.35),0 2px 6px rgba(0,0,0,0.4);' : 'box-shadow:0 1px 3px rgba(0,0,0,0.3);';
+  const border = highlight ? '3px solid #fff' : '2px solid #fff';
+  el.innerHTML = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50% 50% 50% 0;background:' + pinColor + ';transform:rotate(-45deg);border:' + border + ';' + ring + '"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:' + (highlight?16:12) + 'px;pointer-events:none">' + (highlight ? '⭐' : icon) + '</div>';
   el.addEventListener('click', (e) => { e.stopPropagation(); handler(); });
   return el;
 }
@@ -480,11 +506,13 @@ function renderPilgrimPinsInView() {
     if (!b.contain(pos)) continue;
     if (count++ > 200) break;
     const icon = d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺';
+    // 필터/작품칩이 걸려있으면 그 핀을 강조
+    const highlight = !!(_hallyuFilter || _contentFilter || _hallyuFocus);
     const el = makePinEl('#378ADD', icon, () => openPlaceSheet({
       name: d.placeName || d.title || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
       lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
-    }));
-    const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 3 });
+    }), highlight);
+    const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: highlight ? 10 : 3 });
     ov.setMap(map);
     _pilgrimMarkers.push(ov);
   }
@@ -1029,7 +1057,7 @@ window.renderSavedList = function() {
   if (!body) return;
   const places = getLocalPlaces();
   if (!places.length) {
-    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">🔖</div>저장한 장소가 없어요<div style="font-size:12px;margin-top:8px">지도에서 장소 → 📑 저장 버튼을 눌러보세요!</div></div>';
+    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">🔖</div>' + t('noSaved') + '<div style="font-size:12px;margin-top:8px">지도에서 장소 → 📑 저장 버튼을 눌러보세요!</div></div>';
     return;
   }
   body.innerHTML = places.map(p => {
@@ -1077,7 +1105,7 @@ window.renderMyPage = async function() {
   if (!prof || !body) return;
   const cu = window.currentUser;
   if (!cu) {
-    prof.innerHTML = '<div style="flex:1;text-align:center"><div style="font-size:14px;color:var(--text3);margin-bottom:12px">로그인하면 내 인증을 모아볼 수 있어요</div><button onclick="loginWithGoogle()" style="padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">구글 로그인</button></div>';
+    prof.innerHTML = '<div style="flex:1;text-align:center"><div style="font-size:14px;color:var(--text3);margin-bottom:12px">' + t('loginToSee') + '</div><button onclick="loginWithGoogle()" style="padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">' + t('login') + '</button></div>';
     body.innerHTML = '';
     return;
   }
@@ -1087,7 +1115,7 @@ window.renderMyPage = async function() {
   prof.innerHTML = avatar +
     '<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:var(--text)">' + (cu.displayName || '사용자') + '</div>' +
     '<div style="font-size:12px;color:var(--text3)">' + (cu.email || '') + '</div></div>' +
-    '<button onclick="doLogout()" style="padding:8px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">로그아웃</button>';
+    '<button onclick="doLogout()" style="padding:8px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">' + t('logout') + '</button>';
 
   body.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>';
   const { db, collection, getDocs, query, where } = window._mapDB;
@@ -1097,15 +1125,15 @@ window.renderMyPage = async function() {
     snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
     certs.sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0));
     if (!certs.length) {
-      body.innerHTML = '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>아직 다녀온 인증이 없어요<div style="font-size:12px;margin-top:8px">지도에서 장소 → 📸 가본곳으로 남겨보세요!</div></div>';
+      body.innerHTML = '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>' + t('noMyCert') + '<div style="font-size:12px;margin-top:8px">' + t('noMyCertSub') + '</div></div>';
       return;
     }
     const uniqueTitles = new Set(certs.map(c => c.title).filter(Boolean));
     const uniquePlaces = new Set(certs.map(c => c.placeKey).filter(Boolean));
     const summary = '<div style="display:flex;gap:12px;padding:16px;border-bottom:1px solid var(--border)">' +
-      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--gold)">' + certs.length + '</div><div style="font-size:11px;color:var(--text3)">인증</div></div>' +
-      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniquePlaces.size + '</div><div style="font-size:11px;color:var(--text3)">다녀온 곳</div></div>' +
-      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniqueTitles.size + '</div><div style="font-size:11px;color:var(--text3)">작품</div></div></div>';
+      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--gold)">' + certs.length + '</div><div style="font-size:11px;color:var(--text3)">' + t('statCert') + '</div></div>' +
+      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniquePlaces.size + '</div><div style="font-size:11px;color:var(--text3)">' + t('statPlace') + '</div></div>' +
+      '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniqueTitles.size + '</div><div style="font-size:11px;color:var(--text3)">' + t('statWork') + '</div></div></div>';
     window._myCerts = {};
     certs.forEach(c => { window._myCerts[c.id] = c; });
     const grid = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px">' + certs.map(c => {
@@ -1207,15 +1235,15 @@ window.startCert = function() {
     '<div onclick="document.getElementById(\'certSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.45)"></div>' +
     '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:16px 16px calc(28px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto">' +
       '<div style="position:relative;height:22px;margin-bottom:10px"><div style="width:40px;height:4px;background:var(--border2);border-radius:2px;position:absolute;left:50%;transform:translateX(-50%);top:4px"></div><button onclick="document.getElementById(\'certSheet\').remove()" style="position:absolute;right:0;top:-4px;width:30px;height:30px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:16px;cursor:pointer">✕</button></div>' +
-      '<div style="font-size:16px;font-weight:800;color:var(--text)">📸 다녀왔어요</div>' +
+      '<div style="font-size:16px;font-weight:800;color:var(--text)">' + t('certTitle') + '</div>' +
       '<div style="font-size:12px;color:var(--text3);margin:3px 0 14px">' + escCert(p.name) + '</div>' +
       '<label id="certPickBox" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;background:var(--bg2);border:2px dashed var(--border2);border-radius:14px;cursor:pointer;overflow:hidden">' +
         '<span id="certPickInner" style="text-align:center;color:var(--text3);font-size:13px"><span style="font-size:34px;display:block;margin-bottom:6px">📷</span>탭해서 사진 추가 (최대 10장)</span>' +
         '<input id="certFileInput" type="file" accept="image/*" multiple style="display:none">' +
       '</label>' +
       '<div id="certThumbs" style="display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px"></div>' +
-      '<textarea id="certComment" placeholder="한마디 남기기 (선택)" maxlength="200" style="width:100%;margin-top:12px;padding:11px 12px;border:1px solid var(--border);border-radius:11px;font-size:14px;resize:none;height:70px;box-sizing:border-box;font-family:inherit"></textarea>' +
-      '<button id="certSubmitBtn" disabled onclick="submitCert()" style="width:100%;margin-top:12px;padding:14px;background:var(--border2);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">게시하기</button>' +
+      '<textarea id="certComment" placeholder="' + t('comment') + '" maxlength="200" style="width:100%;margin-top:12px;padding:11px 12px;border:1px solid var(--border);border-radius:11px;font-size:14px;resize:none;height:70px;box-sizing:border-box;font-family:inherit"></textarea>' +
+      '<button id="certSubmitBtn" disabled onclick="submitCert()" style="width:100%;margin-top:12px;padding:14px;background:var(--border2);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">' + t('post') + '</button>' +
     '</div>';
   document.body.appendChild(sheet);
   const inp = document.getElementById('certFileInput');
@@ -1466,7 +1494,7 @@ async function renderPublicFeed(force) {
     const certs = [];
     snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
     if (!certs.length) {
-      body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:14px"><div style="font-size:38px;margin-bottom:10px">📸</div>아직 인증이 없어요<div style="font-size:12px;margin-top:8px">첫 인증을 남겨보세요! 지도에서 장소 → 📸 가본곳</div></div>';
+      body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text3);font-size:14px"><div style="font-size:38px;margin-bottom:10px">📸</div>' + t('noFeed') + '<div style="font-size:12px;margin-top:8px">' + t('noFeedSub') + '</div></div>';
       _feedLoaded = true; return;
     }
     window._feedData = {};
@@ -1525,7 +1553,7 @@ window.editMyCert = function(certId) {
       '<div style="font-size:12px;color:var(--text3);margin:3px 0 14px">' + (c.placeName||'').replace(/</g,'&lt;') + '</div>' +
       '<div id="editThumbs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>' +
       '<label style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:var(--bg2);border:1.5px dashed var(--border2);border-radius:11px;cursor:pointer;font-size:13px;color:var(--text3)">' +
-        '<span style="font-size:18px">📷</span> 사진 추가' +
+        '<span style="font-size:18px">📷</span> ' + t('addPhoto') +
         '<input id="editFileInput" type="file" accept="image/*" multiple style="display:none">' +
       '</label>' +
       '<textarea id="editComment" maxlength="200" style="width:100%;margin-top:12px;padding:11px 12px;border:1px solid var(--border);border-radius:11px;font-size:14px;resize:none;height:70px;box-sizing:border-box;font-family:inherit">' + (c.comment||'').replace(/</g,'&lt;') + '</textarea>' +
