@@ -48,7 +48,7 @@
   .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
 
   /* 장소 시트 */
-  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #placeSheet.show{transform:translateY(0)}
   #sheetExtra{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
   #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:12;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
@@ -239,7 +239,7 @@ let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
-const VERSION = 'map v1.0.0';
+const VERSION = 'map v1.0.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -1020,6 +1020,7 @@ function openPlaceSheet(place) {
   loadPlaceCerts();
   const sheet = document.getElementById('placeSheet');
   sheet.style.height = 'auto';
+  sheet.style.maxHeight = '';   // CSS 62vh 상한 적용(핀 진입 잘림 방지)
   sheet.dataset.expanded = '0';
   sheet.classList.add('show');
   // 상단(핸들·✕·장소명)이 항상 보이도록 스크롤 최상단 고정
@@ -1114,6 +1115,7 @@ window.closePlaceSheet = function() {
   const sheet = document.getElementById('placeSheet');
   sheet.classList.remove('show');
   sheet.style.height = 'auto';
+  sheet.style.maxHeight = '';
   sheet.dataset.expanded = '0';
   _selectedPlace = null;
 };
@@ -1126,8 +1128,10 @@ function toggleSheetExpand() {
   sheet.style.transition = 'height .3s cubic-bezier(.25,.46,.45,.94)';
   if (isExpanded) {
     sheet.style.height = 'auto';
+    sheet.style.maxHeight = '';   // CSS 62vh 상한 복구
     sheet.dataset.expanded = '0';
   } else {
+    sheet.style.maxHeight = 'none';   // 상한 해제 후 크게
     sheet.style.height = Math.round(window.innerHeight * 0.72) + 'px';
     sheet.dataset.expanded = '1';
     _sheetCertsLoaded = false;   // 펼치면 인증 그리드를 다시 그림(접힘 안내 → 썸네일)
@@ -1158,10 +1162,18 @@ function collapseSheet() {
 
   function snapTo(h, expanded) {
     sheet.style.transition = 'height .3s cubic-bezier(.25,.46,.45,.94)';
+    sheet.style.maxHeight = 'none';   // 펼침 상태는 상한 해제
     sheet.style.height = h + 'px';
     sheet.dataset.expanded = expanded ? '1' : '0';
     setTimeout(() => { sheet.style.transition = ''; try { map && map.relayout(); } catch(e){} }, 320);
     if (expanded) { _sheetCertsLoaded = false; loadPlaceCerts(); }
+  }
+  // 접힘: 높이 auto + 인라인 max-height 제거 → CSS 62vh 상한 복구(핀 진입 잘림 방지)
+  function collapseToAuto() {
+    sheet.style.transition = 'height .3s cubic-bezier(.25,.46,.45,.94)';
+    sheet.style.height = 'auto';
+    sheet.style.maxHeight = '';   // CSS의 62vh가 다시 적용됨
+    sheet.dataset.expanded = '0';
   }
 
   handle.addEventListener('touchstart', e => {
@@ -1171,6 +1183,7 @@ function collapseSheet() {
     startH = sheet.getBoundingClientRect().height;
     dragging = true; velocity = 0; moved = false;
     sheet.style.transition = 'none';
+    sheet.style.maxHeight = 'none';   // 드래그 중엔 62vh 상한 해제(크게 열 수 있게)
   }, {passive:true});
 
   document.addEventListener('touchmove', e => {
@@ -1193,9 +1206,7 @@ function collapseSheet() {
     if (!moved) {
       const expanded = sheet.dataset.expanded === '1';
       if (expanded) {
-        sheet.style.transition = 'height .3s cubic-bezier(.25,.46,.45,.94)';
-        sheet.style.height = 'auto';
-        sheet.dataset.expanded = '0';
+        collapseToAuto();
       } else {
         snapTo(midH(), true);
       }
@@ -1203,12 +1214,12 @@ function collapseSheet() {
     }
     // 스와이프: 속도 우선, 아니면 가까운 지점으로 snap
     if (velocity > 8) snapTo(maxH(), true);            // 빠르게 위로 → 크게
-    else if (velocity < -8) { sheet.style.height = 'auto'; sheet.dataset.expanded = '0'; }  // 빠르게 아래로 → 접힘
+    else if (velocity < -8) collapseToAuto();          // 빠르게 아래로 → 접힘
     else {
       // 3지점 중 가까운 곳: 접힘(MIN_H)·중간(midH)·크게(maxH)
       const pts = [MIN_H, midH(), maxH()];
       const nearest = pts.reduce((a,b) => Math.abs(a-curH) < Math.abs(b-curH) ? a : b);
-      if (nearest === MIN_H) { sheet.style.transition='height .3s cubic-bezier(.25,.46,.45,.94)'; sheet.style.height='auto'; sheet.dataset.expanded='0'; }
+      if (nearest === MIN_H) collapseToAuto();
       else snapTo(nearest, true);
     }
   });
