@@ -51,9 +51,10 @@
   #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #placeSheet.show{transform:translateY(0)}
   #sheetExtra{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
-  #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:5;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
+  #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:12;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
   .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
-  .place-head{display:flex;align-items:center;gap:11px}
+  /* 장소명도 상단에 고정 → 스크롤해도 어느 곳인지 항상 보임 */
+  .place-head{position:sticky;top:44px;background:var(--bg);z-index:11;display:flex;align-items:center;gap:11px;margin:0 -16px;padding:0 16px 4px}
   .place-pin{width:36px;height:36px;flex-shrink:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
   .place-name{font-size:15px;font-weight:800;color:var(--text)}
   .place-sub{font-size:12px;color:var(--text3);margin-top:2px}
@@ -105,7 +106,6 @@
       <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
       <div class="chip" id="chipRest" onclick="toggleFilter('rest')"><span class="dot" style="background:var(--amber)"></span>맛집</div>
     </div>
-    <button class="search-here-btn" id="searchHereBtn" onclick="searchThisArea()">🔄 이 지역 다시 검색</button>
     <button class="my-loc-btn" onclick="goMyLocation()">📍</button>
 
     <div id="searchResults"></div>
@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.7.1';
+const VERSION = 'map v0.8.0';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -336,7 +336,6 @@ function applyLangToUI() {
   const ft = document.getElementById('feedTitleEl'); if (ft) ft.textContent = t('feedTitle');
   const st = document.getElementById('savedTitleEl'); if (st) st.textContent = t('savedTitle');
   const tc = document.getElementById('thisCertTitle'); if (tc) tc.textContent = t('thisCert');
-  const sh = document.getElementById('searchHereBtn'); if (sh) sh.textContent = t('searchHere');
   // 칩바/피드/저장 재렌더
   if (window.updateContentBar) updateContentBar();
 }
@@ -367,9 +366,6 @@ function initMap() {
   kakao.maps.event.addListener(map, 'idle', () => {
     renderPilgrimPinsInView();
     renderRestPinsInView();
-  });
-  kakao.maps.event.addListener(map, 'dragend', () => {
-    document.getElementById('searchHereBtn').style.display = 'flex';
   });
   // 지도 빈 곳 탭 → 시트 닫기
   kakao.maps.event.addListener(map, 'click', function() {
@@ -800,15 +796,40 @@ document.getElementById('searchInput').addEventListener('input', function() {
   document.getElementById('searchClear').style.display = q ? 'block' : 'none';
   clearTimeout(_searchTimer);
   if (!q) { hideSearchResults(); return; }
+  // 다른 탭(피드·저장·내정보)에서 검색하면 지도 탭으로 전환해 결과가 보이게
+  if (_currentView !== 'map') switchTab('map');
   _searchTimer = setTimeout(() => doSearch(q), 350);
 });
 document.getElementById('searchClear').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('searchClear').style.display = 'none';
   hideSearchResults();
+  document.getElementById('searchInput').blur();
+  // 검색 핀 제거 + 검색 시트 닫기
+  clearMarkers(_searchMarkers);
+  closePlaceSheet();
+  // ✕ 로 검색어 지우면 검색 전 보던 지도로 복귀
+  restorePreSearchView();
 });
 
+// 검색으로 지도가 이동하기 직전의 지도 상태 저장 (✕ 복귀용)
+let _preSearchView = null;
+function capturePreSearchView() {
+  if (!map) return;
+  // 이미 검색 세션 중이면 덮어쓰지 않음 (최초 검색 직전 상태 보존)
+  if (_preSearchView) return;
+  const c = map.getCenter();
+  _preSearchView = { lat: c.getLat(), lng: c.getLng(), level: map.getLevel() };
+}
+function restorePreSearchView() {
+  if (!map || !_preSearchView) return;
+  map.setLevel(_preSearchView.level);
+  map.setCenter(new kakao.maps.LatLng(_preSearchView.lat, _preSearchView.lng));
+  _preSearchView = null;
+}
+
 function doSearch(q) {
+  capturePreSearchView();
   // 전국 검색: radius 제한 없이, 내 위치는 정렬 참고용으로만
   ps.keywordSearch(q, (data, status) => {
     if (status === kakao.maps.services.Status.OK) {
@@ -867,13 +888,51 @@ window.pickSearchResult = function(i) {
   });
 };
 
-// "이 지역 다시 검색"
-window.searchThisArea = function() {
-  document.getElementById('searchHereBtn').style.display = 'none';
-  renderPilgrimPinsInView();
-  renderRestPinsInView();
-  showToast('이 지역 성지·맛집을 표시했어요');
-};
+// ── 관광공사 사진 매칭 신뢰도 게이트 ──
+// 사진↔장소 불일치를 막기 위해, 매칭 거리(미터)가 아주 가까울 때만 사진 표시.
+// Python 업로드 시 저장했을 법한 거리 필드명들을 폭넓게 지원.
+// 거리 필드가 아예 없으면(구버전 데이터) 좌표 직접 계산은 불가하므로,
+// 관광지 제목(tourTitle)과 성지명 유사성으로 보조 판정. 둘 다 없으면 보수적으로 숨김 없이 표시.
+const TOUR_PHOTO_MAX_DIST_M = 120; // 매칭 허용 반경(요청: 범위 대폭 축소)
+function tourPhotoTrusted(raw) {
+  if (!raw || !raw.tourImage) return false;
+  // 1) 저장된 매칭 거리(미터)가 있으면 그것으로 엄격 판정
+  const distCandidates = [raw.tourDist, raw.tourDistance, raw.tourMatchDist, raw.tour_dist, raw.tourDistM];
+  for (const dc of distCandidates) {
+    if (dc !== undefined && dc !== null && dc !== '') {
+      const d = Number(dc);
+      if (!isNaN(d)) return d <= TOUR_PHOTO_MAX_DIST_M;
+    }
+  }
+  // 2) 거리 없음 → 관광지 좌표(tourLat/tourLng)가 저장돼 있으면 직접 계산
+  const tLat = Number(raw.tourLat ?? raw.tour_lat);
+  const tLng = Number(raw.tourLng ?? raw.tour_lng);
+  if (!isNaN(tLat) && !isNaN(tLng) && tLat && tLng && raw.lat && raw.lng) {
+    return haversineM(raw.lat, raw.lng, tLat, tLng) <= TOUR_PHOTO_MAX_DIST_M;
+  }
+  // 3) 좌표도 없음 → 관광지 제목과 성지명 유사성 보조 판정(있을 때만)
+  const tTitle = (raw.tourTitle || raw.tourName || '').replace(/\s/g,'');
+  const pName  = (raw.placeName || raw.title || '').replace(/\s/g,'');
+  if (tTitle && pName) {
+    // 한쪽이 다른 쪽을 포함하거나 2글자 이상 공통이면 신뢰
+    if (tTitle.includes(pName) || pName.includes(tTitle)) return true;
+    return sharedBigrams(tTitle, pName) >= 1;
+  }
+  // 4) 판정 근거 전무(구버전) → 표시는 하되, 이후 Python 재매칭 권장
+  return true;
+}
+function haversineM(lat1, lng1, lat2, lng2) {
+  const R = 6371000, toR = Math.PI/180;
+  const dLat = (lat2-lat1)*toR, dLng = (lng2-lng1)*toR;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*toR)*Math.cos(lat2*toR)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function sharedBigrams(a, b) {
+  const bi = s => { const set = new Set(); for (let i=0;i<s.length-1;i++) set.add(s.slice(i,i+2)); return set; };
+  const A = bi(a), B = bi(b); let n = 0;
+  A.forEach(x => { if (B.has(x)) n++; });
+  return n;
+}
 
 // ── 장소 시트 ──
 function openPlaceSheet(place) {
@@ -897,7 +956,7 @@ function openPlaceSheet(place) {
       const story = (isEn() ? (raw.story_en || raw.story) : raw.story) || '';
       const dispTitle = (isEn() ? (raw.title_en || raw.title) : raw.title) || '';
       const addr = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
-      if (raw.tourImage) {
+      if (raw.tourImage && tourPhotoTrusted(raw)) {
         const imgUrl = String(raw.tourImage).replace(/^http:\/\//, 'https://');
         html += '<div style="margin:-4px -16px 12px;position:relative"><img src="' + esc(imgUrl) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
           '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span></div>';
@@ -940,7 +999,14 @@ function openPlaceSheet(place) {
   sheet.style.height = 'auto';
   sheet.dataset.expanded = '0';
   sheet.classList.add('show');
+  // 상단(핸들·✕·장소명)이 항상 보이도록 스크롤 최상단 고정
+  // 사진 등 콘텐츠가 뒤늦게 로드되며 레이아웃이 밀리는 경우까지 커버
   sheet.scrollTop = 0;
+  requestAnimationFrame(() => { sheet.scrollTop = 0; });
+  setTimeout(() => { sheet.scrollTop = 0; }, 60);
+  setTimeout(() => { sheet.scrollTop = 0; }, 250);
+  const imgs = sheet.querySelectorAll('img');
+  imgs.forEach(im => { if (!im.complete) im.addEventListener('load', () => { if (sheet.dataset.expanded === '0') sheet.scrollTop = 0; }, { once:true }); });
 }
 let _sheetCertsLoaded = false;
 
@@ -1408,47 +1474,77 @@ window.submitCert = async function() {
 };
 
 // ── 길찾기 (네이버/카카오/구글로 넘김) ──
+// ── 길찾기 (index.html 검증 방식: "장소 먼저 보기" → 사용자가 앱 선택) ──
+// 직접 경로안내가 아니라, 각 지도앱에서 "장소를 먼저 열어" 사진·리뷰·영업시간을 확인한 뒤
+// 사용자가 길찾기를 누르도록 유도 (구글·네이버·카카오 동일 패턴)
 window.openNavigation = function() {
   if (!_selectedPlace) return;
   const p = _selectedPlace;
-  const name = encodeURIComponent(p.name);
-  const naverApp = 'nmap://place?lat=' + p.lat + '&lng=' + p.lng + '&name=' + name + '&appname=kstarmap';
-  const naverWeb = 'https://map.naver.com/p/search/' + name;
-  const kakaoWeb = 'https://map.kakao.com/link/to/' + name + ',' + p.lat + ',' + p.lng;
-  const googleWeb = 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng;
+  const name = p.name || '';
+  const q = encodeURIComponent(name);
+  const ll = p.lat + ',' + p.lng;
+  // 장소 먼저 보기(검색) URL — 좌표+이름으로 해당 지점을 열어줌
+  const googleUrl = 'https://www.google.com/maps/search/?api=1&query=' + q + '%20' + ll;
+  const naverApp  = 'nmap://place?lat=' + p.lat + '&lng=' + p.lng + '&name=' + q + '&appname=kstarmap';
+  const naverWeb  = 'https://map.naver.com/p/search/' + q;
+  const kakaoWeb  = 'https://map.kakao.com/link/map/' + q + ',' + p.lat + ',' + p.lng;
+  showNavSheet(name, googleUrl, naverApp, naverWeb, kakaoWeb);
+};
 
+function escNav(s){return (s||'').replace(/</g,'&lt;');}
+
+function showNavSheet(destName, googleUrl, naverApp, naverWeb, kakaoWeb) {
   const old = document.getElementById('navSheet');
   if (old) old.remove();
+  const en = isEn();
+  const L = en
+    ? { title:'🗺️ Directions', sub:'View the place first, then navigate',
+        g:'View on Google Maps', gsub:'Photos · reviews · hours, then directions',
+        n:'View on Naver Map', nsub:'Open the place, then navigate',
+        k:'View on Kakao Map', ksub:'Open the place, then navigate', close:'Close' }
+    : { title:'🗺️ 길찾기', sub:'장소를 먼저 확인한 뒤 길찾기 하세요',
+        g:'구글 지도에서 장소 보기', gsub:'사진·리뷰·영업시간 확인 후 길찾기',
+        n:'네이버 지도에서 장소 보기', nsub:'장소 확인 후 길찾기',
+        k:'카카오맵에서 장소 보기', ksub:'장소 확인 후 길찾기', close:'닫기' };
+
+  const row = (bg, fg, sub_fg, icon, title, sub, onclick) =>
+    '<a href="#" onclick="' + onclick + '" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:' + bg + ';border-radius:12px;text-decoration:none;margin-bottom:10px">' +
+      '<span style="font-size:22px">' + icon + '</span>' +
+      '<div><div style="font-size:14px;font-weight:700;color:' + fg + '">' + title + '</div>' +
+      '<div style="font-size:11px;color:' + sub_fg + ';margin-top:2px">' + sub + '</div></div></a>';
+
   const sheet = document.createElement('div');
   sheet.id = 'navSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
   sheet.innerHTML =
-    '<div onclick="document.getElementById(\'navSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.5)"></div>' +
-    '<div style="background:var(--bg);border-radius:18px 18px 0 0;padding:16px 16px calc(24px + env(safe-area-inset-bottom))">' +
-      '<div style="width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>' +
-      '<div style="font-size:15px;font-weight:800;margin-bottom:4px">🧭 ' + t('nav') + '</div>' +
-      '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">' + escNav(p.name) + '</div>' +
-      (isEn()
-        ? (navBtn('🔵 Google Maps', googleWeb, googleWeb) + navBtn('🟢 Naver Map', naverApp, naverWeb) + navBtn('🟡 Kakao Map', kakaoWeb, kakaoWeb))
-        : (navBtn('🟢 네이버지도', naverApp, naverWeb) + navBtn('🟡 카카오맵', kakaoWeb, kakaoWeb) + navBtn('🔵 구글맵', googleWeb, googleWeb))
-      ) +
-      '<button onclick="document.getElementById(\'navSheet\').remove()" style="width:100%;margin-top:8px;padding:12px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer">닫기</button>' +
+    '<div onclick="document.getElementById(\'navSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:20px 16px calc(32px + env(safe-area-inset-bottom))">' +
+      '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>' +
+      '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:2px">' + L.title + '</div>' +
+      '<div style="font-size:12px;color:var(--text3);margin-bottom:4px">' + L.sub + '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:14px">📍 ' + escNav(destName) + '</div>' +
+      row('#4285F4','#fff','rgba(255,255,255,0.85)','🔵', L.g, L.gsub, "navGo(event,'"+googleUrl.replace(/'/g,"\\'")+"',null)") +
+      row('#03C75A','#fff','rgba(255,255,255,0.85)','🟢', L.n, L.nsub, "navGo(event,'"+naverApp.replace(/'/g,"\\'")+"','"+naverWeb.replace(/'/g,"\\'")+"')") +
+      row('#FEE500','#3C1E1E','rgba(60,30,30,0.7)','🟡', L.k, L.ksub, "navGo(event,'"+kakaoWeb.replace(/'/g,"\\'")+"',null)") +
+      '<button onclick="document.getElementById(\'navSheet\').remove()" style="width:100%;margin-top:6px;padding:13px;background:none;border:1.5px solid var(--border2);border-radius:12px;font-size:14px;font-weight:600;color:var(--text3);cursor:pointer">' + L.close + '</button>' +
     '</div>';
   document.body.appendChild(sheet);
-};
-function escNav(s){return (s||'').replace(/</g,'&lt;');}
-function navBtn(label, appUrl, webUrl) {
-  return '<button onclick="tryOpenNav(\'' + appUrl.replace(/'/g,"\\'") + '\',\'' + webUrl.replace(/'/g,"\\'") + '\')" style="width:100%;padding:14px;margin-bottom:8px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;text-align:left">' + label + '</button>';
 }
-window.tryOpenNav = function(appUrl, webUrl) {
-  // 앱 스킴 시도 후 실패하면 웹으로
-  const now = Date.now();
-  window.location.href = appUrl;
-  setTimeout(() => {
-    if (Date.now() - now < 1600) window.open(webUrl, '_blank');
-  }, 1000);
+
+// 앱 스킴 우선 시도 후 실패 시 웹 폴백. webFallback 없으면 그냥 새 탭.
+window.navGo = function(elOrEvent, primaryUrl, webFallback) {
+  try { if (elOrEvent && elOrEvent.preventDefault) elOrEvent.preventDefault(); } catch(e){}
   const s = document.getElementById('navSheet');
+  if (webFallback) {
+    // 네이버 앱 스킴 → 실패 시 웹
+    const now = Date.now();
+    window.location.href = primaryUrl;
+    setTimeout(() => { if (Date.now() - now < 1600) window.open(webFallback, '_blank'); }, 900);
+  } else {
+    window.open(primaryUrl, '_blank');
+  }
   if (s) s.remove();
+  return false;
 };
 
 // ── 인증 피드 (index.html 검증 방식 이식) ──
@@ -1734,7 +1830,9 @@ window.toggleFilter = function(type) {
 };
 
 // ── 하단 탭 (지도 외는 다음 단계) ──
+let _currentView = 'map';
 function showView(view) {
+  _currentView = view;
   document.getElementById('mapWrap').style.display = (view === 'map') ? 'flex' : 'none';
   document.getElementById('feedView').style.display = (view === 'feed') ? 'block' : 'none';
   document.getElementById('savedView').style.display = (view === 'saved') ? 'block' : 'none';
