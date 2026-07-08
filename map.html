@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.6.2';
+const VERSION = 'map v0.6.3';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -526,7 +526,7 @@ function updateContentBar() {
   const bar = document.getElementById('contentBar');
   if (!bar || !map) return;
   bar.style.display = 'flex';
-  let html = '<button class="c-pill" onclick="openHallyuSearch()" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);color:var(--text3);border:1px solid var(--border2);font-weight:500;min-width:160px"><span style="color:var(--gold)">🔍</span><span>' + t('hallyuSearch') + '</span></button>';
+  let html = '<button class="c-pill hallyu-search-btn" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);color:var(--text3);border:1px solid var(--border2);font-weight:500;min-width:160px;pointer-events:auto"><span style="color:var(--gold);pointer-events:none">🔍</span><span style="pointer-events:none">' + t('hallyuSearch') + '</span></button>';
 
   // 활성 한류 필터 칩 (탭→가까운 성지 이동, ✕→해제)
   if (_hallyuFilter) {
@@ -1772,8 +1772,14 @@ window.onAuthChanged = function(user) {
     bar.scrollLeft = startScroll - dx;
   });
   window.addEventListener('mouseup', () => { down = false; });
-  bar.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
   bar.addEventListener('wheel', e => { if (e.deltaY !== 0) { bar.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+
+  // 이벤트 위임: 한류검색 버튼 클릭/탭 처리 (모바일 터치 포함)
+  bar.addEventListener('click', e => {
+    if (moved) { moved = false; return; }  // 드래그였으면 무시
+    const hb = e.target.closest('.hallyu-search-btn');
+    if (hb) { e.preventDefault(); e.stopPropagation(); if (window.openHallyuSearch) openHallyuSearch(); }
+  });
 })();
 
 // ── 시작 ──
