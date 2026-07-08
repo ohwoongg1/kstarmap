@@ -238,7 +238,8 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.9.7';
+let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
+const VERSION = 'map v0.9.9';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -1011,10 +1012,12 @@ function openPlaceSheet(place) {
     if (contact) html += '<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">' + contact + '</div>';
     info.innerHTML = html;
   }
-  // 인증 영역 초기화 (펼칠 때 로드)
+  // 인증 영역 초기화 후, 있으면 바로 로드 (접힌 상태에서도 인증 썸네일이 보이도록)
   const certs = document.getElementById('sheetCerts');
   if (certs) certs.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">' + t('expandHint') + '</div>';
   _sheetCertsLoaded = false;
+  // 시트가 접혀 있어도 인증을 미리 조회 (접힘: 개수 안내 / 펼침: 썸네일)
+  loadPlaceCerts();
   const sheet = document.getElementById('placeSheet');
   sheet.style.height = 'auto';
   sheet.dataset.expanded = '0';
@@ -1057,7 +1060,6 @@ async function loadPlaceCerts() {
   const raw = p.raw || {};
   const groupKey = makeGroupKey(p.name, raw.title || '');
   const placeKey = 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4);
-  console.log('[이곳의인증 조회] groupKey=', groupKey, '| placeKey=', placeKey, '| name=', p.name, '| title=', raw.title);
   try {
     // 장소명+작품(groupKey) 기준 조회 + 기존 데이터(placeKey) 조회 후 합침
     const [snapG, snapP] = await Promise.all([
@@ -1068,11 +1070,25 @@ async function loadPlaceCerts() {
     snapG.forEach(d => { map[d.id] = { id: d.id, ...d.data() }; });
     snapP.forEach(d => { if (!map[d.id]) map[d.id] = { id: d.id, ...d.data() }; });
     const certs = Object.values(map);
-    console.log('[이곳의인증 조회결과] groupKey매칭=', snapG.size, '| placeKey매칭=', snapP.size, '| 합계=', certs.length);
     window._placeCerts = {};
     certs.forEach(c => { window._placeCerts[c.id] = c; });
     if (!certs.length) {
       box.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>';
+      const th = document.getElementById('thisCertTitle');
+      if (th) th.textContent = t('thisCert');
+      return;
+    }
+    // 헤더에 인증 개수 표시 (접힌 상태에서도 인증 존재를 알 수 있게)
+    const th = document.getElementById('thisCertTitle');
+    if (th) th.textContent = t('thisCert') + ' ' + certs.length;
+    // 접힌 상태면 자동으로 펼치지 않고, '눌러서 보기' 안내를 sheetCerts 자리에 표시
+    const sheetEl = document.getElementById('placeSheet');
+    _autoExpandOnCerts = false;
+    if (sheetEl && sheetEl.dataset.expanded !== '1') {
+      // 접힘: 썸네일 대신 안내 버튼 (누르면 펼쳐짐)
+      box.innerHTML = '<div onclick="toggleSheetExpand()" style="cursor:pointer;text-align:center;padding:16px 0;color:var(--gold);font-size:13px;font-weight:700">' +
+        (isEn() ? ('📸 ' + certs.length + ' visit' + (certs.length>1?'s':'') + ' · tap to view') : ('📸 이곳의 인증 ' + certs.length + '개 · 눌러서 보기')) +
+        '</div>';
       return;
     }
     box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' +
@@ -1115,6 +1131,7 @@ function toggleSheetExpand() {
   } else {
     sheet.style.height = '70vh';
     sheet.dataset.expanded = '1';
+    _sheetCertsLoaded = false;   // 펼치면 인증 그리드를 다시 그림(접힘 안내 → 썸네일)
     loadPlaceCerts();
   }
   sheet.scrollTop = 0;
@@ -1554,7 +1571,6 @@ window.submitCert = async function() {
     const raw = p.raw || {};
     const _saveGroupKey = makeGroupKey(p.name, raw.title || '');
     const _savePlaceKey = 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4);
-    console.log('[인증 저장] groupKey=', _saveGroupKey, '| placeKey=', _savePlaceKey, '| name=', p.name, '| title=', raw.title);
     await addDoc(collection(db, 'certifications'), {
       uid: window.currentUser.uid,
       userName: window.currentUser.displayName || '',
