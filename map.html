@@ -235,7 +235,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.6.5';
+const VERSION = 'map v0.6.6-diag';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -590,6 +590,7 @@ window.selectContent = function(title) {
 // ── 한류 검색 (배우·작품·가수·그룹) ──
 let _hallyuResults = [];
 window.openHallyuSearch = function() {
+  alert('한류검색 열림 시도');  // [진단] 이 알림이 뜨면 버튼은 정상, 안 뜨면 버튼 문제
   const old = document.getElementById('hallyuSearch');
   if (old) old.remove();
   const v = document.createElement('div');
