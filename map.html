@@ -239,7 +239,7 @@ let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
-const VERSION = 'map v1.0.2';
+const VERSION = 'map v1.0.3';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -1071,6 +1071,12 @@ async function loadPlaceCerts() {
     snapG.forEach(d => { map[d.id] = { id: d.id, ...d.data() }; });
     snapP.forEach(d => { if (!map[d.id]) map[d.id] = { id: d.id, ...d.data() }; });
     const certs = Object.values(map);
+    // 최신순 정렬 (최근에 올린 인증이 맨 앞). createdAt이 아직 서버 반영 전이면 맨 앞으로.
+    certs.sort((a, b) => {
+      const ta = a.createdAt?.toMillis?.() ?? (a.createdAt ? Date.parse(a.createdAt) : Infinity);
+      const tb = b.createdAt?.toMillis?.() ?? (b.createdAt ? Date.parse(b.createdAt) : Infinity);
+      return tb - ta;
+    });
     window._placeCerts = {};
     certs.forEach(c => { window._placeCerts[c.id] = c; });
     if (!certs.length) {
