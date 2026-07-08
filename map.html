@@ -235,7 +235,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.6.6-diag';
+const VERSION = 'map v0.6.6';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -590,12 +590,11 @@ window.selectContent = function(title) {
 // ── 한류 검색 (배우·작품·가수·그룹) ──
 let _hallyuResults = [];
 window.openHallyuSearch = function() {
-  alert('한류검색 열림 시도');  // [진단] 이 알림이 뜨면 버튼은 정상, 안 뜨면 버튼 문제
   const old = document.getElementById('hallyuSearch');
   if (old) old.remove();
   const v = document.createElement('div');
   v.id = 'hallyuSearch';
-  v.style.cssText = 'position:fixed;inset:0;z-index:9997;background:var(--bg);display:flex;flex-direction:column';
+  v.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:99999;background:var(--bg);display:flex;flex-direction:column';
   v.innerHTML =
     '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--border)">' +
       '<button onclick="document.getElementById(\'hallyuSearch\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">‹</button>' +
@@ -609,7 +608,7 @@ window.openHallyuSearch = function() {
     '</div>';
   document.body.appendChild(v);
   const inp = document.getElementById('hallyuInput');
-  inp.focus();
+  setTimeout(() => { try { inp.focus(); } catch(e) {} }, 100);
   let t = null;
   inp.addEventListener('input', () => {
     clearTimeout(t);
