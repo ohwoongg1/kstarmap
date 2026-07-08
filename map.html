@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.9.5';
+const VERSION = 'map v0.9.6d';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -1057,6 +1057,7 @@ async function loadPlaceCerts() {
   const raw = p.raw || {};
   const groupKey = makeGroupKey(p.name, raw.title || '');
   const placeKey = 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4);
+  console.log('[이곳의인증 조회] groupKey=', groupKey, '| placeKey=', placeKey, '| name=', p.name, '| title=', raw.title);
   try {
     // 장소명+작품(groupKey) 기준 조회 + 기존 데이터(placeKey) 조회 후 합침
     const [snapG, snapP] = await Promise.all([
@@ -1067,6 +1068,7 @@ async function loadPlaceCerts() {
     snapG.forEach(d => { map[d.id] = { id: d.id, ...d.data() }; });
     snapP.forEach(d => { if (!map[d.id]) map[d.id] = { id: d.id, ...d.data() }; });
     const certs = Object.values(map);
+    console.log('[이곳의인증 조회결과] groupKey매칭=', snapG.size, '| placeKey매칭=', snapP.size, '| 합계=', certs.length);
     window._placeCerts = {};
     certs.forEach(c => { window._placeCerts[c.id] = c; });
     if (!certs.length) {
@@ -1550,13 +1552,16 @@ window.submitCert = async function() {
       urls.push(await getDownloadURL(snap.ref));
     }
     const raw = p.raw || {};
+    const _saveGroupKey = makeGroupKey(p.name, raw.title || '');
+    const _savePlaceKey = 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4);
+    console.log('[인증 저장] groupKey=', _saveGroupKey, '| placeKey=', _savePlaceKey, '| name=', p.name, '| title=', raw.title);
     await addDoc(collection(db, 'certifications'), {
       uid: window.currentUser.uid,
       userName: window.currentUser.displayName || '',
       userPhoto: window.currentUser.photoURL || '',
       placeId: raw._id || '',
-      placeKey: 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4),
-      groupKey: makeGroupKey(p.name, raw.title || ''),
+      placeKey: _savePlaceKey,
+      groupKey: _saveGroupKey,
       placeName: p.name || '',
       placeType: p.type || 'search',      // search=임의장소, pilgrim=성지, rest=맛집
       title: raw.title || '',
@@ -1571,6 +1576,14 @@ window.submitCert = async function() {
     if (s) s.remove();
     showToast('🎉 인증 완료! 내 기록에 남았어요');
     _feedLoaded = false;
+    // 방금 올린 인증이 '이곳의 인증'에 바로 보이도록 재로드
+    _sheetCertsLoaded = false;
+    if (_selectedPlace) {
+      // 시트가 접혀있으면 펼쳐서 인증 그리드를 보여줌
+      const sheet = document.getElementById('placeSheet');
+      if (sheet && sheet.dataset.expanded !== '1') toggleSheetExpand();
+      else loadPlaceCerts();
+    }
   } catch(e) {
     btn.disabled = false;
     btn.textContent = '게시하기 (' + total + ')';
