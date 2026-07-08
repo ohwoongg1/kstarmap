@@ -95,7 +95,7 @@
     <button id="langToggle" onclick="setLang(document.documentElement.dataset.lang==='en'?'ko':'en')" style="flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">EN</button>
   </div>
 
-  <div id="contentBar" style="display:flex;gap:6px;padding:6px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
+  <div id="contentBar" style="position:relative;z-index:30;display:flex;gap:6px;padding:6px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
 
   <div id="mapWrap">
     <div id="map"></div>
@@ -229,7 +229,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.6.1';
+const VERSION = 'map v0.6.2';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -584,6 +584,8 @@ window.selectContent = function(title) {
 // ── 한류 검색 (배우·작품·가수·그룹) ──
 let _hallyuResults = [];
 window.openHallyuSearch = function() {
+  // 시트가 열려있으면 먼저 닫기 (모바일에서 시트가 탭을 막는 문제 방지)
+  try { closePlaceSheet(); } catch(e) {}
   const old = document.getElementById('hallyuSearch');
   if (old) old.remove();
   const v = document.createElement('div');
