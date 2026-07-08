@@ -170,7 +170,7 @@
   <div class="bottomnav">
     <div class="navtab active" onclick="switchTab('map')"><div class="ic">🗺️</div><div class="tx">지도</div></div>
     <div class="navtab" onclick="switchTab('feed')"><div class="ic">📸</div><div class="tx">피드</div></div>
-    <div class="navtab" onclick="switchTab('saved')"><div class="ic">🔖</div><div class="tx">저장</div></div>
+    <div class="navtab" onclick="openLangPicker()"><div class="ic">🌐</div><div class="tx">언어</div></div>
     <div class="navtab" onclick="switchTab('my')"><div class="ic">👤</div><div class="tx">내 공간</div></div>
   </div>
 
@@ -240,7 +240,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.1.0';
+const VERSION = 'map v1.2.0';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -302,6 +302,111 @@ window.setLang = function(lang) {
   applyLangToUI();
   showToast(lang === 'en' ? 'Language: English' : '언어: 한국어');
 };
+
+// ── 언어 선택 시트 (하단 🌐) ──
+// ko/en = 앱 자체 번역(고품질), 그 외 = 구글 번역 위젯 자동번역
+const LANG_LIST = [
+  { code: 'ko',    label: '한국어',    flag: '🇰🇷', google: null },
+  { code: 'en',    label: 'English',   flag: '🇺🇸', google: 'en' },
+  { code: 'ja',    label: '日本語',     flag: '🇯🇵', google: 'ja' },
+  { code: 'zh-CN', label: '中文(简体)', flag: '🇨🇳', google: 'zh-CN' },
+  { code: 'zh-TW', label: '中文(繁體)', flag: '🇹🇼', google: 'zh-TW' },
+  { code: 'es',    label: 'Español',   flag: '🇪🇸', google: 'es' },
+  { code: 'th',    label: 'ไทย',       flag: '🇹🇭', google: 'th' },
+  { code: 'vi',    label: 'Tiếng Việt', flag: '🇻🇳', google: 'vi' },
+  { code: 'id',    label: 'Indonesia', flag: '🇮🇩', google: 'id' },
+];
+
+window.openLangPicker = function() {
+  const old = document.getElementById('langSheet');
+  if (old) old.remove();
+  const cur = localStorage.getItem('kstar_display_lang') || LANG;
+  const rows = LANG_LIST.map(l =>
+    '<button onclick="pickLang(\'' + l.code + '\')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;background:' + (cur === l.code ? 'var(--bg2)' : 'none') + ';border:none;border-bottom:0.5px solid var(--border);font-size:15px;color:var(--text);cursor:pointer;text-align:left">' +
+      '<span style="font-size:22px">' + l.flag + '</span>' +
+      '<span style="flex:1;font-weight:' + (cur === l.code ? '800' : '500') + '">' + l.label + '</span>' +
+      (cur === l.code ? '<span style="color:var(--gold);font-size:18px">✓</span>' : '') +
+    '</button>'
+  ).join('');
+  const sheet = document.createElement('div');
+  sheet.id = 'langSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'langSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
+      '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
+      '<div style="font-size:16px;font-weight:800;color:var(--text);padding:4px 16px 10px">🌐 ' + (isEn()?'Language':'언어 선택') + '</div>' +
+      rows +
+      '<div style="font-size:11px;color:var(--text3);text-align:center;padding:14px 16px 4px">' +
+        (isEn() ? 'Korean & English are hand-translated.<br>Other languages use Google Translate.' : '한국어·영어는 정식 번역, 그 외 언어는 구글 번역으로 자동 번역됩니다.') +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(sheet);
+};
+
+window.pickLang = function(code) {
+  const l = LANG_LIST.find(x => x.code === code);
+  const s = document.getElementById('langSheet');
+  if (s) s.remove();
+  localStorage.setItem('kstar_display_lang', code);
+  if (code === 'ko') {
+    clearGoogleTranslate();     // 구글 번역 해제 → 원문(한국어)
+    setLang('ko');
+  } else if (code === 'en') {
+    clearGoogleTranslate();     // 영어는 앱 자체 번역 사용(고품질)
+    setLang('en');
+  } else {
+    // 그 외 언어: 앱 UI는 영어로 두고, 구글 번역으로 전체 자동번역
+    setLang('en');
+    applyGoogleTranslate(l.google);
+  }
+};
+
+// 구글 번역 적용 (쿠키 방식 — 위젯이 감지해 번역)
+function applyGoogleTranslate(googleCode) {
+  setGoogTransCookie('/ko/' + googleCode);
+  // 위젯 select를 직접 바꿔 즉시 반영
+  const trySelect = (n) => {
+    const sel = document.querySelector('.goog-te-combo');
+    if (sel) {
+      sel.value = googleCode;
+      sel.dispatchEvent(new Event('change'));
+    } else if (n < 20) {
+      setTimeout(() => trySelect(n + 1), 150);
+    } else {
+      location.reload();   // 위젯 준비 안 됐으면 새로고침으로 쿠키 반영
+    }
+  };
+  trySelect(0);
+}
+function clearGoogleTranslate() {
+  const sel = document.querySelector('.goog-te-combo');
+  setGoogTransCookie('');
+  if (sel && sel.value && sel.value !== 'ko') {
+    sel.value = 'ko';
+    sel.dispatchEvent(new Event('change'));
+  }
+}
+function setGoogTransCookie(val) {
+  // googtrans 쿠키를 도메인 전체에 설정/삭제
+  const host = location.hostname;
+  const base = val ? ('googtrans=' + val) : 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  document.cookie = base + ';path=/';
+  document.cookie = base + ';path=/;domain=' + host;
+  document.cookie = base + ';path=/;domain=.' + host;
+}
+
+// 페이지 로드 시 저장된 언어 복원
+(function restoreLang() {
+  const saved = localStorage.getItem('kstar_display_lang');
+  if (!saved || saved === 'ko') return;
+  const l = LANG_LIST.find(x => x.code === saved);
+  if (!l) return;
+  if (saved === 'en') { setLang('en'); return; }
+  // 구글 번역 언어: UI는 영어 + 번역 복원(위젯 로드 대기)
+  setLang('en');
+  setTimeout(() => applyGoogleTranslate(l.google), 800);
+})();
 function applyLangToUI() {
   document.documentElement.dataset.lang = LANG;
   const set = (id, key, attr) => {
@@ -322,7 +427,7 @@ function applyLangToUI() {
   const tabs = document.querySelectorAll('.navtab .tx');
   if (tabs.length >= 4) {
     tabs[0].textContent = t('tabMap'); tabs[1].textContent = t('tabFeed');
-    tabs[2].textContent = t('tabSaved'); tabs[3].textContent = t('tabMy');
+    tabs[2].textContent = isEn() ? 'Language' : '언어'; tabs[3].textContent = t('tabMy');
   }
   // 시트 버튼
   const certLabel = document.querySelector('#placeSheet .cert-btn');
@@ -2231,5 +2336,24 @@ applyLangToUI();
 console.log(VERSION);
 (function showVersion(){ const el = document.getElementById('appVersion'); if (el) el.textContent = VERSION; })();
 </script>
+<!-- 구글 번역 위젯 (숨김 컨테이너 — 우리 언어 버튼으로 제어) -->
+<div id="google_translate_element" style="display:none"></div>
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'ko',
+    includedLanguages: 'en,ja,zh-CN,zh-TW,es,th,vi,id,fr,de',
+    autoDisplay: false
+  }, 'google_translate_element');
+}
+</script>
+<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<style>
+  /* 구글 번역 기본 바/배너 숨김 (디자인 유지) */
+  .goog-te-banner-frame, .skiptranslate { display: none !important; }
+  body { top: 0 !important; position: static !important; }
+  #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+  .goog-text-highlight { background: none !important; box-shadow: none !important; }
+</style>
 </body>
 </html>
