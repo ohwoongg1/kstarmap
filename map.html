@@ -240,7 +240,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.2.0';
+const VERSION = 'map v1.2.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -348,44 +348,29 @@ window.pickLang = function(code) {
   const l = LANG_LIST.find(x => x.code === code);
   const s = document.getElementById('langSheet');
   if (s) s.remove();
+  const prev = localStorage.getItem('kstar_display_lang') || 'ko';
+  if (code === prev) return;   // 같은 언어면 아무것도 안 함
   localStorage.setItem('kstar_display_lang', code);
+  // 구글 번역은 DOM을 직접 바꿔서, 즉시 전환하면 앱 번역과 충돌함.
+  // → 쿠키만 설정하고 '새로고침'으로 깨끗하게 다시 그림 (구글 위젯 정석 방식)
   if (code === 'ko') {
-    clearGoogleTranslate();     // 구글 번역 해제 → 원문(한국어)
-    setLang('ko');
+    localStorage.setItem('starspoon_lang', 'ko');
+    clearGoogleTranslate();
+    location.reload();
   } else if (code === 'en') {
-    clearGoogleTranslate();     // 영어는 앱 자체 번역 사용(고품질)
-    setLang('en');
+    localStorage.setItem('starspoon_lang', 'en');
+    clearGoogleTranslate();     // 구글 번역 해제(영어는 앱 자체 번역)
+    location.reload();
   } else {
-    // 그 외 언어: 앱 UI는 영어로 두고, 구글 번역으로 전체 자동번역
-    setLang('en');
-    applyGoogleTranslate(l.google);
+    localStorage.setItem('starspoon_lang', 'en');   // UI 기본은 영어
+    setGoogTransCookie('/ko/' + l.google);          // 구글 번역 언어 쿠키
+    location.reload();
   }
 };
 
-// 구글 번역 적용 (쿠키 방식 — 위젯이 감지해 번역)
-function applyGoogleTranslate(googleCode) {
-  setGoogTransCookie('/ko/' + googleCode);
-  // 위젯 select를 직접 바꿔 즉시 반영
-  const trySelect = (n) => {
-    const sel = document.querySelector('.goog-te-combo');
-    if (sel) {
-      sel.value = googleCode;
-      sel.dispatchEvent(new Event('change'));
-    } else if (n < 20) {
-      setTimeout(() => trySelect(n + 1), 150);
-    } else {
-      location.reload();   // 위젯 준비 안 됐으면 새로고침으로 쿠키 반영
-    }
-  };
-  trySelect(0);
-}
+// 구글 번역 해제 (한국어/영어로 되돌릴 때)
 function clearGoogleTranslate() {
-  const sel = document.querySelector('.goog-te-combo');
   setGoogTransCookie('');
-  if (sel && sel.value && sel.value !== 'ko') {
-    sel.value = 'ko';
-    sel.dispatchEvent(new Event('change'));
-  }
 }
 function setGoogTransCookie(val) {
   // googtrans 쿠키를 도메인 전체에 설정/삭제
@@ -396,16 +381,12 @@ function setGoogTransCookie(val) {
   document.cookie = base + ';path=/;domain=.' + host;
 }
 
-// 페이지 로드 시 저장된 언어 복원
+// 페이지 로드 시 저장된 언어의 UI만 복원 (구글 번역은 쿠키로 자동 적용됨)
 (function restoreLang() {
   const saved = localStorage.getItem('kstar_display_lang');
-  if (!saved || saved === 'ko') return;
-  const l = LANG_LIST.find(x => x.code === saved);
-  if (!l) return;
-  if (saved === 'en') { setLang('en'); return; }
-  // 구글 번역 언어: UI는 영어 + 번역 복원(위젯 로드 대기)
+  if (!saved || saved === 'ko') { return; }
+  // en 이거나 구글번역 언어면 UI는 영어로 (구글 번역이 쿠키로 알아서 적용)
   setLang('en');
-  setTimeout(() => applyGoogleTranslate(l.google), 800);
 })();
 function applyLangToUI() {
   document.documentElement.dataset.lang = LANG;
