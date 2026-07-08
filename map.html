@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.8.1';
+const VERSION = 'map v0.8.2';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -1853,19 +1853,12 @@ window.switchTabTo = function(view) {
   showView(view);
 };
 window.switchTab = function(tab) {
-  // 지도 탭을 누를 때: 열린 시트 닫고 검색 핀 정리 + 검색 전 지도로 복귀
+  // 지도 탭을 누를 때: 열린 시트만 닫고, 지도 위치는 그대로 유지
+  // (마지막 검색 지역을 유지 — 내 위치는 📍 버튼으로 언제든 이동)
   if (tab === 'map') {
     const wasMap = _currentView === 'map';
     if (window.closePlaceSheet) closePlaceSheet();
     hideSearchResults();
-    // 검색어가 남아있으면 지우고 검색 전 위치로 복귀
-    const si = document.getElementById('searchInput');
-    if (si && si.value) {
-      si.value = '';
-      document.getElementById('searchClear').style.display = 'none';
-    }
-    clearMarkers(_searchMarkers);
-    restorePreSearchView();
     switchTabTo('map');
     // 이미 지도에 있었으면 relayout 한 번 더 (먹통 방지)
     if (wasMap && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 40);
