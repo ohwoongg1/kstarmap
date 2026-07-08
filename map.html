@@ -171,7 +171,7 @@
     <div class="navtab active" onclick="switchTab('map')"><div class="ic">🗺️</div><div class="tx">지도</div></div>
     <div class="navtab" onclick="switchTab('feed')"><div class="ic">📸</div><div class="tx">피드</div></div>
     <div class="navtab" onclick="switchTab('saved')"><div class="ic">🔖</div><div class="tx">저장</div></div>
-    <div class="navtab" onclick="switchTab('my')"><div class="ic">👤</div><div class="tx">내정보</div></div>
+    <div class="navtab" onclick="switchTab('my')"><div class="ic">👤</div><div class="tx">내 공간</div></div>
   </div>
 
 </div>
@@ -239,7 +239,8 @@ let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
-const VERSION = 'map v1.0.3';
+let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
+const VERSION = 'map v1.1.0';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -248,7 +249,7 @@ const I18N = {
     searchPlace: '장소·주소 검색 (예: 중앙고등학교)',
     search:'검색', pilgrim:'성지', rest:'맛집',
     hallyuSearch:'배우·드라마·그룹 검색', all:'전체',
-    tabMap:'지도', tabFeed:'피드', tabSaved:'저장', tabMy:'내정보',
+    tabMap:'지도', tabFeed:'피드', tabSaved:'저장', tabMy:'내 공간',
     certBtn:'📸 가본곳 · 사진 올리기', save:'저장', nav:'길찾기',
     thisCert:'📸 이곳의 인증', noCertHere:'아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!',
     expandHint:'위로 올리면 이곳의 인증을 볼 수 있어요',
@@ -272,7 +273,7 @@ const I18N = {
     searchPlace: 'Search place or address',
     search:'Search', pilgrim:'Spots', rest:'Food',
     hallyuSearch:'Search actor·drama·group', all:'All',
-    tabMap:'Map', tabFeed:'Feed', tabSaved:'Saved', tabMy:'Me',
+    tabMap:'Map', tabFeed:'Feed', tabSaved:'Saved', tabMy:'My Space',
     certBtn:'📸 I\'ve been here · Add photo', save:'Save', nav:'Directions',
     thisCert:'📸 Visits here', noCertHere:'No visits yet.<br>Be the first to check in!',
     expandHint:'Swipe up to see visits here',
@@ -1301,6 +1302,9 @@ window.toggleSavePlace = function() {
   };
   const nowSaved = toggleLocalPlace(item);
   updateSaveBtnUI(nowSaved);
+  // 내 공간 탭이 열려있고 가고싶어요 서브탭이면 즉시 반영
+  const myView = document.getElementById('myView');
+  if (myView && myView.style.display !== 'none' && _mySubTab === 'wish' && window.renderMyPage) renderMyPage();
 };
 function updateSaveBtnUI(saved) {
   const btn = document.getElementById('saveBtn');
@@ -1375,6 +1379,8 @@ window.navFromList = function(name, lat, lng) {
 };
 
 // 내정보 페이지 (프로필 + 통계 + 내 인증 그리드)
+window.setMySubTab = function(tab) { _mySubTab = tab; renderMyPage(); };
+
 window.renderMyPage = async function() {
   const prof = document.getElementById('myProfile');
   const body = document.getElementById('myBody');
@@ -1382,7 +1388,8 @@ window.renderMyPage = async function() {
   const cu = window.currentUser;
   if (!cu) {
     prof.innerHTML = '<div style="flex:1;text-align:center"><div style="font-size:14px;color:var(--text3);margin-bottom:12px">' + t('loginToSee') + '</div><button onclick="loginWithGoogle()" style="padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">' + t('login') + '</button></div>';
-    body.innerHTML = '';
+    // 비로그인도 가고싶어요(localStorage)는 볼 수 있게
+    body.innerHTML = renderMySubTabs(0, getLocalPlaces().length) + renderMySubContent([]);
     return;
   }
   const avatar = cu.photoURL
@@ -1400,11 +1407,10 @@ window.renderMyPage = async function() {
     const certs = [];
     snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
     certs.sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0));
-    if (!certs.length) {
-      body.innerHTML = renderHeartProgress(0) +
-        '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>' + t('noMyCert') + '<div style="font-size:12px;margin-top:8px">' + t('noMyCertSub') + '</div></div>';
-      return;
-    }
+    window._myCerts = {};
+    certs.forEach(c => { window._myCerts[c.id] = c; });
+
+    // 통계 + 하트 (항상 표시)
     const uniqueTitles = new Set(certs.map(c => c.title).filter(Boolean));
     const uniquePlaces = new Set(certs.map(c => c.placeKey).filter(Boolean));
     const summary = '<div style="display:flex;gap:12px;padding:16px;border-bottom:1px solid var(--border)">' +
@@ -1413,17 +1419,64 @@ window.renderMyPage = async function() {
       '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniqueTitles.size + '</div><div style="font-size:11px;color:var(--text3)">' + t('statWork') + '</div></div></div>';
     const totalLikes = certs.reduce((sum, c) => sum + (typeof c.likeCount === 'number' ? c.likeCount : (Array.isArray(c.likedBy) ? c.likedBy.length : 0)), 0);
     const heartBlock = renderHeartProgress(totalLikes);
-    window._myCerts = {};
-    certs.forEach(c => { window._myCerts[c.id] = c; });
-    const grid = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px">' + certs.map(c => {
-      const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
-      const multi = photos.length > 1 ? '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 4px;border-radius:5px">📷' + photos.length + '</span>' : '';
-      return '<div style="position:relative;aspect-ratio:1;background:var(--bg2);overflow:hidden;cursor:pointer" onclick="viewCert(\'' + c.id + '\')"><img src="' + (photos[0]||'') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' + multi + '</div>';
-    }).join('') + '</div>';
-    body.innerHTML = summary + heartBlock + grid;
+
+    // 서브탭 + 선택된 내용
+    const tabs = renderMySubTabs(certs.length, getLocalPlaces().length);
+    const content = renderMySubContent(certs);
+    body.innerHTML = summary + heartBlock + tabs + content;
   } catch(e) {
     body.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:13px;color:var(--text3)">불러오기 실패<br><small style="opacity:0.6">' + (e.message||'') + '</small></div>';
   }
+};
+
+// 서브탭 바 (다녀왔어요 / 가고싶어요)
+function renderMySubTabs(visitedN, wishN) {
+  const en = isEn();
+  const tab = (key, label, n) => {
+    const on = _mySubTab === key;
+    return '<button onclick="setMySubTab(\'' + key + '\')" style="flex:1;padding:12px 0;background:none;border:none;border-bottom:2.5px solid ' + (on ? 'var(--gold)' : 'transparent') + ';font-size:13px;font-weight:800;color:' + (on ? 'var(--gold)' : 'var(--text3)') + ';cursor:pointer">' + label + ' ' + n + '</button>';
+  };
+  return '<div style="display:flex;border-bottom:1px solid var(--border)">' +
+    tab('visited', en ? '📸 Visited' : '📸 다녀왔어요', visitedN) +
+    tab('wish', en ? '🔖 Wishlist' : '🔖 가고싶어요', wishN) +
+    '</div>';
+}
+
+// 서브탭 내용 (다녀왔어요=인증 그리드 / 가고싶어요=저장 리스트)
+function renderMySubContent(certs) {
+  if (_mySubTab === 'wish') {
+    const places = getLocalPlaces();
+    if (!places.length) {
+      return '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">🔖</div>' + t('noSaved') + '<div style="font-size:12px;margin-top:8px">지도에서 장소 → 🔖 저장을 눌러보세요!</div></div>';
+    }
+    return '<div>' + places.map(p => {
+      const nm = (p.name||'').replace(/'/g,"\\'");
+      return '<div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border)">' +
+        '<div style="width:40px;height:40px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">' + (p.icon||'📍') + '</div>' +
+        '<div style="flex:1;min-width:0;cursor:pointer" onclick="goSavedPlace(' + (p.lat||0) + ',' + (p.lng||0) + ')">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (p.name||'') + '</div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + (p.sub||'') + '</div></div>' +
+        '<button onclick="unsaveFromMy(\'' + p.id + '\')" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0">✕</button>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  // 다녀왔어요 (인증 그리드)
+  if (!certs.length) {
+    return '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>' + t('noMyCert') + '<div style="font-size:12px;margin-top:8px">' + t('noMyCertSub') + '</div></div>';
+  }
+  return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px">' + certs.map(c => {
+    const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
+    const multi = photos.length > 1 ? '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 4px;border-radius:5px">📷' + photos.length + '</span>' : '';
+    return '<div style="position:relative;aspect-ratio:1;background:var(--bg2);overflow:hidden;cursor:pointer" onclick="viewCert(\'' + c.id + '\')"><img src="' + (photos[0]||'') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' + multi + '</div>';
+  }).join('') + '</div>';
+}
+
+// 내 공간에서 가고싶어요 삭제
+window.unsaveFromMy = function(id) {
+  let places = getLocalPlaces();
+  places = places.filter(p => p.id !== id);
+  setLocalPlaces(places);
+  renderMyPage();
 };
 
 // ── 하트 진행도: 고유 인증 장소 10곳당 하트 1개 완성 ──
