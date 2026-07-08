@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.9.3';
+const VERSION = 'map v0.9.4';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -860,14 +860,9 @@ function showSearchResults(items) {
 function hideSearchResults() { document.getElementById('searchResults').style.display = 'none'; }
 function esc(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-window.pickSearchResult = function(i) {
-  const it = window._searchItems[i];
-  if (!it) return;
+let _lastSearchPick = null;   // 마지막 검색 선택(토글 껐다 켤 때 복원용)
+function placeSearchPin(it) {
   const lat = parseFloat(it.y), lng = parseFloat(it.x);
-  hideSearchResults();
-  document.getElementById('searchInput').blur();
-  clearMarkers(_searchMarkers);
-  // 빨간 검색 핀
   const pos = new kakao.maps.LatLng(lat, lng);
   const el = makePinEl('#E24B4A', '📍', () => openPlaceSheet({
     name: it.place_name,
@@ -878,14 +873,26 @@ window.pickSearchResult = function(i) {
   const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 6 });
   ov.setMap(map);
   _searchMarkers.push(ov);
+  return pos;
+}
+
+window.pickSearchResult = function(i) {
+  const it = window._searchItems[i];
+  if (!it) return;
+  hideSearchResults();
+  document.getElementById('searchInput').blur();
+  clearMarkers(_searchMarkers);
+  _lastSearchPick = it;            // 복원용 저장
+  if (!_filters.search) {          // 검색 레이어가 꺼져 있으면 켜줌
+    _filters.search = true;
+    const chip = document.getElementById('chipSearch');
+    if (chip) chip.classList.remove('off');
+  }
+  const pos = placeSearchPin(it);
   map.setCenter(pos);
   map.setLevel(4);
-  openPlaceSheet({
-    name: it.place_name,
-    sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
-    lat, lng, color: 'var(--red)', type: 'search',
-    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
-  });
+  // 시트는 자동으로 안 띄움 — 핀만 표시, 사용자가 핀을 누르면 시트가 열림
+  showToast(isEn() ? 'Tap the pin to see details' : '핀을 누르면 상세정보가 열려요');
 };
 
 // ── 관광공사 사진 매칭 신뢰도 게이트 ──
@@ -1117,32 +1124,35 @@ function collapseSheet() {
   sheet.scrollTop = 0;
 }
 
-// 핸들바+상단바 전체: 탭하면 토글 + 위/아래 스와이프도 지원 (히트 영역을 상단바 전체로 넓힘)
+// 핸들바+상단바: 탭하면 펼침/접힘 토글, 위/아래 스와이프도 지원
 (function setupSheetDrag() {
   const handle = document.getElementById('sheetTopBar') || document.getElementById('sheetHandle');
-  if (!handle) { console.warn('[sheet] handle 없음'); return; }
-  console.log('[sheet] 드래그 셋업 완료');
-  let startY = 0, lastY = 0, active = false;
-  const start = (y) => { startY = y; lastY = y; active = true; };
-  const move = (y) => { if (active) lastY = y; };
+  if (!handle) return;
+  let startY = 0, lastY = 0, active = false, moved = false;
+  const start = (y) => { startY = y; lastY = y; active = true; moved = false; };
+  const move = (y) => { if (active) { lastY = y; if (Math.abs(y - startY) > 8) moved = true; } };
   const end = (e) => {
     if (!active) return;
     active = false;
+    // ✕ 버튼은 닫기 전용 — 토글 안 함
+    if (e && e.target && e.target.closest && e.target.closest('.place-close')) return;
     const dy = lastY - startY;
     const sheet = document.getElementById('placeSheet');
     const isExpanded = sheet.dataset.expanded === '1';
-    // ✕ 버튼 클릭은 토글과 별개로 처리되게 둠
-    if (e && e.target && e.target.classList && e.target.classList.contains('place-close')) return;
-    if (dy < -25 && !isExpanded) toggleSheetExpand();       // 위로 → 펼침
-    else if (dy > 25 && isExpanded) toggleSheetExpand();    // 아래로 → 접힘
-    else if (Math.abs(dy) <= 25) toggleSheetExpand();       // 탭 → 토글
+    if (dy < -25 && !isExpanded) toggleSheetExpand();        // 위로 스와이프 → 펼침
+    else if (dy > 25 && isExpanded) toggleSheetExpand();     // 아래로 스와이프 → 접힘
+    else if (!moved) toggleSheetExpand();                    // 탭(거의 안 움직임) → 토글
   };
   handle.addEventListener('touchstart', e => start(e.touches[0].clientY), {passive:true});
   handle.addEventListener('touchmove', e => move(e.touches[0].clientY), {passive:true});
   handle.addEventListener('touchend', end);
-  handle.addEventListener('mousedown', e => { start(e.clientY); e.preventDefault(); });
-  window.addEventListener('mousemove', e => move(e.clientY));
-  window.addEventListener('mouseup', end);
+  // 데스크톱: 핸들 영역 클릭으로 토글
+  handle.addEventListener('click', e => {
+    if (e.target && e.target.closest && e.target.closest('.place-close')) return;
+    // 터치로 이미 처리된 경우 중복 방지: 터치 지원 기기면 click 무시
+    if ('ontouchstart' in window) return;
+    toggleSheetExpand();
+  });
 })();
 
 // ── 인증 (다음 단계에서 연결) ──
@@ -1972,7 +1982,14 @@ window.toggleFilter = function(type) {
   chip.classList.toggle('off', !_filters[type]);
   if (type === 'pilgrim') renderPilgrimPinsInView();
   if (type === 'rest') renderRestPinsInView();
-  if (type === 'search' && !_filters.search) clearMarkers(_searchMarkers);
+  if (type === 'search') {
+    if (!_filters.search) {
+      clearMarkers(_searchMarkers);      // 끄면 검색 핀 숨김
+    } else if (_lastSearchPick) {
+      clearMarkers(_searchMarkers);
+      placeSearchPin(_lastSearchPick);   // 다시 켜면 마지막 검색 핀 복원
+    }
+  }
 };
 
 // ── 하단 탭 (지도 외는 다음 단계) ──
