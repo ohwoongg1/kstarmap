@@ -126,7 +126,7 @@
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
-        <button onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px" title="저장"><span id="saveBtnIcon" style="font-size:18px">📑</span><span style="font-size:10px;font-weight:700">저장</span></button>
+        <button id="saveBtn" onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px" title="저장"><span id="saveBtnIcon" style="font-size:18px">🔖</span><span id="saveBtnLabel" style="font-size:10px;font-weight:700">저장</span></button>
         <button onclick="openNavigation()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px"><span style="font-size:18px">🧭</span><span id="navLabel" style="font-size:10px;font-weight:700">길찾기</span></button>
       </div>
       <div id="sheetExtra">
@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.8.2';
+const VERSION = 'map v0.9.2';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -1166,8 +1166,24 @@ window.toggleSavePlace = function() {
   updateSaveBtnUI(nowSaved);
 };
 function updateSaveBtnUI(saved) {
-  const btn = document.getElementById('saveBtnIcon');
-  if (btn) btn.textContent = saved ? '🔖' : '📑';
+  const btn = document.getElementById('saveBtn');
+  const icon = document.getElementById('saveBtnIcon');
+  const label = document.getElementById('saveBtnLabel');
+  if (icon) icon.textContent = '🔖';
+  if (label) label.textContent = saved ? (isEn() ? 'Saved' : '저장됨') : (isEn() ? 'Save' : '저장');
+  if (btn) {
+    if (saved) {
+      btn.style.background = 'var(--gold)';
+      btn.style.borderColor = 'var(--gold)';
+      btn.style.color = '#fff';
+      if (label) label.style.color = '#fff';
+    } else {
+      btn.style.background = 'var(--bg2)';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--text2)';
+      if (label) label.style.color = '';
+    }
+  }
 }
 function currentPlaceSaved() {
   if (!_selectedPlace) return false;
@@ -1180,7 +1196,7 @@ window.renderSavedList = function() {
   if (!body) return;
   const places = getLocalPlaces();
   if (!places.length) {
-    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">🔖</div>' + t('noSaved') + '<div style="font-size:12px;margin-top:8px">지도에서 장소 → 📑 저장 버튼을 눌러보세요!</div></div>';
+    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">🔖</div>' + t('noSaved') + '<div style="font-size:12px;margin-top:8px">지도에서 장소 → 🔖 저장 버튼을 눌러보세요!</div></div>';
     return;
   }
   body.innerHTML = places.map(p => {
@@ -1248,7 +1264,8 @@ window.renderMyPage = async function() {
     snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
     certs.sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0));
     if (!certs.length) {
-      body.innerHTML = '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>' + t('noMyCert') + '<div style="font-size:12px;margin-top:8px">' + t('noMyCertSub') + '</div></div>';
+      body.innerHTML = renderHeartProgress(0) +
+        '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>' + t('noMyCert') + '<div style="font-size:12px;margin-top:8px">' + t('noMyCertSub') + '</div></div>';
       return;
     }
     const uniqueTitles = new Set(certs.map(c => c.title).filter(Boolean));
@@ -1257,6 +1274,8 @@ window.renderMyPage = async function() {
       '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--gold)">' + certs.length + '</div><div style="font-size:11px;color:var(--text3)">' + t('statCert') + '</div></div>' +
       '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniquePlaces.size + '</div><div style="font-size:11px;color:var(--text3)">' + t('statPlace') + '</div></div>' +
       '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniqueTitles.size + '</div><div style="font-size:11px;color:var(--text3)">' + t('statWork') + '</div></div></div>';
+    const totalLikes = certs.reduce((sum, c) => sum + (typeof c.likeCount === 'number' ? c.likeCount : (Array.isArray(c.likedBy) ? c.likedBy.length : 0)), 0);
+    const heartBlock = renderHeartProgress(totalLikes);
     window._myCerts = {};
     certs.forEach(c => { window._myCerts[c.id] = c; });
     const grid = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px">' + certs.map(c => {
@@ -1264,11 +1283,59 @@ window.renderMyPage = async function() {
       const multi = photos.length > 1 ? '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 4px;border-radius:5px">📷' + photos.length + '</span>' : '';
       return '<div style="position:relative;aspect-ratio:1;background:var(--bg2);overflow:hidden;cursor:pointer" onclick="viewCert(\'' + c.id + '\')"><img src="' + (photos[0]||'') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' + multi + '</div>';
     }).join('') + '</div>';
-    body.innerHTML = summary + grid;
+    body.innerHTML = summary + heartBlock + grid;
   } catch(e) {
     body.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:13px;color:var(--text3)">불러오기 실패<br><small style="opacity:0.6">' + (e.message||'') + '</small></div>';
   }
 };
+
+// ── 하트 진행도: 고유 인증 장소 10곳당 하트 1개 완성 ──
+function renderHeartProgress(likeTotal) {
+  likeTotal = likeTotal || 0;
+  const PER_HEART = 10;                                 // 하트 하나 완성에 필요한 좋아요 수
+  const filled = Math.floor(likeTotal / PER_HEART);     // 완성된 하트 수
+  const inHeart = likeTotal % PER_HEART;                // 현재 하트 진행분
+  const pct = Math.round((inHeart / PER_HEART) * 100);  // 현재 하트 채움 %
+  const nextNeed = PER_HEART - inHeart;                 // 다음 하트까지 남은 좋아요 수
+
+  // 채워지는 하트 SVG (아래→위 clip)
+  const heartSvg = (fillPct) => {
+    const uid = 'hg' + Math.random().toString(36).slice(2,7);
+    const y = 100 - fillPct; // 위에서부터 비는 높이(%)
+    return '<svg viewBox="0 0 24 24" width="40" height="40" style="display:block">' +
+      '<defs><clipPath id="' + uid + '"><rect x="0" y="' + (y*0.24).toFixed(2) + '" width="24" height="24"/></clipPath></defs>' +
+      '<path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z" fill="none" stroke="#E9C6D3" stroke-width="1.5"/>' +
+      '<path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z" fill="#D4537E" clip-path="url(#' + uid + ')"/>' +
+      '</svg>';
+  };
+
+  // 완성된 하트들 + 현재 진행 중 하트
+  let hearts = '';
+  for (let i = 0; i < filled; i++) hearts += '<div title="완성">' + heartSvg(100) + '</div>';
+  hearts += '<div title="진행 중">' + heartSvg(inHeart === 0 && likeTotal > 0 ? 0 : pct) + '</div>';
+
+  const en = isEn();
+  const title = en ? '❤️ Hearts from fans' : '❤️ 받은 하트';
+  const big = en
+    ? ('<b style="color:#D4537E">' + likeTotal + '</b> likes · <b>' + filled + '</b> heart' + (filled!==1?'s':'') + ' complete')
+    : ('좋아요 <b style="color:#D4537E">' + likeTotal + '</b>개 · 하트 <b>' + filled + '</b>개 완성');
+  const sub = en
+    ? (nextNeed + ' more like' + (nextNeed>1?'s':'') + ' to next heart')
+    : ('다음 하트까지 ' + nextNeed + '개');
+
+  return '<div style="padding:16px;border-bottom:1px solid var(--border)">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
+      '<div style="font-size:13px;font-weight:800;color:var(--text)">' + title + '</div>' +
+      '<div style="font-size:11px;color:var(--text3)">' + sub + '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">' + big + '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + hearts + '</div>' +
+    // 현재 하트 진행 바
+    '<div style="margin-top:10px;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">' +
+      '<div style="height:100%;width:' + (inHeart===0&&likeTotal>0?0:pct) + '%;background:linear-gradient(90deg,#E9899F,#D4537E);border-radius:3px;transition:width .4s ease"></div>' +
+    '</div>' +
+  '</div>';
+}
 window.doLogout = function() {
   const { auth, signOut } = window._mapAuth;
   signOut(auth).then(() => { showToast('로그아웃 됐어요'); renderMyPage(); });
@@ -1550,6 +1617,39 @@ window.navGo = function(elOrEvent, primaryUrl, webFallback) {
 // ── 인증 피드 (index.html 검증 방식 이식) ──
 window._feedData = window._feedData || {};
 
+// 작성자(uid)별 총 하트(받은 좋아요 합) 캐시. 1번 방식: 표시용 즉석 합산.
+window._authorHearts = window._authorHearts || {};
+async function fetchAuthorHearts(uid) {
+  if (!uid) return 0;
+  if (window._authorHearts[uid] !== undefined) return window._authorHearts[uid];
+  try {
+    const { db, collection, getDocs, query, where } = window._mapDB;
+    const snap = await getDocs(query(collection(db, 'certifications'), where('uid', '==', uid)));
+    let total = 0;
+    snap.forEach(d => {
+      const c = d.data();
+      total += (typeof c.likeCount === 'number') ? c.likeCount : (Array.isArray(c.likedBy) ? c.likedBy.length : 0);
+    });
+    window._authorHearts[uid] = total;
+    return total;
+  } catch(e) {
+    window._authorHearts[uid] = 0;
+    return 0;
+  }
+}
+// 피드에 보이는 작성자들의 총 하트를 병렬 조회 후, 카드 뱃지를 채워넣음
+async function hydrateAuthorHearts(certs) {
+  const uids = [...new Set(certs.map(c => c.uid).filter(Boolean))];
+  await Promise.all(uids.map(fetchAuthorHearts));
+  uids.forEach(uid => {
+    const total = window._authorHearts[uid] || 0;
+    document.querySelectorAll('.author-hearts[data-uid="' + uid + '"]').forEach(el => {
+      el.textContent = '❤️ ' + total;
+      el.style.visibility = total > 0 ? 'visible' : 'hidden';
+    });
+  });
+}
+
 function timeAgo(ts) {
   if (!ts || !ts.toMillis) return '';
   const diff = Date.now() - ts.toMillis();
@@ -1601,7 +1701,8 @@ function feedCardHTML(c) {
   const deleteBtn = ownerBtns;
   return '<div class="feed-card" data-id="' + c.id + '" style="background:var(--bg);border-radius:14px;margin:10px 12px;overflow:hidden;border:1px solid var(--border)">' +
     '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px">' + avatar +
-      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + uname + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px">' + uname +
+        '<span class="author-hearts" data-uid="' + (c.uid||'') + '" style="visibility:hidden;font-size:11px;font-weight:700;color:#D4537E;background:rgba(212,83,126,0.1);padding:1px 7px;border-radius:9px;flex-shrink:0"></span></div>' +
       '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="goFeedPlace(' + (c.lat||0) + ',' + (c.lng||0) + ')">📍 ' + place + (work?' · '+work:'') + '</div></div>' +
       '<span style="background:' + typeColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0">' + typeLabel + '</span>' + deleteBtn + '</div>' +
     '<div class="feed-photo-wrap" ondblclick="dblLikeFeed(\'' + c.id + '\',this)" style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + arrows + '<div class="feed-big-heart" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease"><svg viewBox="0 0 24 24" width="96" height="96" fill="#D4537E" stroke="#fff" stroke-width="1.2" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg></div></div>' + dots +
@@ -1622,6 +1723,11 @@ window.toggleFeedLike = async function(certId) {
   if (wasLiked) { c.likedBy = likedBy.filter(u => u !== cu.uid); c.likeCount = Math.max(0, (c.likeCount||likedBy.length)-1); }
   else { c.likedBy = [...likedBy, cu.uid]; c.likeCount = (c.likeCount||likedBy.length)+1; }
   updateFeedHeartUI(certId);
+  // 작성자 총 하트 캐시 ±1 후 뱃지 갱신 (낙관적)
+  if (c.uid && window._authorHearts[c.uid] !== undefined) {
+    window._authorHearts[c.uid] = Math.max(0, window._authorHearts[c.uid] + (wasLiked ? -1 : 1));
+    updateAuthorHeartBadge(c.uid);
+  }
   try {
     await updateDoc(doc(db, 'certifications', certId), {
       likedBy: wasLiked ? arrayRemove(cu.uid) : arrayUnion(cu.uid),
@@ -1630,8 +1736,20 @@ window.toggleFeedLike = async function(certId) {
   } catch(e) {
     c.likedBy = likedBy; c.likeCount = (c.likeCount||likedBy.length);
     updateFeedHeartUI(certId); showToast('실패: ' + (e.message||e));
+    // 롤백
+    if (c.uid && window._authorHearts[c.uid] !== undefined) {
+      window._authorHearts[c.uid] = Math.max(0, window._authorHearts[c.uid] + (wasLiked ? 1 : -1));
+      updateAuthorHeartBadge(c.uid);
+    }
   }
 };
+function updateAuthorHeartBadge(uid) {
+  const total = window._authorHearts[uid] || 0;
+  document.querySelectorAll('.author-hearts[data-uid="' + uid + '"]').forEach(el => {
+    el.textContent = '❤️ ' + total;
+    el.style.visibility = total > 0 ? 'visible' : 'hidden';
+  });
+}
 
 window.dblLikeFeed = function(certId, wrap) {
   if (!window.currentUser) { toggleFeedLike(certId); return; }
@@ -1687,6 +1805,8 @@ async function renderPublicFeed(force) {
       }, {passive:true});
     });
     _feedLoaded = true;
+    // 작성자별 총 하트 뱃지 채우기 (비동기, 화면 그린 뒤)
+    hydrateAuthorHearts(certs);
   } catch(e) {
     body.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px">불러오기 실패<br><small style="opacity:0.6">' + (e.message||'') + '</small></div>';
   }
