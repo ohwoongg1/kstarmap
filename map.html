@@ -240,7 +240,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.3.2';
+const VERSION = 'map v1.3.3';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -400,8 +400,6 @@ function applyLangToUI() {
   // 시트 버튼
   const certLabel = document.querySelector('#placeSheet .cert-btn');
   if (certLabel) certLabel.textContent = t('certBtn');
-  const saveLabel = document.querySelector('#saveBtnIcon')?.nextElementSibling;
-  if (saveLabel) saveLabel.textContent = t('save');
   const navLabel = document.getElementById('navLabel');
   if (navLabel) navLabel.textContent = t('nav');
   // 언어 버튼은 🌐 고정 (구글 번역 시트 열기)
@@ -1381,8 +1379,8 @@ function updateSaveBtnUI(saved) {
   const btn = document.getElementById('saveBtn');
   const icon = document.getElementById('saveBtnIcon');
   const label = document.getElementById('saveBtnLabel');
-  if (icon) icon.textContent = '🔖';
-  if (label) label.textContent = saved ? (isEn() ? 'Saved' : '저장됨') : (isEn() ? 'Save' : '저장');
+  // 아이콘: 저장 시 채운 북마크, 아니면 빈 북마크 (텍스트는 안 건드림 → 구글 번역 유지)
+  if (icon) icon.textContent = saved ? '🔖' : '🔖';
   if (btn) {
     if (saved) {
       btn.style.background = 'var(--gold)';
