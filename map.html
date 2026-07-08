@@ -239,7 +239,7 @@ let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
-const VERSION = 'map v1.0.1';
+const VERSION = 'map v1.0.2';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -1131,8 +1131,10 @@ function toggleSheetExpand() {
     sheet.style.maxHeight = '';   // CSS 62vh 상한 복구
     sheet.dataset.expanded = '0';
   } else {
+    const mw = document.getElementById('mapWrap');
+    const wh = mw ? mw.clientHeight : window.innerHeight;
     sheet.style.maxHeight = 'none';   // 상한 해제 후 크게
-    sheet.style.height = Math.round(window.innerHeight * 0.72) + 'px';
+    sheet.style.height = Math.round(wh * 0.60) + 'px';
     sheet.dataset.expanded = '1';
     _sheetCertsLoaded = false;   // 펼치면 인증 그리드를 다시 그림(접힘 안내 → 썸네일)
     loadPlaceCerts();
@@ -1157,8 +1159,14 @@ function collapseSheet() {
 
   let startY = 0, lastY = 0, startH = 0, dragging = false, velocity = 0, moved = false;
   const MIN_H = 92;                                   // 접힘 최소 높이(px) — 핸들+장소명 보임
-  const maxH = () => Math.round(window.innerHeight * 0.85);   // 최대(크게)
-  const midH = () => Math.round(window.innerHeight * 0.72);   // 펼침(중간~크게)
+  // 시트는 mapWrap(지도 영역) 안에 있으므로, 그 높이를 넘으면 위로 삐져나가 상단바를 가림.
+  // 따라서 최대 높이를 mapWrap 높이 기준으로 계산 → ✕·핸들이 절대 안 잘림.
+  const wrapH = () => {
+    const mw = document.getElementById('mapWrap');
+    return mw ? mw.clientHeight : window.innerHeight;
+  };
+  const maxH = () => Math.round(wrapH() * 0.92);      // 최대(크게) — mapWrap 안에서만
+  const midH = () => Math.round(wrapH() * 0.60);      // 펼침(중간)
 
   function snapTo(h, expanded) {
     sheet.style.transition = 'height .3s cubic-bezier(.25,.46,.45,.94)';
