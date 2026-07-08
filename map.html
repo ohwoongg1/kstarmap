@@ -240,10 +240,10 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.3.1';
+const VERSION = 'map v1.3.2';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
-let LANG = localStorage.getItem('starspoon_lang') || 'ko';
+let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
 const I18N = {
   ko: {
     searchPlace: '장소·주소 검색 (예: 중앙고등학교)',
