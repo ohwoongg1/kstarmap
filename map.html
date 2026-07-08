@@ -48,7 +48,7 @@
   .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
 
   /* 장소 시트 */
-  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #placeSheet.show{transform:translateY(0)}
   #sheetExtra{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
   #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:12;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.8.0';
+const VERSION = 'map v0.8.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -1853,6 +1853,24 @@ window.switchTabTo = function(view) {
   showView(view);
 };
 window.switchTab = function(tab) {
+  // 지도 탭을 누를 때: 열린 시트 닫고 검색 핀 정리 + 검색 전 지도로 복귀
+  if (tab === 'map') {
+    const wasMap = _currentView === 'map';
+    if (window.closePlaceSheet) closePlaceSheet();
+    hideSearchResults();
+    // 검색어가 남아있으면 지우고 검색 전 위치로 복귀
+    const si = document.getElementById('searchInput');
+    if (si && si.value) {
+      si.value = '';
+      document.getElementById('searchClear').style.display = 'none';
+    }
+    clearMarkers(_searchMarkers);
+    restorePreSearchView();
+    switchTabTo('map');
+    // 이미 지도에 있었으면 relayout 한 번 더 (먹통 방지)
+    if (wasMap && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 40);
+    return;
+  }
   switchTabTo(tab);
 };
 
