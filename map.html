@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.7.0';
+const VERSION = 'map v0.7.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -695,17 +695,35 @@ function finishHallyuFilter(label) {
   _filters.pilgrim = true;
   document.getElementById('chipPilgrim')?.classList.remove('off');
   renderActiveFilterChip();
-  // 필터 통과 성지 중 내 주변 우선
   const list = _pilgrimData.filter(d => d.lat && d.lng && passHallyuFilter(d));
   if (!list.length) { showToast('해당 성지가 없어요'); return; }
-  const dist = (d) => { const a=(d.lat-myLat)*111, b=(d.lng-myLng)*88; return Math.sqrt(a*a+b*b); };
-  const sorted = [...list].sort((x,y) => dist(x)-dist(y));
+
+  // 현재 지도 중심 기준 (명동 검색해서 보고 있으면 명동 유지)
+  let cLat, cLng;
+  try { const c = map.getCenter(); cLat = c.getLat(); cLng = c.getLng(); }
+  catch(e) { cLat = myLat; cLng = myLng; }
+  const dist = (d, la, ln) => { const a=(d.lat-la)*111, b=(d.lng-ln)*88; return Math.sqrt(a*a+b*b); };
+
+  // 지금 보고 있는 화면 안에 필터 성지가 있으면 → 지도 안 움직이고 필터만
+  let inView = [];
+  try {
+    const b = map.getBounds();
+    inView = list.filter(d => b.contain(new kakao.maps.LatLng(d.lat, d.lng)));
+  } catch(e) {}
+  if (inView.length) {
+    showToast(label + ' 성지 ' + inView.length + '곳 (이 지역)');
+    setTimeout(() => renderPilgrimPinsInView(), 100);
+    return;
+  }
+
+  // 화면에 없으면 → 현재 지도 중심에서 가장 가까운 성지로
+  const sorted = [...list].sort((x,y) => dist(x,cLat,cLng) - dist(y,cLat,cLng));
   const nearest = sorted[0];
-  if (dist(nearest) <= 30) {
-    const n = sorted.filter(d => dist(d) <= 30).length;
-    map.setCenter(new kakao.maps.LatLng(myLat, myLng));
+  if (dist(nearest,cLat,cLng) <= 30) {
+    const n = sorted.filter(d => dist(d,cLat,cLng) <= 30).length;
+    map.setCenter(new kakao.maps.LatLng(cLat, cLng));
     map.setLevel(n > 1 ? 6 : 5);
-    showToast('내 주변 ' + label + ' 성지 ' + n + '곳');
+    showToast('이 근처 ' + label + ' 성지 ' + n + '곳');
   } else {
     map.setCenter(new kakao.maps.LatLng(nearest.lat, nearest.lng));
     map.setLevel(6);
