@@ -51,7 +51,7 @@
   #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #placeSheet.show{transform:translateY(0)}
   #sheetExtra{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
-  #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:3;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
+  #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:5;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
   .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
   .place-head{display:flex;align-items:center;gap:11px}
   .place-pin{width:36px;height:36px;flex-shrink:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.6.8';
+const VERSION = 'map v0.7.0';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -880,7 +880,8 @@ function openPlaceSheet(place) {
       const dispTitle = (isEn() ? (raw.title_en || raw.title) : raw.title) || '';
       const addr = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
       if (raw.tourImage) {
-        html += '<div style="margin:-4px -16px 12px;position:relative"><img src="' + esc(raw.tourImage) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
+        const imgUrl = String(raw.tourImage).replace(/^http:\/\//, 'https://');
+        html += '<div style="margin:-4px -16px 12px;position:relative"><img src="' + esc(imgUrl) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
           '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span></div>';
       }
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
@@ -996,7 +997,8 @@ function toggleSheetExpand() {
     loadPlaceCerts();
   }
   sheet.scrollTop = 0;
-  console.log('[sheet] toggle → expanded:', !isExpanded);
+  setTimeout(() => { sheet.scrollTop = 0; }, 50);
+  setTimeout(() => { sheet.scrollTop = 0; }, 350);
 }
 function collapseSheet() {
   const sheet = document.getElementById('placeSheet');
