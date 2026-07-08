@@ -48,16 +48,17 @@
   .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
 
   /* 장소 시트 */
-  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:6px 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #placeSheet.show{transform:translateY(0)}
   #sheetExtra{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
+  #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:3;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
   .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
   .place-head{display:flex;align-items:center;gap:11px}
   .place-pin{width:36px;height:36px;flex-shrink:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
   .place-name{font-size:15px;font-weight:800;color:var(--text)}
   .place-sub{font-size:12px;color:var(--text3);margin-top:2px}
   .cert-btn{width:100%;margin-top:12px;padding:12px;background:var(--gold);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
-  .place-close{position:absolute;top:12px;right:14px;width:28px;height:28px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:15px;cursor:pointer}
+  .place-close{position:absolute;top:8px;right:14px;width:32px;height:32px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:15px;cursor:pointer;z-index:4}
 
   /* 검색 결과 리스트 */
   #searchResults{position:absolute;top:0;left:0;right:0;background:var(--bg);max-height:100%;overflow-y:auto;z-index:28;display:none}
@@ -110,10 +111,12 @@
     <div id="searchResults"></div>
 
     <div id="placeSheet">
-      <div id="sheetHandle" style="padding:8px 0 10px;cursor:grab;text-align:center;flex-shrink:0">
-        <div class="sheet-handle" style="margin:0 auto"></div>
+      <div id="sheetTopBar">
+        <div id="sheetHandle" style="padding:10px 0 14px;cursor:grab;text-align:center;flex-shrink:0">
+          <div class="sheet-handle" style="margin:0 auto"></div>
+        </div>
+        <button class="place-close" onclick="closePlaceSheet()">✕</button>
       </div>
-      <button class="place-close" onclick="closePlaceSheet()">✕</button>
       <div class="place-head">
         <div class="place-pin" id="sheetPin" style="background:var(--red)"></div>
         <div style="flex:1;min-width:0">
@@ -235,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.6.6';
+const VERSION = 'map v0.6.8';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -594,7 +597,7 @@ window.openHallyuSearch = function() {
   if (old) old.remove();
   const v = document.createElement('div');
   v.id = 'hallyuSearch';
-  v.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:99999;background:var(--bg);display:flex;flex-direction:column';
+  v.style.cssText = 'position:fixed;inset:0;z-index:9997;background:var(--bg);display:flex;flex-direction:column';
   v.innerHTML =
     '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--border)">' +
       '<button onclick="document.getElementById(\'hallyuSearch\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">‹</button>' +
@@ -608,11 +611,11 @@ window.openHallyuSearch = function() {
     '</div>';
   document.body.appendChild(v);
   const inp = document.getElementById('hallyuInput');
-  setTimeout(() => { try { inp.focus(); } catch(e) {} }, 100);
-  let t = null;
+  inp.focus();
+  let _hallyuTypingTimer = null;
   inp.addEventListener('input', () => {
-    clearTimeout(t);
-    t = setTimeout(() => doHallyuSearch(inp.value.trim()), 250);
+    clearTimeout(_hallyuTypingTimer);
+    _hallyuTypingTimer = setTimeout(() => doHallyuSearch(inp.value.trim()), 250);
   });
 };
 
@@ -692,42 +695,17 @@ function finishHallyuFilter(label) {
   _filters.pilgrim = true;
   document.getElementById('chipPilgrim')?.classList.remove('off');
   renderActiveFilterChip();
+  // 필터 통과 성지 중 내 주변 우선
   const list = _pilgrimData.filter(d => d.lat && d.lng && passHallyuFilter(d));
   if (!list.length) { showToast('해당 성지가 없어요'); return; }
-
-  // 현재 지도 중심 기준 (검색으로 명동에 있으면 명동 유지)
-  let cLat, cLng, hasCenter = false;
-  try {
-    const c = map.getCenter();
-    cLat = c.getLat(); cLng = c.getLng(); hasCenter = true;
-  } catch(e) {
-    cLat = myLat; cLng = myLng;   // 지도 준비 안 됐으면 내 위치
-  }
-  const dist = (d, la, ln) => { const a=(d.lat-la)*111, b=(d.lng-ln)*88; return Math.sqrt(a*a+b*b); };
-
-  // 현재 화면 안에 필터 성지가 있는지 먼저 확인
-  let inView = [];
-  try {
-    const b = map.getBounds();
-    inView = list.filter(d => b.contain(new kakao.maps.LatLng(d.lat, d.lng)));
-  } catch(e) {}
-
-  if (inView.length) {
-    // 지금 보고 있는 화면(명동)에 필터 성지가 있으면 → 지도 그대로 두고 필터만
-    showToast(label + ' 성지 ' + inView.length + '곳 (이 지역)');
-    setTimeout(() => renderPilgrimPinsInView(), 100);
-    return;
-  }
-
-  // 화면에 없으면 → 현재 중심에서 가장 가까운 성지로
-  const sorted = [...list].sort((x,y) => dist(x,cLat,cLng) - dist(y,cLat,cLng));
+  const dist = (d) => { const a=(d.lat-myLat)*111, b=(d.lng-myLng)*88; return Math.sqrt(a*a+b*b); };
+  const sorted = [...list].sort((x,y) => dist(x)-dist(y));
   const nearest = sorted[0];
-  const nd = dist(nearest, cLat, cLng);
-  if (nd <= 30) {
-    const n = sorted.filter(d => dist(d,cLat,cLng) <= 30).length;
-    map.setCenter(new kakao.maps.LatLng(cLat, cLng));
+  if (dist(nearest) <= 30) {
+    const n = sorted.filter(d => dist(d) <= 30).length;
+    map.setCenter(new kakao.maps.LatLng(myLat, myLng));
     map.setLevel(n > 1 ? 6 : 5);
-    showToast('이 근처 ' + label + ' 성지 ' + n + '곳');
+    showToast('내 주변 ' + label + ' 성지 ' + n + '곳');
   } else {
     map.setCenter(new kakao.maps.LatLng(nearest.lat, nearest.lng));
     map.setLevel(6);
@@ -901,7 +879,6 @@ function openPlaceSheet(place) {
       const story = (isEn() ? (raw.story_en || raw.story) : raw.story) || '';
       const dispTitle = (isEn() ? (raw.title_en || raw.title) : raw.title) || '';
       const addr = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
-      // 관광공사 대표사진 (있으면 상단에 크게)
       if (raw.tourImage) {
         html += '<div style="margin:-4px -16px 12px;position:relative"><img src="' + esc(raw.tourImage) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
           '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span></div>';
@@ -912,12 +889,10 @@ function openPlaceSheet(place) {
       if (actors) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🎭 ' + esc(actors) + '</div>';
       if (addr) html += '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">📍 ' + esc(addr) + '</div>';
       if (story) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--gold);border-radius:6px;padding:10px 12px">' + esc(story) + '</div>';
-      // 관광공사 소개글 (촬영 스토리와 별개)
       if (raw.tourOverview) {
         const ov = String(raw.tourOverview).replace(/<[^>]*>/g,'').slice(0, 300);
         html += '<div style="font-size:12px;color:var(--text3);line-height:1.6;margin-top:8px">ℹ️ ' + esc(ov) + (raw.tourOverview.length>300?'…':'') + '</div>';
       }
-      // 이용시간
       if (raw.tourUseTime) {
         html += '<div style="font-size:12px;color:var(--text3);margin-top:8px">🕐 ' + esc(String(raw.tourUseTime).replace(/<[^>]*>/g,'')) + '</div>';
       }
@@ -946,6 +921,7 @@ function openPlaceSheet(place) {
   sheet.style.height = 'auto';
   sheet.dataset.expanded = '0';
   sheet.classList.add('show');
+  sheet.scrollTop = 0;
 }
 let _sheetCertsLoaded = false;
 
@@ -1019,26 +995,32 @@ function toggleSheetExpand() {
     sheet.dataset.expanded = '1';
     loadPlaceCerts();
   }
+  sheet.scrollTop = 0;
+  console.log('[sheet] toggle → expanded:', !isExpanded);
 }
 function collapseSheet() {
   const sheet = document.getElementById('placeSheet');
   sheet.style.height = 'auto';
   sheet.dataset.expanded = '0';
+  sheet.scrollTop = 0;
 }
 
-// 핸들바: 탭하면 토글 + 위/아래 스와이프도 지원
+// 핸들바+상단바 전체: 탭하면 토글 + 위/아래 스와이프도 지원 (히트 영역을 상단바 전체로 넓힘)
 (function setupSheetDrag() {
-  const handle = document.getElementById('sheetHandle');
+  const handle = document.getElementById('sheetTopBar') || document.getElementById('sheetHandle');
   if (!handle) { console.warn('[sheet] handle 없음'); return; }
+  console.log('[sheet] 드래그 셋업 완료');
   let startY = 0, lastY = 0, active = false;
   const start = (y) => { startY = y; lastY = y; active = true; };
   const move = (y) => { if (active) lastY = y; };
-  const end = () => {
+  const end = (e) => {
     if (!active) return;
     active = false;
     const dy = lastY - startY;
     const sheet = document.getElementById('placeSheet');
     const isExpanded = sheet.dataset.expanded === '1';
+    // ✕ 버튼 클릭은 토글과 별개로 처리되게 둠
+    if (e && e.target && e.target.classList && e.target.classList.contains('place-close')) return;
     if (dy < -25 && !isExpanded) toggleSheetExpand();       // 위로 → 펼침
     else if (dy > 25 && isExpanded) toggleSheetExpand();    // 아래로 → 접힘
     else if (Math.abs(dy) <= 25) toggleSheetExpand();       // 탭 → 토글
@@ -1791,11 +1773,7 @@ function boot() {
 boot();
 applyLangToUI();
 console.log(VERSION);
-// 내정보 탭에 버전 표시
-(function showVersion() {
-  const el = document.getElementById('appVersion');
-  if (el) el.textContent = VERSION;
-})();
+(function showVersion(){ const el = document.getElementById('appVersion'); if (el) el.textContent = VERSION; })();
 </script>
 </body>
 </html>
