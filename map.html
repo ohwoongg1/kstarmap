@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.9.4';
+const VERSION = 'map v0.9.5';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -367,11 +367,11 @@ function initMap() {
     renderPilgrimPinsInView();
     renderRestPinsInView();
   });
-  // 지도 빈 곳 탭 → 시트 닫기
+  // 지도 빈 곳 탭 → 시트 닫기 (단, 핀을 방금 눌러 연 경우는 무시)
   kakao.maps.event.addListener(map, 'click', function() {
+    if (Date.now() - _lastPinTap < 400) return;   // 핀 탭 직후의 지도 click은 무시
     closePlaceSheet();
-    // 검색 핀 제거 (초기 상태로)
-    if (_searchMarkers.length) { clearMarkers(_searchMarkers); }
+    // 검색 핀은 유지 (지우지 않음) — 검색 결과를 계속 볼 수 있게
   });
 
   // 내 위치
@@ -456,15 +456,17 @@ async function loadAllData() {
 
 // ── 핀 렌더 (뷰포트 기반) ──
 // content를 실제 DOM 엘리먼트로 생성 → 클릭 리스너 직접 연결(안정적)
-function makePinEl(color, icon, handler, highlight) {
+let _lastPinTap = 0;
+function makePinEl(color, icon, handler, highlight, sizeOverride) {
   const el = document.createElement('div');
-  const size = highlight ? 36 : 26;
+  const size = sizeOverride || (highlight ? 36 : 26);
   el.style.cssText = 'position:relative;width:' + size + 'px;height:' + size + 'px;cursor:pointer;z-index:' + (highlight ? 10 : 3);
   const pinColor = highlight ? '#E5197B' : color;
   const ring = highlight ? 'box-shadow:0 0 0 3px rgba(229,25,123,0.3),0 2px 6px rgba(0,0,0,0.4);' : 'box-shadow:0 1px 3px rgba(0,0,0,0.3);';
   const border = highlight ? '3px solid #fff' : '2px solid #fff';
-  el.innerHTML = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50% 50% 50% 0;background:' + pinColor + ';transform:rotate(-45deg);border:' + border + ';' + ring + '"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:' + (highlight?16:12) + 'px;pointer-events:none">' + (highlight ? '⭐' : icon) + '</div>';
-  el.addEventListener('click', (e) => { e.stopPropagation(); handler(); });
+  const iconSize = Math.round(size * 0.46);
+  el.innerHTML = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50% 50% 50% 0;background:' + pinColor + ';transform:rotate(-45deg);border:' + border + ';' + ring + '"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:' + (highlight?16:iconSize) + 'px;pointer-events:none">' + (highlight ? '⭐' : icon) + '</div>';
+  el.addEventListener('click', (e) => { e.stopPropagation(); _lastPinTap = Date.now(); handler(); });
   return el;
 }
 
@@ -869,7 +871,7 @@ function placeSearchPin(it) {
     sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
     lat, lng, color: 'var(--red)', type: 'search',
     raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
-  }));
+  }), false, 42);
   const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 6 });
   ov.setMap(map);
   _searchMarkers.push(ov);
