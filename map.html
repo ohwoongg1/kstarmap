@@ -238,7 +238,7 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.9.2';
+const VERSION = 'map v0.9.3';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -956,8 +956,19 @@ function openPlaceSheet(place) {
       const story = (isEn() ? (raw.story_en || raw.story) : raw.story) || '';
       const dispTitle = (isEn() ? (raw.title_en || raw.title) : raw.title) || '';
       const addr = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
-      if (raw.tourImage && tourPhotoTrusted(raw)) {
-        const imgUrl = String(raw.tourImage).replace(/^http:\/\//, 'https://');
+      // 사진: tourImages(배열) 우선 → 여러 장 슬라이드, 없으면 tourImage(1장)
+      const tourImgs = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://')) : [];
+      if (tourImgs.length >= 2) {
+        const slides = tourImgs.map(u => '<img src="' + esc(u) + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;height:200px" loading="lazy">').join('');
+        const dots = tourImgs.map((_,i)=>'<span class="tdot" style="width:6px;height:6px;border-radius:50%;background:' + (i===0?'#fff':'rgba(255,255,255,0.5)') + ';transition:background .2s"></span>').join('');
+        html += '<div class="tour-gallery" style="margin:-4px -16px 12px;position:relative">' +
+            '<div class="tour-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' +
+            '<span class="tour-counter" style="position:absolute;top:8px;right:10px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 9px;border-radius:10px">1/' + tourImgs.length + '</span>' +
+            '<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px">' + dots + '</div>' +
+            '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span>' +
+          '</div>';
+      } else if (tourImgs.length === 1 || (raw.tourImage && tourPhotoTrusted(raw))) {
+        const imgUrl = tourImgs[0] || String(raw.tourImage).replace(/^http:\/\//, 'https://');
         html += '<div style="margin:-4px -16px 12px;position:relative"><img src="' + esc(imgUrl) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
           '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span></div>';
       }
@@ -1007,6 +1018,21 @@ function openPlaceSheet(place) {
   setTimeout(() => { sheet.scrollTop = 0; }, 250);
   const imgs = sheet.querySelectorAll('img');
   imgs.forEach(im => { if (!im.complete) im.addEventListener('load', () => { if (sheet.dataset.expanded === '0') sheet.scrollTop = 0; }, { once:true }); });
+  // 관광공사 사진 갤러리(여러 장) 슬라이드 시 카운터·점 갱신
+  const gal = sheet.querySelector('.tour-gallery');
+  if (gal) {
+    const track = gal.querySelector('.tour-track');
+    const counter = gal.querySelector('.tour-counter');
+    const dotsEls = gal.querySelectorAll('.tdot');
+    if (track && counter) {
+      track.addEventListener('scroll', () => {
+        const idx = Math.round(track.scrollLeft / track.clientWidth);
+        const n = track.children.length;
+        counter.textContent = (idx + 1) + '/' + n;
+        dotsEls.forEach((d, i) => { d.style.background = (i === idx ? '#fff' : 'rgba(255,255,255,0.5)'); });
+      }, { passive: true });
+    }
+  }
 }
 let _sheetCertsLoaded = false;
 
