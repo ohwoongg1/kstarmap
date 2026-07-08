@@ -240,7 +240,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.3.0';
+const VERSION = 'map v1.3.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = localStorage.getItem('starspoon_lang') || 'ko';
@@ -592,7 +592,7 @@ function renderPilgrimPinsInView() {
     // 필터/작품칩이 걸려있으면 그 핀을 강조
     const highlight = !!(_hallyuFilter || _contentFilter || _hallyuFocus);
     const el = makePinEl('#378ADD', icon, () => openPlaceSheet({
-      name: (isEn() ? (d.placeName || d.title_en || d.title) : (d.placeName || d.title)) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
+      name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
       lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
     }), highlight);
     const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: highlight ? 10 : 3 });
@@ -1033,11 +1033,11 @@ function openPlaceSheet(place) {
     if (place.type === 'pilgrim') {
       const badge = raw.mediaType === 'artist' ? (isEn()?'K-Star':'한류스타') : raw.mediaType === 'movie' ? (isEn()?'Movie':'영화') : (isEn()?'Drama':'드라마');
       const badgeColor = raw.mediaType === 'artist' ? '#B5790F' : raw.mediaType === 'movie' ? '#EF4444' : '#7C3AED';
-      const actorsSrc = (isEn() && raw.actors_en) ? raw.actors_en : raw.actors;
+      const actorsSrc = raw.actors;
       const actors = Array.isArray(actorsSrc) ? actorsSrc.join(', ') : (actorsSrc||'');
-      const story = (isEn() ? (raw.story_en || raw.story) : raw.story) || '';
-      const dispTitle = (isEn() ? (raw.title_en || raw.title) : raw.title) || '';
-      const addr = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
+      const story = raw.story || '';
+      const dispTitle = raw.title || '';
+      const addr = raw.addr || raw.address || raw.area || '';
       // 사진: tourImages(배열) 우선 → 여러 장 슬라이드, 없으면 tourImage(1장)
       const tourImgs = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://')) : [];
       if (tourImgs.length >= 2) {
@@ -1075,7 +1075,7 @@ function openPlaceSheet(place) {
       if (comment) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px">' + esc(comment) + '</div>';
     }
     // 주소·전화 공통 정보 (맛집=address/phone, 성지=addr/tel)
-    const addr2 = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
+    const addr2 = (raw.addr || raw.address) || raw.area || '';
     const phone = raw.phone || raw.tel || '';
     let contact = '';
     // 성지는 위에서 이미 주소 표시했으므로 공통에선 맛집/검색만 주소 추가
