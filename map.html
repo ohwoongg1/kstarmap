@@ -94,7 +94,7 @@
       <input id="searchInput" type="text" placeholder="장소·주소 검색 (예: 중앙고등학교)" autocomplete="off">
       <span id="searchClear" style="display:none;font-size:16px;color:var(--text3);cursor:pointer">✕</span>
     </div>
-    <button id="langToggle" onclick="openLangPicker()" style="flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">🌐</button>
+    <button id="langToggle" onclick="openMoreMenu()" style="flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;font-size:15px;font-weight:700;color:var(--text2);cursor:pointer">☰</button>
   </div>
 
   <div id="contentBar" style="display:flex;gap:6px;padding:6px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
@@ -240,7 +240,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.3.3';
+const VERSION = 'map v1.4.0';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -317,6 +317,151 @@ const LANG_LIST = [
   { code: 'id',    label: 'Indonesia', flag: '🇮🇩', google: 'id' },
 ];
 
+// ── 더보기(햄버거 ☰) 메뉴 — 사이트 확장용 ──
+window.openMoreMenu = function() {
+  const old = document.getElementById('moreSheet');
+  if (old) old.remove();
+  const item = (icon, label, onclick) =>
+    '<button onclick="' + onclick + '" style="display:flex;align-items:center;gap:14px;width:100%;padding:16px;background:none;border:none;border-bottom:0.5px solid var(--border);font-size:15px;color:var(--text);cursor:pointer;text-align:left">' +
+      '<span style="font-size:22px;width:26px;text-align:center">' + icon + '</span>' +
+      '<span style="flex:1;font-weight:600">' + label + '</span>' +
+      '<span style="color:var(--text3);font-size:18px">›</span>' +
+    '</button>';
+  const sheet = document.createElement('div');
+  sheet.id = 'moreSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'moreSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
+      '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
+      '<div style="font-size:16px;font-weight:800;color:var(--text);padding:4px 16px 10px">☰ 더보기</div>' +
+      item('📖', '사용 설명서', "location.href='guide.html'") +
+      item('📝', '자유게시판', "document.getElementById('moreSheet').remove();openBoard()") +
+      item('✉️', '개발자에게 의견', "document.getElementById('moreSheet').remove();openDevFeedback()") +
+      item('🌐', '언어 선택', "document.getElementById('moreSheet').remove();openLangPicker()") +
+      '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 성지 지도</div>' +
+    '</div>';
+  document.body.appendChild(sheet);
+};
+
+// ── 개발자에게 의견 (Firebase 저장) ──
+window.openDevFeedback = function() {
+  const old = document.getElementById('devSheet');
+  if (old) old.remove();
+  const sheet = document.createElement('div');
+  sheet.id = 'devSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'devSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:0 18px calc(20px + env(safe-area-inset-bottom))">' +
+      '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 8px"></div>' +
+      '<div style="font-size:16px;font-weight:800;padding:4px 0 4px">✉️ 개발자에게 의견</div>' +
+      '<div style="font-size:12.5px;color:var(--text3);margin-bottom:12px">버그·건의·성지 추가 요청 등 자유롭게 남겨주세요.</div>' +
+      '<textarea id="devMsg" placeholder="의견을 입력하세요..." style="width:100%;height:120px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+      '<input id="devContact" placeholder="답변받을 이메일 (선택)" style="width:100%;margin-top:8px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;background:var(--bg2);color:var(--text)">' +
+      '<button onclick="submitDevFeedback()" style="width:100%;margin-top:12px;padding:14px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">보내기</button>' +
+    '</div>';
+  document.body.appendChild(sheet);
+};
+window.submitDevFeedback = async function() {
+  const msg = document.getElementById('devMsg').value.trim();
+  const contact = document.getElementById('devContact').value.trim();
+  if (!msg) { showToast('의견을 입력해주세요'); return; }
+  try {
+    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
+    await addDoc(collection(db, 'feedback'), {
+      message: msg, contact: contact,
+      uid: window.currentUser?.uid || '', userName: window.currentUser?.displayName || '',
+      createdAt: serverTimestamp()
+    });
+    document.getElementById('devSheet').remove();
+    showToast('🙏 소중한 의견 감사합니다!');
+  } catch(e) { showToast('전송 실패: ' + (e.message||e)); }
+};
+
+// ── 자유게시판 (Firebase board 컬렉션) ──
+window.openBoard = async function() {
+  const old = document.getElementById('boardSheet');
+  if (old) old.remove();
+  const sheet = document.createElement('div');
+  sheet.id = 'boardSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column';
+  sheet.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
+      '<button onclick="document.getElementById(\'boardSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<div style="font-size:16px;font-weight:800;flex:1">📝 자유게시판</div>' +
+      '<button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
+    '</div>' +
+    '<div id="boardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
+  document.body.appendChild(sheet);
+  loadBoardList();
+};
+async function loadBoardList() {
+  const list = document.getElementById('boardList');
+  try {
+    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
+    const snap = await getDocs(query(collection(db, 'board'), orderBy('createdAt', 'desc'), limit(50)));
+    const posts = [];
+    snap.forEach(d => posts.push({ id: d.id, ...d.data() }));
+    if (!posts.length) {
+      list.innerHTML = '<div style="padding:60px 24px;text-align:center;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">📝</div>아직 글이 없어요.<br>첫 글을 남겨보세요!</div>';
+      return;
+    }
+    list.innerHTML = posts.map(p =>
+      '<div style="padding:15px 18px;border-bottom:1px solid var(--border)">' +
+        '<div style="font-size:15px;font-weight:700;margin-bottom:5px">' + escB(p.title||'') + '</div>' +
+        '<div style="font-size:13px;color:var(--text2);line-height:1.5;white-space:pre-wrap;margin-bottom:8px">' + escB(p.body||'') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3)">' + escB(p.userName||'익명') + ' · ' + timeAgoB(p.createdAt) + '</div>' +
+      '</div>'
+    ).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
+  }
+}
+window.openBoardWrite = function() {
+  if (!window.currentUser) { showToast('로그인이 필요해요'); if (window.loginWithGoogle) loginWithGoogle(); return; }
+  const old = document.getElementById('boardWrite');
+  if (old) old.remove();
+  const w = document.createElement('div');
+  w.id = 'boardWrite';
+  w.style.cssText = 'position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;flex-direction:column';
+  w.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
+      '<button onclick="document.getElementById(\'boardWrite\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<div style="font-size:16px;font-weight:800;flex:1">글쓰기</div>' +
+      '<button onclick="submitBoardPost()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">등록</button>' +
+    '</div>' +
+    '<div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:10px">' +
+      '<input id="boardTitle" placeholder="제목" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
+      '<textarea id="boardBody" placeholder="내용을 입력하세요..." style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+    '</div>';
+  document.body.appendChild(w);
+};
+window.submitBoardPost = async function() {
+  const title = document.getElementById('boardTitle').value.trim();
+  const body = document.getElementById('boardBody').value.trim();
+  if (!title || !body) { showToast('제목과 내용을 입력해주세요'); return; }
+  try {
+    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
+    await addDoc(collection(db, 'board'), {
+      title, body,
+      uid: window.currentUser.uid, userName: window.currentUser.displayName || '익명',
+      createdAt: serverTimestamp()
+    });
+    document.getElementById('boardWrite').remove();
+    showToast('✅ 글이 등록됐어요');
+    loadBoardList();
+  } catch(e) { showToast('등록 실패: ' + (e.message||e)); }
+};
+function escB(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function timeAgoB(ts){
+  if(!ts) return '방금';
+  const t = ts.toMillis ? ts.toMillis() : Date.parse(ts);
+  const diff = Date.now() - t;
+  const m = Math.floor(diff/60000), h = Math.floor(diff/3600000), d = Math.floor(diff/86400000);
+  if (d>0) return d+'일 전'; if (h>0) return h+'시간 전'; if (m>0) return m+'분 전'; return '방금';
+}
+
 window.openLangPicker = function() {
   const old = document.getElementById('langSheet');
   if (old) old.remove();
@@ -366,15 +511,30 @@ function clearGoogleTranslate() {
   setGoogTransCookie('');
 }
 function setGoogTransCookie(val) {
-  // googtrans 쿠키를 도메인 전체에 설정/삭제
+  // googtrans 쿠키를 도메인 전체에 설정/삭제 (1년 유지 → 나갔다 와도 언어 유지)
   const host = location.hostname;
-  const base = val ? ('googtrans=' + val) : 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  const expANY = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
+  const base = val
+    ? ('googtrans=' + val + ';expires=' + expANY)
+    : ('googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT');
   document.cookie = base + ';path=/';
   document.cookie = base + ';path=/;domain=' + host;
   document.cookie = base + ';path=/;domain=.' + host;
 }
 
-// 앱 UI는 항상 한국어 원문. 저장된 언어는 구글 번역 쿠키로 자동 적용됨(별도 복원 불필요).
+// 앱 UI는 항상 한국어 원문. 저장된 언어는 구글 번역 쿠키로 자동 적용됨.
+// 나갔다 와서 쿠키가 사라졌으면 localStorage 언어로 복원 → 새로고침해서 그 언어로 다시 뜸.
+(function restoreLangCookie() {
+  const saved = localStorage.getItem('kstar_display_lang');
+  if (!saved || saved === 'ko') return;
+  const l = LANG_LIST.find(x => x.code === saved);
+  if (!l || !l.google) return;
+  const hasCookie = document.cookie.indexOf('googtrans=') !== -1;
+  if (!hasCookie) {
+    setGoogTransCookie('/ko/' + l.google);
+    location.reload();   // 쿠키 복원 후 새로고침 → 저장한 언어로 표시
+  }
+})();
 function applyLangToUI() {
   document.documentElement.dataset.lang = LANG;
   const set = (id, key, attr) => {
@@ -419,6 +579,40 @@ function showToast(msg) {
   window._toastT = setTimeout(() => t.classList.remove('show'), 2800);
 }
 window.showToast = showToast;
+
+// ── 첫 방문 환영 팝업 (오늘 그만 보기) ──
+function showWelcomePopup() {
+  const skip = localStorage.getItem('kstar_welcome_skip');
+  const today = new Date().toISOString().slice(0,10);
+  if (skip === today) return;   // 오늘 그만 보기 누른 날이면 스킵
+  const old = document.getElementById('welcomePopup');
+  if (old) old.remove();
+  const pop = document.createElement('div');
+  pop.id = 'welcomePopup';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,0.45)';
+  pop.innerHTML =
+    '<div style="background:var(--bg);border-radius:20px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25)">' +
+      '<div style="padding:30px 24px 20px;text-align:center;background:linear-gradient(180deg,rgba(181,121,15,0.1),transparent)">' +
+        '<div style="font-size:44px">⭐</div>' +
+        '<div style="font-size:19px;font-weight:800;margin:10px 0 6px">KStarMap에 오신 걸 환영해요</div>' +
+        '<div style="font-size:13.5px;color:var(--text2);line-height:1.6">좋아하는 드라마·배우가 다녀간<br>실제 성지를 지도에서 찾아보세요.</div>' +
+      '</div>' +
+      '<div style="padding:0 20px 20px">' +
+        '<button onclick="location.href=\'guide.html\'" style="width:100%;padding:14px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:9px">📖 사용 설명서 보기</button>' +
+        '<button onclick="closeWelcome()" style="width:100%;padding:13px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">바로 시작하기</button>' +
+        '<label style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:14px;font-size:13px;color:var(--text3);cursor:pointer">' +
+          '<input type="checkbox" id="welcomeSkipChk" style="width:16px;height:16px;accent-color:var(--gold)">오늘 그만 보기</label>' +
+      '</div>' +
+    '</div>';
+  pop.addEventListener('click', (e) => { if (e.target === pop) closeWelcome(); });
+  document.body.appendChild(pop);
+}
+window.closeWelcome = function() {
+  const chk = document.getElementById('welcomeSkipChk');
+  if (chk && chk.checked) localStorage.setItem('kstar_welcome_skip', new Date().toISOString().slice(0,10));
+  const p = document.getElementById('welcomePopup');
+  if (p) p.remove();
+};
 
 // ── 지도 초기화 ──
 function initMap() {
@@ -2297,6 +2491,8 @@ function boot() {
 }
 boot();
 applyLangToUI();
+// 첫 방문 환영 팝업 (지도 뜨고 잠깐 뒤)
+setTimeout(showWelcomePopup, 900);
 console.log(VERSION);
 (function showVersion(){ const el = document.getElementById('appVersion'); if (el) el.textContent = VERSION; })();
 </script>
