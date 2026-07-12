@@ -248,7 +248,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.5.0';
+const VERSION = 'map v1.5.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -1249,7 +1249,7 @@ function openPlaceSheet(place) {
             '<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px">' + dots + '</div>' +
             '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span>' +
           '</div>';
-      } else if (tourImgs.length === 1 || (raw.tourImage && tourPhotoTrusted(raw))) {
+      } else if (tourImgs.length === 1 || (raw.tourImage && tourPhotoTrusted(raw) && !(raw.hiddenImages||[]).includes(raw.tourImage))) {
         const imgUrl = tourImgs[0] || String(raw.tourImage).replace(/^http:\/\//, 'https://');
         html += '<div style="margin:-4px -16px 12px;position:relative"><img src="' + esc(imgUrl) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
           '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span></div>';
@@ -2509,20 +2509,29 @@ console.log(VERSION);
 const ADMIN_UIDS = ['cFssXopeh2aWJwghO9DaJXhsZx82'];
 window.isAdmin = () => !!window.currentUser && ADMIN_UIDS.includes(window.currentUser.uid);
 
+// 성지의 모든 사진 후보 (tourImages 배열 + tourImage 단수 통합)
+window.allTourImgs = (raw) => {
+  let all = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean) : [];
+  if (raw.tourImage && !all.includes(raw.tourImage)) all = [raw.tourImage, ...all];
+  return all;
+};
+
+// 일반 사용자에게 보일 사진 (숨김 제외 + 대표 우선)
 window.visibleTourImgs = (raw) => {
-  const all = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean) : [];
+  const all = window.allTourImgs(raw);
   const hidden = Array.isArray(raw.hiddenImages) ? raw.hiddenImages : [];
   const primary = raw.primaryImage || '';
-  let list = window.isAdmin() ? all : all.filter(u => !hidden.includes(u));
+  let list = all.filter(u => !hidden.includes(u));
   if (primary && list.includes(primary)) list = [primary, ...list.filter(u => u !== primary)];
   return list.map(u => String(u).replace(/^http:\/\//, 'https://'));
 };
 
 window.renderAdminPanel = (raw) => {
   if (!window.isAdmin() || !raw._id) return '';
-  const all = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean) : [];
+  const all = window.allTourImgs(raw);
   const hidden = Array.isArray(raw.hiddenImages) ? raw.hiddenImages : [];
   const primary = raw.primaryImage || '';
+  const tourTitle = raw.tourTitle || '';
   const esc = s => (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 
   const thumbs = all.map((u, i) => {
@@ -2540,7 +2549,8 @@ window.renderAdminPanel = (raw) => {
   }).join('');
 
   return '<div id="adminPanel" style="margin-top:14px;padding:12px;background:rgba(181,121,15,0.08);border:1px dashed #B5790F;border-radius:8px">' +
-    '<div style="font-size:12px;font-weight:800;color:#B5790F;margin-bottom:8px">🔧 관리자 · 사진 관리 (' + all.length + '장, 숨김 ' + hidden.length + ')</div>' +
+    '<div style="font-size:12px;font-weight:800;color:#B5790F;margin-bottom:8px">🔧 관리자 · 사진 (' + all.length + '장, 숨김 ' + hidden.length + ')</div>' +
+    (tourTitle ? '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">🏷️ 관광공사 매칭: <b>' + esc(tourTitle) + '</b></div>' : '') +
     (all.length ? '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">' + thumbs + '</div>' : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">사진 없음</div>') +
     '<div style="margin-top:10px;display:flex;gap:6px">' +
       '<input id="adminImgUrl" type="text" placeholder="이미지 URL 붙여넣기" style="flex:1;padding:7px 9px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)">' +
@@ -2559,9 +2569,10 @@ async function adminRefresh(pid) {
     const idx = window._pilgrimData.findIndex(p => p._id === pid);
     if (idx >= 0) window._pilgrimData[idx] = fresh;
   }
-  if (window._selectedPlaceRef) window._selectedPlaceRef.raw = fresh;
-  const panel = document.getElementById('adminPanel');
-  if (panel) panel.outerHTML = window.renderAdminPanel(fresh);
+  if (window._selectedPlaceRef) {
+    window._selectedPlaceRef.raw = fresh;
+    openPlaceSheet(window._selectedPlaceRef);
+  }
 }
 
 window.adminToggleHide = async (pid, idx) => {
@@ -2569,7 +2580,7 @@ window.adminToggleHide = async (pid, idx) => {
   const { db, doc, getDoc, updateDoc, arrayUnion, arrayRemove } = window._mapDB;
   const snap = await getDoc(doc(db, 'pilgrimages', pid));
   const raw = snap.data() || {};
-  const url = (raw.tourImages || [])[idx];
+  const url = window.allTourImgs(raw)[idx];
   if (!url) return;
   const isHidden = (raw.hiddenImages || []).includes(url);
   await updateDoc(doc(db, 'pilgrimages', pid), {
@@ -2584,7 +2595,7 @@ window.adminSetPrimary = async (pid, idx) => {
   const { db, doc, getDoc, updateDoc } = window._mapDB;
   const snap = await getDoc(doc(db, 'pilgrimages', pid));
   const raw = snap.data() || {};
-  const url = (raw.tourImages || [])[idx];
+  const url = window.allTourImgs(raw)[idx];
   if (!url) return;
   const same = raw.primaryImage === url;
   await updateDoc(doc(db, 'pilgrimages', pid), { primaryImage: same ? '' : url });
