@@ -1239,7 +1239,7 @@ function openPlaceSheet(place) {
       const dispTitle = raw.title || '';
       const addr = raw.addr || raw.address || raw.area || '';
       // 사진: tourImages(배열) 우선 → 여러 장 슬라이드, 없으면 tourImage(1장)
-      const tourImgs = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://')) : [];
+     const tourImgs = window.visibleTourImgs ? window.visibleTourImgs(raw) : (Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://')) : []);
       if (tourImgs.length >= 2) {
         const slides = tourImgs.map(u => '<img src="' + esc(u) + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;height:200px" loading="lazy">').join('');
         const dots = tourImgs.map((_,i)=>'<span class="tdot" style="width:6px;height:6px;border-radius:50%;background:' + (i===0?'#fff':'rgba(255,255,255,0.5)') + ';transition:background .2s"></span>').join('');
@@ -1282,6 +1282,8 @@ function openPlaceSheet(place) {
     if (place.type !== 'pilgrim' && addr2) contact += '<div style="font-size:12px;color:var(--text3);margin-bottom:6px">📍 ' + esc(addr2) + '</div>';
     if (phone) contact += '<div style="font-size:12px;margin-bottom:6px">📞 <a href="tel:' + esc(String(phone).replace(/[^0-9+]/g,'')) + '" style="color:#185FA5;text-decoration:none">' + esc(phone) + '</a></div>';
     if (contact) html += '<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">' + contact + '</div>';
+    if (place.type === 'pilgrim' && window.renderAdminPanel) html += window.renderAdminPanel(place.raw || {});
+    window._selectedPlaceRef = place;
     info.innerHTML = html;
   }
   // 인증 영역 초기화 후, 있으면 바로 로드 (접힌 상태에서도 인증 썸네일이 보이도록)
@@ -2503,6 +2505,120 @@ applyLangToUI();
 setTimeout(showWelcomePopup, 900);
 console.log(VERSION);
 (function showVersion(){ const el = document.getElementById('appVersion'); if (el) el.textContent = VERSION; })();
+/* ═══════════════ 관리자: 성지 사진 편집 ═══════════════ */
+const ADMIN_UIDS = ['cFssXopeh2aWJwgh09DaJXhsZx82'];
+window.isAdmin = () => !!window.currentUser && ADMIN_UIDS.includes(window.currentUser.uid);
+
+window.visibleTourImgs = (raw) => {
+  const all = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean) : [];
+  const hidden = Array.isArray(raw.hiddenImages) ? raw.hiddenImages : [];
+  const primary = raw.primaryImage || '';
+  let list = window.isAdmin() ? all : all.filter(u => !hidden.includes(u));
+  if (primary && list.includes(primary)) list = [primary, ...list.filter(u => u !== primary)];
+  return list.map(u => String(u).replace(/^http:\/\//, 'https://'));
+};
+
+window.renderAdminPanel = (raw) => {
+  if (!window.isAdmin() || !raw._id) return '';
+  const all = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean) : [];
+  const hidden = Array.isArray(raw.hiddenImages) ? raw.hiddenImages : [];
+  const primary = raw.primaryImage || '';
+  const esc = s => (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+  const thumbs = all.map((u, i) => {
+    const isHidden = hidden.includes(u);
+    const isPrimary = primary === u;
+    const safe = esc(String(u).replace(/^http:\/\//,'https://'));
+    return '<div style="position:relative;flex:0 0 84px">' +
+      '<img src="' + safe + '" style="width:84px;height:64px;object-fit:cover;border-radius:6px;opacity:' + (isHidden?'0.28':'1') + ';border:2px solid ' + (isPrimary?'#B5790F':'transparent') + '">' +
+      (isHidden ? '<span style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,.7);color:#fff;font-size:9px;padding:1px 4px;border-radius:3px">숨김</span>' : '') +
+      (isPrimary ? '<span style="position:absolute;top:2px;left:2px;background:#B5790F;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px">대표</span>' : '') +
+      '<div style="display:flex;gap:2px;margin-top:3px">' +
+        '<button onclick="adminToggleHide(\'' + raw._id + '\',' + i + ')" style="flex:1;padding:3px 0;font-size:10px;border:0;border-radius:4px;cursor:pointer;background:' + (isHidden?'#3B82F6':'#EF4444') + ';color:#fff">' + (isHidden?'복구':'숨김') + '</button>' +
+        '<button onclick="adminSetPrimary(\'' + raw._id + '\',' + i + ')" style="flex:1;padding:3px 0;font-size:10px;border:0;border-radius:4px;cursor:pointer;background:' + (isPrimary?'#9CA3AF':'#B5790F') + ';color:#fff">⭐</button>' +
+      '</div></div>';
+  }).join('');
+
+  return '<div id="adminPanel" style="margin-top:14px;padding:12px;background:rgba(181,121,15,0.08);border:1px dashed #B5790F;border-radius:8px">' +
+    '<div style="font-size:12px;font-weight:800;color:#B5790F;margin-bottom:8px">🔧 관리자 · 사진 관리 (' + all.length + '장, 숨김 ' + hidden.length + ')</div>' +
+    (all.length ? '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">' + thumbs + '</div>' : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">사진 없음</div>') +
+    '<div style="margin-top:10px;display:flex;gap:6px">' +
+      '<input id="adminImgUrl" type="text" placeholder="이미지 URL 붙여넣기" style="flex:1;padding:7px 9px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)">' +
+      '<button onclick="adminAddImage(\'' + raw._id + '\')" style="padding:7px 14px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#B5790F;color:#fff;cursor:pointer">추가</button>' +
+    '</div>' +
+    '<div style="margin-top:6px"><label style="font-size:11px;color:var(--text3);cursor:pointer">📁 파일 업로드 <input type="file" accept="image/*" multiple onchange="adminUploadImages(\'' + raw._id + '\', this.files)" style="font-size:11px"></label></div>' +
+  '</div>';
+};
+
+async function adminRefresh(pid) {
+  const { db, doc, getDoc } = window._mapDB;
+  const snap = await getDoc(doc(db, 'pilgrimages', pid));
+  if (!snap.exists()) return;
+  const fresh = { ...snap.data(), _id: pid };
+  if (window._pilgrimData) {
+    const idx = window._pilgrimData.findIndex(p => p._id === pid);
+    if (idx >= 0) window._pilgrimData[idx] = fresh;
+  }
+  if (window._selectedPlaceRef) window._selectedPlaceRef.raw = fresh;
+  const panel = document.getElementById('adminPanel');
+  if (panel) panel.outerHTML = window.renderAdminPanel(fresh);
+}
+
+window.adminToggleHide = async (pid, idx) => {
+  if (!window.isAdmin()) return;
+  const { db, doc, getDoc, updateDoc, arrayUnion, arrayRemove } = window._mapDB;
+  const snap = await getDoc(doc(db, 'pilgrimages', pid));
+  const raw = snap.data() || {};
+  const url = (raw.tourImages || [])[idx];
+  if (!url) return;
+  const isHidden = (raw.hiddenImages || []).includes(url);
+  await updateDoc(doc(db, 'pilgrimages', pid), {
+    hiddenImages: isHidden ? arrayRemove(url) : arrayUnion(url)
+  });
+  showToast(isHidden ? '✅ 복구했어요' : '🙈 숨겼어요');
+  await adminRefresh(pid);
+};
+
+window.adminSetPrimary = async (pid, idx) => {
+  if (!window.isAdmin()) return;
+  const { db, doc, getDoc, updateDoc } = window._mapDB;
+  const snap = await getDoc(doc(db, 'pilgrimages', pid));
+  const raw = snap.data() || {};
+  const url = (raw.tourImages || [])[idx];
+  if (!url) return;
+  const same = raw.primaryImage === url;
+  await updateDoc(doc(db, 'pilgrimages', pid), { primaryImage: same ? '' : url });
+  showToast(same ? '대표 해제' : '⭐ 대표로 지정');
+  await adminRefresh(pid);
+};
+
+window.adminAddImage = async (pid) => {
+  if (!window.isAdmin()) return;
+  const el = document.getElementById('adminImgUrl');
+  const url = (el?.value || '').trim();
+  if (!/^https?:\/\//.test(url)) { showToast('URL을 확인해주세요'); return; }
+  const { db, doc, updateDoc, arrayUnion } = window._mapDB;
+  await updateDoc(doc(db, 'pilgrimages', pid), { tourImages: arrayUnion(url) });
+  showToast('✅ 추가했어요');
+  await adminRefresh(pid);
+};
+
+window.adminUploadImages = async (pid, files) => {
+  if (!window.isAdmin() || !files?.length) return;
+  showToast('업로드 중...');
+  const { db, doc, updateDoc, arrayUnion } = window._mapDB;
+  const S = window._mapStorage;
+  if (!S) { showToast('Storage 미연결 (URL 추가만 가능)'); return; }
+  for (let i = 0; i < files.length; i++) {
+    const path = 'places/' + pid + '/' + Date.now() + '_' + i + '.jpg';
+    const r = S.ref(S.storage, path);
+    await S.uploadBytes(r, files[i]);
+    const url = await S.getDownloadURL(r);
+    await updateDoc(doc(db, 'pilgrimages', pid), { tourImages: arrayUnion(url) });
+  }
+  showToast('✅ ' + files.length + '장 업로드 완료');
+  await adminRefresh(pid);
+};
 </script>
 <!-- 구글 번역 위젯 (숨김 컨테이너 — 우리 언어 버튼으로 제어) -->
 <div id="google_translate_element" style="display:none"></div>
@@ -2523,5 +2639,6 @@ function googleTranslateElementInit() {
   #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
   .goog-text-highlight { background: none !important; box-shadow: none !important; }
 </style>
+
 </body>
 </html>
