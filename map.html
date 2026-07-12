@@ -2506,7 +2506,7 @@ setTimeout(showWelcomePopup, 900);
 console.log(VERSION);
 (function showVersion(){ const el = document.getElementById('appVersion'); if (el) el.textContent = VERSION; })();
 /* ═══════════════ 관리자: 성지 사진 편집 ═══════════════ */
-const ADMIN_UIDS = ['cFssXopeh2aWJwgh09DaJXhsZx82'];
+const ADMIN_UIDS = ['cFssXopeh2aWJwghO9DaJXhsZx82'];
 window.isAdmin = () => !!window.currentUser && ADMIN_UIDS.includes(window.currentUser.uid);
 
 window.visibleTourImgs = (raw) => {
