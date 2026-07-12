@@ -248,7 +248,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.5.1';
+const VERSION = 'map v1.6.0';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -1135,16 +1135,47 @@ function showSearchResults(items) {
 function hideSearchResults() { document.getElementById('searchResults').style.display = 'none'; }
 function esc(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+// ── 검색 결과 ↔ 성지 연결 (100m 이내 + 이름 일치) ──
+const SEARCH_LINK_RADIUS = 100;   // m
+function findPilgrimNear(name, lat, lng) {
+  if (!_pilgrimData || !_pilgrimData.length) return null;
+  const n = String(name || '').replace(/\s+/g, '').toLowerCase();
+  if (!n) return null;
+  let best = null, bestD = Infinity;
+  for (const d of _pilgrimData) {
+    if (!d.lat || !d.lng) continue;
+    const dm = haversineM(lat, lng, d.lat, d.lng);
+    if (dm > SEARCH_LINK_RADIUS) continue;
+    const p = String(d.placeName || d.name || '').replace(/\s+/g, '').toLowerCase();
+    if (!p) continue;
+    // 이름 일치: 완전 포함 관계만 허용
+    if (!(p === n || p.includes(n) || n.includes(p))) continue;
+    if (dm < bestD) { best = d; bestD = dm; }
+  }
+  return best;
+}
+
 let _lastSearchPick = null;   // 마지막 검색 선택(토글 껐다 켤 때 복원용)
 function placeSearchPin(it) {
   const lat = parseFloat(it.y), lng = parseFloat(it.x);
   const pos = new kakao.maps.LatLng(lat, lng);
-  const el = makePinEl('#E24B4A', '📍', () => openPlaceSheet({
-    name: it.place_name,
-    sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
-    lat, lng, color: 'var(--red)', type: 'search',
-    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
-  }), false, 42);
+  const el = makePinEl('#E24B4A', '📍', () => {
+    // 같은 장소의 성지가 있으면 성지 시트로 (사진·스토리·인증 표시)
+    const pg = findPilgrimNear(it.place_name, lat, lng);
+    if (pg) {
+      openPlaceSheet({
+        name: pg.placeName || pg.name, sub: pg.title || '',
+        lat: pg.lat, lng: pg.lng, color: 'var(--blue)', type: 'pilgrim', raw: pg
+      });
+      return;
+    }
+    openPlaceSheet({
+      name: it.place_name,
+      sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
+      lat, lng, color: 'var(--red)', type: 'search',
+      raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
+    });
+  }, false, 42);
   const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 6 });
   ov.setMap(map);
   _searchMarkers.push(ov);
