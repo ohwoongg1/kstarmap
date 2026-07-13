@@ -267,7 +267,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.7.5';
+const VERSION = 'map v1.7.6';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -2851,37 +2851,43 @@ window.courseRoute = function(cid, idx) {
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isMobile) {
-    // 모바일: 카카오맵 앱 스킴 (by = CAR | PUBLICTRANSIT | FOOT | BICYCLE)
+    // 모바일: 카카오맵 앱 딥링크
+    // by = CAR | PUBLICTRANSIT | FOOT | BICYCLE
     const by = walk ? 'FOOT' : 'PUBLICTRANSIT';
-    const scheme = 'kakaomap://route' +
-      '?sp=' + a.lat + ',' + a.lng +
-      '&ep=' + b.lat + ',' + b.lng +
-      '&by=' + by;
+    const q  = 'sp=' + a.lat + ',' + a.lng +
+               '&ep=' + b.lat + ',' + b.lng +
+               '&by=' + by;
 
-    // 앱이 없을 때 폴백: 카카오맵 모바일 웹 길찾기
+    // 앱 없을 때 폴백: 카카오맵 모바일 웹
     const mode = walk ? 'walk' : 'traffic';
     const web  = 'https://map.kakao.com/link/by/' + mode + '/' +
       enc(a.name) + ',' + a.lat + ',' + a.lng + '/' +
       enc(b.name) + ',' + b.lat + ',' + b.lng;
 
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    if (isAndroid) {
+      // Android: intent:// 로 호출해야 파라미터가 앱에 전달됨
+      // (iframe + kakaomap:// 은 최신 Chrome이 차단 → 앱만 열리고 파라미터 유실)
+      location.href =
+        'intent://route?' + q +
+        '#Intent;scheme=kakaomap;package=net.daum.android.map;' +
+        'S.browser_fallback_url=' + encodeURIComponent(web) + ';end';
+      return;
+    }
+
+    // iOS: 커스텀 스킴 직접 호출 (iframe 금지 — 파라미터 유실)
     let left = false;
     const bye = () => { left = true; };
     window.addEventListener('pagehide', bye, { once: true });
-    window.addEventListener('blur', bye, { once: true });
+    document.addEventListener('visibilitychange', bye, { once: true });
 
-    // 앱 실행 시도 (숨김 iframe → 팝업 차단 회피)
-    const f = document.createElement('iframe');
-    f.style.display = 'none';
-    f.src = scheme;
-    document.body.appendChild(f);
-    setTimeout(() => { try { f.remove(); } catch (e) {} }, 1200);
+    location.href = 'kakaomap://route?' + q;
 
-    // 1.2초 후에도 페이지에 남아 있으면 앱이 없는 것 → 웹으로
+    // 앱이 안 열리면 웹으로 폴백
     setTimeout(() => {
-      window.removeEventListener('pagehide', bye);
-      window.removeEventListener('blur', bye);
       if (!left && !document.hidden) location.href = web;
-    }, 1200);
+    }, 1500);
     return;
   }
 
