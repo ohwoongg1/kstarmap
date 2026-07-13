@@ -86,16 +86,27 @@
     .cs-card.cs-open .cs-cover{height:290px !important}
     .cs-card.cs-open .cs-cover .cs-name{font-size:27px !important}
 
-    /* 펼친 타임라인: 2열 그리드
-       ※ column-count는 스텝 연결선(flex:1)이 열 높이만큼 늘어나므로 사용 불가 */
+    /* 펼친 타임라인: 2열 그리드 — 세로로 먼저 채움 (1,2,3 / 4,5)
+       코스는 순서대로 걷는 것이므로 좌열을 다 읽고 우열로 넘어가야 흐름이 맞음.
+       ※ column-count는 스텝 연결선(flex:1)이 열 높이만큼 늘어나므로 사용 불가
+       ※ --cs-rows 는 renderCourseList에서 stop 수에 따라 주입 */
     .cs-card.cs-open .cs-timeline{
       display:grid;
       grid-template-columns:1fr 1fr;
+      grid-template-rows:repeat(var(--cs-rows,1), auto);
+      grid-auto-flow:column;
       gap:4px 34px;
       align-items:start;
       padding:22px 26px 18px !important;
     }
-    .cs-card.cs-open .cs-note{grid-column:1 / -1}
+    /* 안내문은 흐름에서 빼고 항상 마지막 줄 전체 */
+    .cs-card.cs-open .cs-note{
+      grid-row:calc(var(--cs-rows,1) + 1);
+      grid-column:1 / -1;
+    }
+    /* 좌열 맨 아래 스톱: 아래로 이어질 것이 없으므로 연결선 숨김
+       (모바일은 1열이라 실제로 아래로 이어지므로 선을 그대로 둠) */
+    .cs-card.cs-open .cs-stop.cs-colend .cs-line{display:none}
 
     .cs-card button{transition:filter .15s,background .15s}
     .cs-card button:hover{filter:brightness(.93)}
@@ -321,7 +332,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.7.9';
+const VERSION = 'map v1.8.0';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -2790,20 +2801,25 @@ function courseCardHTML(c) {
 
   // ── 타임라인 (펼침) ──
   if (open && Array.isArray(c.stops)) {
-    h += '<div class="cs-timeline" style="border-top:1px solid var(--border);background:var(--bg2);padding:16px 14px 14px">';
+    // 데스크톱 2열 세로 채우기용 행 수 (1,2,3 / 4,5 순서가 되도록)
+    // 모바일에서는 CSS가 grid를 쓰지 않으므로 이 변수는 무시됨
+    const rows = Math.ceil(c.stops.length / 2);
+    h += '<div class="cs-timeline" style="--cs-rows:' + rows + ';border-top:1px solid var(--border);background:var(--bg2);padding:16px 14px 14px">';
 
     c.stops.forEach((s, i) => {
       const ph   = (s.photo || '').replace(/^http:\/\//, 'https://');
       const last = i === c.stops.length - 1;
+      // 데스크톱 2열에서 좌열 맨 아래에 오는 스톱 → 아래로 이어질 대상이 없으므로 연결선 숨김
+      const colEnd = (i === rows - 1);
 
-      h += '<div class="cs-stop" style="display:flex;gap:12px">';
+      h += '<div class="cs-stop' + (colEnd ? ' cs-colend' : '') + '" style="display:flex;gap:12px">';
 
       // 좌측 스텝 라인
       h += '<div style="flex:0 0 26px;display:flex;flex-direction:column;align-items:center">' +
         '<div style="width:26px;height:26px;border-radius:50%;background:' + accent +
           ';color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 26px">' +
           (i + 1) + '</div>' +
-        (!last ? '<div style="width:2px;flex:1;background:linear-gradient(180deg,' + accent + '33,var(--border));min-height:52px"></div>' : '') +
+        (!last ? '<div class="cs-line" style="width:2px;flex:1;background:linear-gradient(180deg,' + accent + '33,var(--border));min-height:52px"></div>' : '') +
         '</div>';
 
       // 우측 내용
