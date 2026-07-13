@@ -267,7 +267,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.7.4';
+const VERSION = 'map v1.7.5';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -2845,18 +2845,51 @@ window.courseRoute = function(cid, idx) {
   const a = c.stops[idx], b = c.stops[idx + 1];
   if (!a || !b) return;
 
-  // 카카오 공식 길찾기 URL
-  //   /link/by/{이동수단}/이름,위도,경도/이름,위도,경도
-  //   이동수단: car | traffic(대중교통) | walk | bicycle
-  //   PC/모바일 환경에 따라 자동 연결됨
-  const km = Number(a.nextKm) || 0;
-  const mode = km < 1.2 ? 'walk' : 'traffic';   // 1.2km 미만은 도보
-  const enc = s => encodeURIComponent(String(s || '').replace(/[\/,]/g, ' '));
+  const km   = Number(a.nextKm) || 0;
+  const walk = km < 1.2;
+  const enc  = s => encodeURIComponent(String(s || '').replace(/[\/,]/g, ' '));
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+  if (isMobile) {
+    // 모바일: 카카오맵 앱 스킴 (by = CAR | PUBLICTRANSIT | FOOT | BICYCLE)
+    const by = walk ? 'FOOT' : 'PUBLICTRANSIT';
+    const scheme = 'kakaomap://route' +
+      '?sp=' + a.lat + ',' + a.lng +
+      '&ep=' + b.lat + ',' + b.lng +
+      '&by=' + by;
+
+    // 앱이 없을 때 폴백: 카카오맵 모바일 웹 길찾기
+    const mode = walk ? 'walk' : 'traffic';
+    const web  = 'https://map.kakao.com/link/by/' + mode + '/' +
+      enc(a.name) + ',' + a.lat + ',' + a.lng + '/' +
+      enc(b.name) + ',' + b.lat + ',' + b.lng;
+
+    let left = false;
+    const bye = () => { left = true; };
+    window.addEventListener('pagehide', bye, { once: true });
+    window.addEventListener('blur', bye, { once: true });
+
+    // 앱 실행 시도 (숨김 iframe → 팝업 차단 회피)
+    const f = document.createElement('iframe');
+    f.style.display = 'none';
+    f.src = scheme;
+    document.body.appendChild(f);
+    setTimeout(() => { try { f.remove(); } catch (e) {} }, 1200);
+
+    // 1.2초 후에도 페이지에 남아 있으면 앱이 없는 것 → 웹으로
+    setTimeout(() => {
+      window.removeEventListener('pagehide', bye);
+      window.removeEventListener('blur', bye);
+      if (!left && !document.hidden) location.href = web;
+    }, 1200);
+    return;
+  }
+
+  // PC: 카카오맵 웹 길찾기
+  const mode = walk ? 'walk' : 'traffic';
   const url = 'https://map.kakao.com/link/by/' + mode + '/' +
     enc(a.name) + ',' + a.lat + ',' + a.lng + '/' +
     enc(b.name) + ',' + b.lat + ',' + b.lng;
-
   window.open(url, '_blank');
 };
 
