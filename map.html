@@ -163,11 +163,18 @@
   </div>
 
   <div id="courseView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg2)">
-    <div style="padding:14px 16px 8px">
-      <div style="font-size:17px;font-weight:800;color:var(--text)">🧭 추천 코스</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:3px">최애가 다녀간 길을 그대로 따라가요</div>
+    <div style="padding:16px 16px 10px">
+      <div style="font-size:21px;font-weight:800;color:var(--text);letter-spacing:-.3px">최애의 발자국</div>
+      <div style="font-size:12.5px;color:var(--text3);margin-top:4px;line-height:1.4">그들이 걸었던 길을, 그대로</div>
     </div>
-    <div id="courseFilters" style="display:flex;gap:6px;overflow-x:auto;padding:4px 16px 10px;scrollbar-width:none"></div>
+    <div style="padding:0 16px 10px;position:relative">
+      <span style="position:absolute;left:28px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5;pointer-events:none">🔍</span>
+      <input id="courseSearchInput" type="text" oninput="onCourseSearch(this.value)"
+        placeholder="아티스트·작품·지역 검색 (예: 방탄, 경주)"
+        style="width:100%;padding:11px 36px 11px 34px;font-size:13.5px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none">
+      <button id="courseClearBtn" onclick="clearCourseSearch()" style="display:none;position:absolute;right:26px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:15px;color:var(--text3);cursor:pointer;padding:4px">✕</button>
+    </div>
+    <div id="courseFilters" style="display:flex;gap:7px;overflow-x:auto;padding:2px 16px 12px;scrollbar-width:none;-ms-overflow-style:none"></div>
     <div id="courseBody">
       <div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)">불러오는 중...</div>
     </div>
@@ -260,7 +267,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.7.0';
+const VERSION = 'map v1.7.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -867,8 +874,16 @@ window.clearHallyuFilter = function() {
 };
 function renderActiveFilterChip() { updateContentBar(); }
 window.selectContent = function(title) {
+  // 같은 항목을 다시 누르면 해제(토글)
+  if (title && _contentFilter === title) {
+    _contentFilter = null;
+    _hallyuFocus = null;
+    renderPilgrimPinsInView();
+    showToast('필터 해제');
+    return;
+  }
   _contentFilter = title;
-  if (!title) _hallyuFocus = null;  // 전체 선택 시 포커스 해제
+  if (!title) _hallyuFocus = null;
   renderPilgrimPinsInView();
   if (title) showToast('🎬 ' + title + ' 성지만 표시');
 };
@@ -2494,6 +2509,7 @@ function setActiveTab(idx) {
 }
 window.switchTabTo = function(view) {
   const m = { map:0, feed:1, course:2, saved:2, my:4 };
+  // 탭 순서: 지도(0) 피드(1) 코스(2) 언어(3) 내공간(4)
   setActiveTab(m[view] ?? 0);
   showView(view);
 };
@@ -2553,7 +2569,8 @@ console.log(VERSION);
 
 /* ═══════════════ 코스 (추천 코스 / 최애 코스) ═══════════════ */
 let _courses = [];
-let _courseFilter = 'all';       // all | K-POP | drama | half | full
+let _courseFilter = 'all';
+let _courseQuery  = '';
 let _openCourseId = null;
 
 window.renderCourseList = async function(force) {
@@ -2561,7 +2578,9 @@ window.renderCourseList = async function(force) {
   if (!body) return;
 
   if (!_courses.length || force) {
-    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)">불러오는 중...</div>';
+    body.innerHTML = '<div style="padding:70px 20px;text-align:center;color:var(--text3)">' +
+      '<div style="font-size:30px;margin-bottom:10px">🧭</div>' +
+      '<div style="font-size:13px">코스를 불러오는 중...</div></div>';
     try {
       const { db, collection, getDocs } = window._mapDB;
       const snap = await getDocs(collection(db, 'courses'));
@@ -2569,7 +2588,7 @@ window.renderCourseList = async function(force) {
       snap.forEach(d => _courses.push({ id: d.id, ...d.data() }));
       _courses.sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0));
     } catch (e) {
-      body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:13px;color:var(--text3)">코스를 불러오지 못했어요</div>';
+      body.innerHTML = '<div style="padding:70px 20px;text-align:center;font-size:13px;color:var(--text3)">코스를 불러오지 못했어요</div>';
       return;
     }
   }
@@ -2577,19 +2596,38 @@ window.renderCourseList = async function(force) {
   renderCourseFilters();
 
   let list = _courses;
-  if (_courseFilter === 'K-POP')  list = list.filter(c => c.type === 'K-POP');
-  if (_courseFilter === 'drama')  list = list.filter(c => c.type !== 'K-POP');
-  if (_courseFilter === 'half')   list = list.filter(c => c.duration === 'half');
-  if (_courseFilter === 'full')   list = list.filter(c => c.duration === 'full');
+  if (_courseFilter === 'K-POP') list = list.filter(c => c.type === 'K-POP');
+  if (_courseFilter === 'drama') list = list.filter(c => c.type !== 'K-POP');
+  if (_courseFilter === 'half')  list = list.filter(c => c.duration === 'half');
+  if (_courseFilter === 'full')  list = list.filter(c => c.duration === 'full');
+
+  const q = _courseQuery.replace(/\s/g, '').toLowerCase();
+  if (q) {
+    list = list.filter(c => {
+      const hay = ((c.title || '') + (c.region || '') + (c.name || '') +
+        (Array.isArray(c.stops) ? c.stops.map(s => s.name).join('') : ''))
+        .replace(/\s/g, '').toLowerCase();
+      return hay.includes(q);
+    });
+  }
 
   if (!list.length) {
-    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:13px;color:var(--text3)">해당하는 코스가 없어요</div>';
+    body.innerHTML = '<div style="padding:70px 20px;text-align:center;color:var(--text3)">' +
+      '<div style="font-size:30px;margin-bottom:10px">🔍</div>' +
+      '<div style="font-size:13px">' + (q ? '"' + esc0(_courseQuery) + '" 코스를 찾지 못했어요' : '해당하는 코스가 없어요') + '</div></div>';
     return;
   }
 
-  body.innerHTML = '<div style="padding:0 14px 30px">' +
-    list.map(c => courseCardHTML(c)).join('') + '</div>';
+  body.innerHTML =
+    '<div style="padding:2px 16px 6px;font-size:12px;color:var(--text3)">' +
+      list.length + '개 코스' +
+    '</div>' +
+    '<div style="padding:0 14px 34px">' + list.map(courseCardHTML).join('') + '</div>';
 };
+
+function esc0(s) {
+  return String(s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+}
 
 function renderCourseFilters() {
   const el = document.getElementById('courseFilters');
@@ -2598,109 +2636,184 @@ function renderCourseFilters() {
     ['all',   '전체'],
     ['K-POP', '⭐ K-POP'],
     ['drama', '🎬 드라마'],
-    ['half',  '반나절'],
-    ['full',  '하루'],
+    ['half',  '☀️ 반나절'],
+    ['full',  '🌙 하루'],
   ];
   el.innerHTML = F.map(([k, label]) => {
     const on = _courseFilter === k;
-    return '<button onclick="setCourseFilter(\'' + k + '\')" style="flex:0 0 auto;padding:7px 14px;font-size:13px;font-weight:' + (on ? '800' : '600') + ';border:1px solid ' + (on ? 'var(--gold)' : 'var(--border)') + ';background:' + (on ? 'var(--gold)' : 'var(--bg)') + ';color:' + (on ? '#fff' : 'var(--text2)') + ';border-radius:20px;cursor:pointer;white-space:nowrap">' + label + '</button>';
+    return '<button onclick="setCourseFilter(\'' + k + '\')" ' +
+      'style="flex:0 0 auto;padding:8px 15px;font-size:13px;font-weight:' + (on ? '800' : '600') +
+      ';border:1.5px solid ' + (on ? 'var(--gold)' : 'var(--border)') +
+      ';background:' + (on ? 'var(--gold)' : 'var(--bg)') +
+      ';color:' + (on ? '#fff' : 'var(--text2)') +
+      ';border-radius:22px;cursor:pointer;white-space:nowrap;transition:all .15s">' +
+      label + '</button>';
   }).join('');
 }
 
 window.setCourseFilter = function(k) {
-  _courseFilter = k;
+  // 토글: 같은 걸 다시 누르면 전체로
+  _courseFilter = (_courseFilter === k && k !== 'all') ? 'all' : k;
   renderCourseList();
+};
+
+window.onCourseSearch = function(v) {
+  _courseQuery = v || '';
+  const x = document.getElementById('courseClearBtn');
+  if (x) x.style.display = _courseQuery ? 'block' : 'none';
+  renderCourseList();
+};
+
+window.clearCourseSearch = function() {
+  const inp = document.getElementById('courseSearchInput');
+  if (inp) inp.value = '';
+  onCourseSearch('');
 };
 
 function fmtMin(m) {
   const h = Math.floor(m / 60), mm = m % 60;
-  return h ? (h + '시간' + (mm ? ' ' + mm + '분' : '')) : (mm + '분');
+  return h ? (h + 'h' + (mm ? ' ' + mm + 'm' : '')) : (mm + 'm');
 }
 
 function courseCardHTML(c) {
-  const esc = s => String(s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-  const open = _openCourseId === c.id;
+  const open  = _openCourseId === c.id;
   const cover = (c.coverPhoto || '').replace(/^http:\/\//, 'https://');
-  const badge = c.type === 'K-POP'
-    ? '<span style="background:#B5790F;color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:5px">⭐ K-POP</span>'
-    : '<span style="background:#7C3AED;color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:5px">🎬 드라마</span>';
-  const dur = c.duration === 'half'
-    ? '<span style="background:rgba(59,130,246,.12);color:#3B82F6;font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px">반나절</span>'
-    : '<span style="background:rgba(239,68,68,.12);color:#EF4444;font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px">하루</span>';
+  const isK   = c.type === 'K-POP';
+  const accent = isK ? '#B5790F' : '#7C3AED';
+  const durTx  = c.duration === 'half' ? '반나절' : '하루';
 
-  let html = '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden">';
+  let h = '<div style="background:var(--bg);border-radius:16px;margin-bottom:14px;overflow:hidden;' +
+    'box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);' +
+    (open ? 'outline:2px solid ' + accent + ';outline-offset:-2px' : '') + '">';
 
-  // 커버
-  html += '<div onclick="toggleCourse(\'' + c.id + '\')" style="cursor:pointer">';
+  // ── 커버 ──
+  h += '<div onclick="toggleCourse(\'' + c.id + '\')" style="cursor:pointer;position:relative">';
+
   if (cover) {
-    html += '<div style="position:relative;height:130px;overflow:hidden">' +
-      '<img src="' + esc(cover) + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' +
-      '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.6),transparent 55%)"></div>' +
-      '<div style="position:absolute;bottom:8px;left:12px;right:12px;color:#fff">' +
-        '<div style="font-size:16px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.5)">' + esc(c.name) + '</div>' +
-      '</div></div>';
-  }
-  html += '<div style="padding:11px 13px">';
-  if (!cover) {
-    html += '<div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px">' + esc(c.name) + '</div>';
-  }
-  html += '<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:7px">' +
-    badge + dur +
-    '<span style="font-size:11px;color:var(--text3)">📍 ' + esc(c.region) + '</span>' +
+    h += '<div style="position:relative;height:158px;overflow:hidden;background:var(--bg2)">' +
+      '<img src="' + esc0(cover) + '" style="width:100%;height:100%;object-fit:cover" loading="lazy" ' +
+        'onerror="this.parentElement.style.height=\'0\'">' +
+      '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 32%,transparent 42%,rgba(0,0,0,.78) 100%)"></div>' +
+      // 상단 배지
+      '<div style="position:absolute;top:11px;left:12px;display:flex;gap:5px">' +
+        '<span style="background:rgba(255,255,255,.93);color:' + accent + ';font-size:10px;font-weight:800;padding:4px 9px;border-radius:20px;backdrop-filter:blur(6px)">' +
+          (isK ? '⭐ K-POP' : '🎬 드라마') + '</span>' +
+        '<span style="background:rgba(0,0,0,.42);color:#fff;font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;backdrop-filter:blur(6px)">' +
+          durTx + '</span>' +
+      '</div>' +
+      // 하단 타이틀
+      '<div style="position:absolute;bottom:11px;left:14px;right:14px;color:#fff">' +
+        '<div style="font-size:11px;font-weight:600;opacity:.85;letter-spacing:.3px;margin-bottom:2px">' +
+          esc0(c.region) + '</div>' +
+        '<div style="font-size:19px;font-weight:800;line-height:1.25;text-shadow:0 2px 8px rgba(0,0,0,.4)">' +
+          esc0(c.name) + '</div>' +
+      '</div>' +
     '</div>';
-  html += '<div style="font-size:12px;color:var(--text2)">' +
-    '🧭 ' + c.stopCount + '곳 · ⏱ ' + fmtMin(c.totalMin || 0) + ' · 📏 ' + (c.spanKm || 0) + 'km' +
-    '<span style="float:right;color:var(--gold);font-weight:700">' + (open ? '접기 ▲' : '코스 보기 ▼') + '</span>' +
-    '</div>';
-  html += '</div></div>';
+  }
 
-  // 펼침: 타임라인
+  // ── 메타 바 ──
+  h += '<div style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between">';
+  if (!cover) {
+    h += '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:10px;font-weight:800;color:' + accent + ';margin-bottom:2px">' +
+        (isK ? '⭐ K-POP' : '🎬 드라마') + ' · ' + durTx + '</div>' +
+      '<div style="font-size:17px;font-weight:800;color:var(--text)">' + esc0(c.name) + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:1px">📍 ' + esc0(c.region) + '</div>' +
+      '</div>';
+  } else {
+    h += '<div style="display:flex;gap:14px;font-size:12px;color:var(--text2);font-weight:600">' +
+      '<span>🧭 ' + c.stopCount + '곳</span>' +
+      '<span>⏱ ' + fmtMin(c.totalMin || 0) + '</span>' +
+      '<span style="color:var(--text3)">📏 ' + (c.spanKm || 0) + 'km</span>' +
+      '</div>';
+  }
+  h += '<span style="font-size:12px;font-weight:800;color:' + accent + ';white-space:nowrap;margin-left:10px">' +
+    (open ? '접기 ▲' : '코스 보기 ▼') + '</span>';
+  h += '</div></div>';
+
+  // ── 타임라인 (펼침) ──
   if (open && Array.isArray(c.stops)) {
-    html += '<div style="border-top:1px solid var(--border);padding:12px 13px 14px;background:var(--bg2)">';
+    h += '<div style="border-top:1px solid var(--border);background:var(--bg2);padding:16px 14px 14px">';
+
     c.stops.forEach((s, i) => {
-      const ph = (s.photo || '').replace(/^http:\/\//, 'https://');
-      html += '<div style="display:flex;gap:10px;align-items:flex-start">' +
-        '<div style="flex:0 0 24px;text-align:center">' +
-          '<div style="width:24px;height:24px;border-radius:50%;background:var(--gold);color:#fff;font-size:11px;font-weight:800;line-height:24px">' + (i + 1) + '</div>' +
-        '</div>' +
-        '<div style="flex:1;min-width:0;padding-bottom:4px">' +
-          '<div style="display:flex;gap:8px;align-items:flex-start">' +
-            (ph ? '<img src="' + esc(ph) + '" style="flex:0 0 54px;width:54px;height:54px;object-fit:cover;border-radius:7px" loading="lazy">' : '') +
-            '<div style="flex:1;min-width:0">' +
-              '<div style="font-size:14px;font-weight:700;color:var(--text)">' + esc(s.name) + '</div>' +
-              (s.story ? '<div style="font-size:11px;color:var(--text3);line-height:1.4;margin-top:2px">' + esc(s.story.slice(0, 60)) + '</div>' : '') +
-              '<div style="font-size:11px;color:var(--text3);margin-top:3px">⏱ ' + (s.stay || 50) + '분 머무르기</div>' +
-            '</div>' +
-          '</div>' +
-          '<div style="display:flex;gap:6px;margin-top:6px">' +
-            '<button onclick="event.stopPropagation();goCourseStop(\'' + c.id + '\',' + i + ')" style="flex:1;padding:6px 0;font-size:11px;font-weight:700;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text2);cursor:pointer">🗺️ 지도에서 보기</button>' +
-          '</div>' +
-        '</div></div>';
+      const ph   = (s.photo || '').replace(/^http:\/\//, 'https://');
+      const last = i === c.stops.length - 1;
+
+      h += '<div style="display:flex;gap:12px">';
+
+      // 좌측 스텝 라인
+      h += '<div style="flex:0 0 26px;display:flex;flex-direction:column;align-items:center">' +
+        '<div style="width:26px;height:26px;border-radius:50%;background:' + accent +
+          ';color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 26px">' +
+          (i + 1) + '</div>' +
+        (!last ? '<div style="width:2px;flex:1;background:linear-gradient(180deg,' + accent + '33,var(--border));min-height:52px"></div>' : '') +
+        '</div>';
+
+      // 우측 내용
+      h += '<div style="flex:1;min-width:0;padding-bottom:' + (last ? '0' : '14px') + '">';
+
+      h += '<div style="display:flex;gap:10px;align-items:flex-start">';
+      if (ph) {
+        h += '<img src="' + esc0(ph) + '" style="flex:0 0 62px;width:62px;height:62px;object-fit:cover;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.1)" loading="lazy" onerror="this.style.display=\'none\'">';
+      }
+      h += '<div style="flex:1;min-width:0;padding-top:1px">' +
+        '<div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.3">' + esc0(s.name) + '</div>' +
+        (s.story ? '<div style="font-size:11.5px;color:var(--text3);line-height:1.45;margin-top:3px">' +
+          esc0(String(s.story).slice(0, 55)) + (String(s.story).length > 55 ? '…' : '') + '</div>' : '') +
+        '<div style="font-size:11px;color:var(--text3);margin-top:4px;font-weight:600">⏱ ' + (s.stay || 50) + '분 머무르기</div>' +
+        '</div>';
+      h += '</div>';
+
+      // 액션
+      h += '<button onclick="event.stopPropagation();goCourseStop(\'' + c.id + '\',' + i + ')" ' +
+        'style="margin-top:8px;padding:7px 14px;font-size:11.5px;font-weight:700;border:1px solid var(--border);' +
+        'border-radius:8px;background:var(--bg);color:var(--text2);cursor:pointer">🗺️ 지도에서 보기</button>';
 
       // 이동 구간
       if (s.nextMin) {
-        html += '<div style="display:flex;gap:10px;align-items:center;margin:2px 0 6px">' +
-          '<div style="flex:0 0 24px;text-align:center"><div style="width:2px;height:26px;background:var(--border);margin:0 auto"></div></div>' +
-          '<div style="flex:1;display:flex;align-items:center;gap:8px">' +
-            '<span style="font-size:11px;color:var(--text3)">🚌 ' + s.nextKm + 'km · 약 ' + s.nextMin + '분</span>' +
-            '<button onclick="event.stopPropagation();courseRoute(\'' + c.id + '\',' + i + ')" style="padding:4px 10px;font-size:10px;font-weight:700;border:1px solid var(--gold);border-radius:5px;background:var(--bg);color:var(--gold);cursor:pointer">길찾기</button>' +
-          '</div></div>';
+        h += '<div style="margin-top:12px;display:flex;align-items:center;gap:9px;padding:8px 11px;' +
+          'background:var(--bg);border-radius:9px;border:1px dashed var(--border)">' +
+          '<span style="font-size:13px">🚌</span>' +
+          '<span style="flex:1;font-size:11.5px;color:var(--text2);font-weight:600">' +
+            s.nextKm + 'km · 약 ' + s.nextMin + '분</span>' +
+          '<button onclick="event.stopPropagation();courseRoute(\'' + c.id + '\',' + i + ')" ' +
+            'style="padding:5px 12px;font-size:11px;font-weight:800;border:none;border-radius:6px;' +
+            'background:' + accent + ';color:#fff;cursor:pointer">길찾기</button>' +
+          '</div>';
       }
+
+      h += '</div></div>';
     });
-    html += '<div style="font-size:10px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.5">이동 시간은 예상치예요. 정확한 경로는 [길찾기]로 확인하세요.</div>';
-    html += '</div>';
+
+    h += '<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.6;padding-top:12px;border-top:1px solid var(--border)">' +
+      '이동 시간은 예상치예요<br>정확한 경로는 <b>[길찾기]</b>에서 확인하세요</div>';
+    h += '</div>';
   }
 
-  html += '</div>';
-  return html;
+  h += '</div>';
+  return h;
 }
 
 window.toggleCourse = function(id) {
   _openCourseId = (_openCourseId === id) ? null : id;
   renderCourseList();
+  if (_openCourseId) {
+    setTimeout(() => {
+      const v = document.getElementById('courseView');
+      if (v) {
+        const cards = v.querySelectorAll('[onclick^="toggleCourse"]');
+        for (const el of cards) {
+          if (el.getAttribute('onclick').includes(id)) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            break;
+          }
+        }
+      }
+    }, 60);
+  }
 };
 
-// 코스의 특정 성지 → 지도에서 열기
+// 코스의 성지 → 지도에서 열기
 window.goCourseStop = function(cid, idx) {
   const c = _courses.find(x => x.id === cid);
   if (!c || !c.stops || !c.stops[idx]) return;
@@ -2708,7 +2821,7 @@ window.goCourseStop = function(cid, idx) {
   const pg = (window._pilgrimData || []).find(p => p._id === s.placeId);
   switchTab('map');
   setTimeout(() => {
-    if (map) {
+    if (window.map) {
       map.setCenter(new kakao.maps.LatLng(s.lat, s.lng));
       map.setLevel(4);
     }
@@ -2719,10 +2832,10 @@ window.goCourseStop = function(cid, idx) {
         type: 'pilgrim', raw: pg
       });
     }
-  }, 220);
+  }, 240);
 };
 
-// 구간 길찾기 → 카카오맵으로 위임
+// 구간 길찾기 → 카카오맵
 window.courseRoute = function(cid, idx) {
   const c = _courses.find(x => x.id === cid);
   if (!c || !c.stops) return;
