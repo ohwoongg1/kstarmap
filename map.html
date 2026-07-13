@@ -49,6 +49,58 @@
   .c-pill{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:15px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer}
   .c-pill.on{background:var(--gold);border-color:var(--gold);color:#fff}
 
+  /* ═══ 코스 탭: 카드 ═══ */
+  .cs-card{transition:transform .18s ease, box-shadow .18s ease}
+
+  /* ═══ 코스 탭: 데스크톱 (≥900px) ═══
+     모바일(<900px)은 기존 그대로. 여기서만 폭 제한 + 그리드. */
+  @media (min-width:900px){
+    /* 헤더·검색·필터·목록 모두 같은 폭으로 중앙 정렬 */
+    .cs-wrap{max-width:1160px;margin:0 auto;width:100%;box-sizing:border-box}
+
+    #courseView{background:var(--bg2)}
+    #courseView .cs-head{padding:38px 24px 6px}
+    #courseView .cs-head .cs-title{font-size:34px;letter-spacing:-.8px}
+    #courseView .cs-head .cs-sub{font-size:14.5px;margin-top:7px}
+
+    /* 검색 + 필터를 한 줄로 */
+    .cs-controls{display:flex;align-items:center;gap:14px;padding:18px 24px 20px;flex-wrap:wrap}
+    .cs-controls .cs-search{flex:0 0 320px;position:relative;padding:0}
+    .cs-controls #courseFilters{flex:1;min-width:0;padding:0;overflow-x:visible;flex-wrap:wrap}
+
+    /* 목록: 카드 그리드 */
+    .cs-count{padding:0 24px 12px !important}
+    .cs-grid{
+      padding:0 24px 60px !important;
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+      gap:22px;
+      align-items:start;
+    }
+    /* 펼쳐진 카드는 한 줄 전체를 차지 */
+    .cs-grid .cs-card.cs-open{grid-column:1 / -1}
+
+    .cs-card{margin-bottom:0 !important;border:1px solid var(--border)}
+    .cs-card:hover{transform:translateY(-3px);box-shadow:0 4px 10px rgba(0,0,0,.07),0 14px 34px rgba(0,0,0,.09)}
+    .cs-card .cs-cover{height:194px !important}
+    .cs-card.cs-open .cs-cover{height:290px !important}
+    .cs-card.cs-open .cs-cover .cs-name{font-size:27px !important}
+
+    /* 펼친 타임라인: 2열 그리드
+       ※ column-count는 스텝 연결선(flex:1)이 열 높이만큼 늘어나므로 사용 불가 */
+    .cs-card.cs-open .cs-timeline{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:4px 34px;
+      align-items:start;
+      padding:22px 26px 18px !important;
+    }
+    .cs-card.cs-open .cs-note{grid-column:1 / -1}
+
+    .cs-card button{transition:filter .15s,background .15s}
+    .cs-card button:hover{filter:brightness(.93)}
+  }
+
   /* 지도 */
   #mapWrap{flex:1;position:relative;min-height:0}
   #map{width:100%;height:100%}
@@ -163,19 +215,21 @@
   </div>
 
   <div id="courseView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg2)">
-    <div style="padding:16px 16px 10px">
-      <div style="font-size:21px;font-weight:800;color:var(--text);letter-spacing:-.3px">최애의 발자국</div>
-      <div style="font-size:12.5px;color:var(--text3);margin-top:4px;line-height:1.4">그들이 걸었던 길을, 그대로</div>
+    <div class="cs-wrap cs-head" style="padding:16px 16px 10px">
+      <div class="cs-title" style="font-size:21px;font-weight:800;color:var(--text);letter-spacing:-.3px">최애의 발자국</div>
+      <div class="cs-sub" style="font-size:12.5px;color:var(--text3);margin-top:4px;line-height:1.4">그들이 걸었던 길을, 그대로</div>
     </div>
-    <div style="padding:0 16px 10px;position:relative">
-      <span style="position:absolute;left:28px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5;pointer-events:none">🔍</span>
-      <input id="courseSearchInput" type="text" oninput="onCourseSearch(this.value)"
-        placeholder="아티스트·작품·지역 검색 (예: 방탄, 경주)"
-        style="width:100%;padding:11px 36px 11px 34px;font-size:13.5px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none">
-      <button id="courseClearBtn" onclick="clearCourseSearch()" style="display:none;position:absolute;right:26px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:15px;color:var(--text3);cursor:pointer;padding:4px">✕</button>
+    <div class="cs-wrap cs-controls">
+      <div class="cs-search" style="padding:0 16px 10px;position:relative">
+        <span style="position:absolute;left:28px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5;pointer-events:none">🔍</span>
+        <input id="courseSearchInput" type="text" oninput="onCourseSearch(this.value)"
+          placeholder="아티스트·작품·지역 검색 (예: 방탄, 경주)"
+          style="width:100%;padding:11px 36px 11px 34px;font-size:13.5px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none">
+        <button id="courseClearBtn" onclick="clearCourseSearch()" style="display:none;position:absolute;right:26px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:15px;color:var(--text3);cursor:pointer;padding:4px">✕</button>
+      </div>
+      <div id="courseFilters" style="display:flex;gap:7px;overflow-x:auto;padding:2px 16px 12px;scrollbar-width:none;-ms-overflow-style:none"></div>
     </div>
-    <div id="courseFilters" style="display:flex;gap:7px;overflow-x:auto;padding:2px 16px 12px;scrollbar-width:none;-ms-overflow-style:none"></div>
-    <div id="courseBody">
+    <div id="courseBody" class="cs-wrap">
       <div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)">불러오는 중...</div>
     </div>
   </div>
@@ -267,7 +321,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.7.8';
+const VERSION = 'map v1.7.9';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -2622,10 +2676,10 @@ window.renderCourseList = async function(force) {
   }
 
   body.innerHTML =
-    '<div style="padding:2px 16px 6px;font-size:12px;color:var(--text3)">' +
+    '<div class="cs-count" style="padding:2px 16px 6px;font-size:12px;color:var(--text3)">' +
       list.length + '개 코스' +
     '</div>' +
-    '<div style="padding:0 14px 34px">' + list.map(courseCardHTML).join('') + '</div>';
+    '<div class="cs-grid" style="padding:0 14px 34px">' + list.map(courseCardHTML).join('') + '</div>';
 };
 
 function esc0(s) {
@@ -2685,7 +2739,7 @@ function courseCardHTML(c) {
   const accent = isK ? '#B5790F' : '#7C3AED';
   const durTx  = c.duration === 'half' ? '반나절' : '하루';
 
-  let h = '<div style="background:var(--bg);border-radius:16px;margin-bottom:14px;overflow:hidden;' +
+  let h = '<div class="cs-card' + (open ? ' cs-open' : '') + '" style="background:var(--bg);border-radius:16px;margin-bottom:14px;overflow:hidden;' +
     'box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);' +
     (open ? 'outline:2px solid ' + accent + ';outline-offset:-2px' : '') + '">';
 
@@ -2693,7 +2747,7 @@ function courseCardHTML(c) {
   h += '<div onclick="toggleCourse(\'' + c.id + '\')" style="cursor:pointer;position:relative">';
 
   if (cover) {
-    h += '<div style="position:relative;height:158px;overflow:hidden;background:var(--bg2)">' +
+    h += '<div class="cs-cover" style="position:relative;height:158px;overflow:hidden;background:var(--bg2)">' +
       '<img src="' + esc0(cover) + '" style="width:100%;height:100%;object-fit:cover" loading="lazy" ' +
         'onerror="this.parentElement.style.height=\'0\'">' +
       '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 32%,transparent 42%,rgba(0,0,0,.78) 100%)"></div>' +
@@ -2708,7 +2762,7 @@ function courseCardHTML(c) {
       '<div style="position:absolute;bottom:11px;left:14px;right:14px;color:#fff">' +
         '<div style="font-size:11px;font-weight:600;opacity:.85;letter-spacing:.3px;margin-bottom:2px">' +
           esc0(c.region) + '</div>' +
-        '<div style="font-size:19px;font-weight:800;line-height:1.25;text-shadow:0 2px 8px rgba(0,0,0,.4)">' +
+        '<div class="cs-name" style="font-size:19px;font-weight:800;line-height:1.25;text-shadow:0 2px 8px rgba(0,0,0,.4)">' +
           esc0(c.name) + '</div>' +
       '</div>' +
     '</div>';
@@ -2736,13 +2790,13 @@ function courseCardHTML(c) {
 
   // ── 타임라인 (펼침) ──
   if (open && Array.isArray(c.stops)) {
-    h += '<div style="border-top:1px solid var(--border);background:var(--bg2);padding:16px 14px 14px">';
+    h += '<div class="cs-timeline" style="border-top:1px solid var(--border);background:var(--bg2);padding:16px 14px 14px">';
 
     c.stops.forEach((s, i) => {
       const ph   = (s.photo || '').replace(/^http:\/\//, 'https://');
       const last = i === c.stops.length - 1;
 
-      h += '<div style="display:flex;gap:12px">';
+      h += '<div class="cs-stop" style="display:flex;gap:12px">';
 
       // 좌측 스텝 라인
       h += '<div style="flex:0 0 26px;display:flex;flex-direction:column;align-items:center">' +
@@ -2788,7 +2842,7 @@ function courseCardHTML(c) {
       h += '</div></div>';
     });
 
-    h += '<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.6;padding-top:12px;border-top:1px solid var(--border)">' +
+    h += '<div class="cs-note" style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.6;padding-top:12px;border-top:1px solid var(--border)">' +
       '이동 시간은 예상치예요<br>정확한 경로는 <b>[길찾기]</b>에서 확인하세요</div>';
     h += '</div>';
   }
