@@ -267,7 +267,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.7.1';
+const VERSION = 'map v1.7.2';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -580,9 +580,12 @@ function applyLangToUI() {
   if (chipRest) chipRest.innerHTML = '<span class="dot" style="background:var(--amber)"></span>' + t('rest');
   // 하단 탭
   const tabs = document.querySelectorAll('.navtab .tx');
-  if (tabs.length >= 4) {
-    tabs[0].textContent = t('tabMap'); tabs[1].textContent = t('tabFeed');
-    tabs[2].textContent = isEn() ? 'Language' : '언어'; tabs[3].textContent = t('tabMy');
+  if (tabs.length >= 5) {
+    tabs[0].textContent = t('tabMap');
+    tabs[1].textContent = t('tabFeed');
+    tabs[2].textContent = isEn() ? 'Courses' : '코스';
+    tabs[3].textContent = isEn() ? 'Language' : '언어';
+    tabs[4].textContent = t('tabMy');
   }
   // 시트 버튼
   const certLabel = document.querySelector('#placeSheet .cert-btn');
