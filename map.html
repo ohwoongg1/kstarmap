@@ -267,7 +267,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.7.6';
+const VERSION = 'map v1.7.8';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -2848,27 +2848,32 @@ window.courseRoute = function(cid, idx) {
   const km   = Number(a.nextKm) || 0;
   const walk = km < 1.2;
   const enc  = s => encodeURIComponent(String(s || '').replace(/[\/,]/g, ' '));
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // 모바일 판정: userAgentData 우선 (DevTools 에뮬레이션은 여기서 false)
+  // → 없으면 UA + 터치 지원 병행 확인
+  const uaMobile  = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const hasTouch  = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  const isMobile  = (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean')
+    ? navigator.userAgentData.mobile
+    : (uaMobile && hasTouch);
 
   if (isMobile) {
     // 모바일: 카카오맵 앱 딥링크
-    // by = CAR | PUBLICTRANSIT | FOOT | BICYCLE
-    const by = walk ? 'FOOT' : 'PUBLICTRANSIT';
+    // ※ 공식 문서 기준 이동수단은 소문자: car | publictransit | foot | bicycle
+    //   (대문자 PUBLICTRANSIT 등은 인식 실패 → 지도앱 열기로 폴백되어 현재위치만 뜸)
+    const by = walk ? 'foot' : 'publictransit';
     const q  = 'sp=' + a.lat + ',' + a.lng +
                '&ep=' + b.lat + ',' + b.lng +
                '&by=' + by;
 
-    // 앱 없을 때 폴백: 카카오맵 모바일 웹
-    const mode = walk ? 'walk' : 'traffic';
-    const web  = 'https://map.kakao.com/link/by/' + mode + '/' +
-      enc(a.name) + ',' + a.lat + ',' + a.lng + '/' +
-      enc(b.name) + ',' + b.lat + ',' + b.lng;
+    // 앱 없을 때 폴백: 카카오맵 모바일웹 스킴 (동일 파라미터)
+    const web = 'https://m.map.kakao.com/scheme/route?' + q;
 
     const isAndroid = /Android/i.test(navigator.userAgent);
 
     if (isAndroid) {
       // Android: intent:// 로 호출해야 파라미터가 앱에 전달됨
-      // (iframe + kakaomap:// 은 최신 Chrome이 차단 → 앱만 열리고 파라미터 유실)
+      // (iframe + kakaomap:// 은 최신 Chrome이 차단)
       location.href =
         'intent://route?' + q +
         '#Intent;scheme=kakaomap;package=net.daum.android.map;' +
@@ -2884,7 +2889,7 @@ window.courseRoute = function(cid, idx) {
 
     location.href = 'kakaomap://route?' + q;
 
-    // 앱이 안 열리면 웹으로 폴백
+    // 앱이 안 열리면 모바일웹으로 폴백
     setTimeout(() => {
       if (!left && !document.hidden) location.href = web;
     }, 1500);
