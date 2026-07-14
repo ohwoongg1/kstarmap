@@ -119,7 +119,7 @@
   .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
 
   /* 장소 시트 */
-  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;will-change:scroll-position}
+  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
   #placeSheet.show{transform:translateY(0)}
   #sheetExtra{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
   #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:12;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
@@ -332,7 +332,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.8.2';
+const VERSION = 'map v1.8.4';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -1423,14 +1423,36 @@ function openPlaceSheet(place) {
   sheet.style.maxHeight = '';   // CSS 62vh 상한 적용(핀 진입 잘림 방지)
   sheet.dataset.expanded = '0';
   sheet.classList.add('show');
-  // 상단(핸들·✕·장소명)이 항상 보이도록 스크롤 최상단 고정
-  // 사진 등 콘텐츠가 뒤늦게 로드되며 레이아웃이 밀리는 경우까지 커버
-  sheet.scrollTop = 0;
-  requestAnimationFrame(() => { sheet.scrollTop = 0; });
-  setTimeout(() => { sheet.scrollTop = 0; }, 60);
-  setTimeout(() => { sheet.scrollTop = 0; }, 250);
+  // 상단(핸들·✕·장소명)이 항상 보이도록, 시트를 '처음 열 때' 스크롤 최상단으로.
+  //
+  // ⚠️ 여기가 스크롤 튕김의 진짜 원인이었다.
+  //    기존엔 사진 load 이벤트마다 scrollTop=0 을 호출했는데,
+  //    관광공사 사진은 여러 장이라 늦게 로드된다 → 사용자가 이미 내려본 뒤에
+  //    사진이 하나씩 도착할 때마다 본문을 위로 끌어올렸다.
+  //    (콘솔 로그: scrollTop 434 → 420 → 376 → ... → 0, height는 516으로 불변)
+  //
+  // → 사용자가 한 번이라도 스크롤하면 이후 자동 복귀를 전부 취소한다.
+  sheet._userScrolled = false;
+  const toTop = () => { if (!sheet._userScrolled) sheet.scrollTop = 0; };
+  toTop();
+  requestAnimationFrame(toTop);
+  setTimeout(toTop, 60);
+  setTimeout(toTop, 250);
+
+  // 사용자가 스크롤을 시작하면 그 순간부터 자동 복귀 금지
+  if (!sheet._scrollGuardBound) {
+    sheet._scrollGuardBound = true;
+    const markScrolled = () => { sheet._userScrolled = true; };
+    sheet.addEventListener('touchmove', markScrolled, { passive: true });
+    sheet.addEventListener('wheel',     markScrolled, { passive: true });
+    sheet.addEventListener('scroll', () => {
+      if (sheet.scrollTop > 0) sheet._userScrolled = true;
+    }, { passive: true });
+  }
+
+  // 사진이 늦게 로드돼 레이아웃이 밀리는 경우 → 아직 사용자가 안 건드렸을 때만 복귀
   const imgs = sheet.querySelectorAll('img');
-  imgs.forEach(im => { if (!im.complete) im.addEventListener('load', () => { if (sheet.dataset.expanded === '0') sheet.scrollTop = 0; }, { once:true }); });
+  imgs.forEach(im => { if (!im.complete) im.addEventListener('load', toTop, { once:true }); });
   // 관광공사 사진 갤러리(여러 장) 슬라이드 시 카운터·점 갱신
   const gal = sheet.querySelector('.tour-gallery');
   if (gal) {
@@ -1545,36 +1567,37 @@ function toggleSheetExpand() {
     _sheetCertsLoaded = false;   // 펼치면 인증 그리드를 다시 그림(접힘 안내 → 썸네일)
     loadPlaceCerts();
   }
+  // 사용자가 손잡이로 직접 토글한 것이므로 최상단으로 보내는 게 맞다.
+  // 플래그를 리셋해야 아래 지연 호출이 실제로 동작한다.
+  sheet._userScrolled = false;
   sheet.scrollTop = 0;
-  setTimeout(() => { sheet.scrollTop = 0; }, 50);
-  setTimeout(() => { sheet.scrollTop = 0; }, 350);
+  setTimeout(() => { if (!sheet._userScrolled) sheet.scrollTop = 0; }, 50);
+  setTimeout(() => { if (!sheet._userScrolled) sheet.scrollTop = 0; }, 350);
 }
 function collapseSheet() {
   const sheet = document.getElementById('placeSheet');
   sheet.style.height = 'auto';
   sheet.dataset.expanded = '0';
+  sheet._userScrolled = false;
   sheet.scrollTop = 0;
 }
 
-// 시트 스와이프 — Starspoon(index.html)에서 검증된 방식 그대로.
+// 시트 스와이프
 //
-// ① CSS의 touch-action:pan-y → 브라우저가 세로 터치를 '스크롤 전용'으로 처리.
-//    이게 없으면 JS가 height를 바꾸는 순간 scrollTop이 되감겨 본문이 위로 튕긴다. (진짜 원인)
-// ② 드래그 판정을 '요소'가 아니라 '위치'로 한다.
-//    #sheetTopBar는 position:sticky라 스크롤하면 손가락 밑으로 따라 내려온다.
-//    거기에 리스너를 걸면 스크롤이 드래그로 오인된다.
-//    → 시트 최상단 44px 안에서 시작한 터치만 드래그로 본다.
-// ③ 시트가 스크롤된 상태(scrollTop>0)면 드래그를 아예 시작하지 않는다.
+// #sheetTopBar는 position:sticky라 스크롤하면 손가락 밑으로 따라 내려온다.
+// 그래서 '요소'가 아니라 '위치'로 판정한다:
+//   시트 최상단 44px 안에서 시작한 터치만 드래그로 본다.
+// (스크롤 튕김의 진짜 원인은 여기가 아니라 openPlaceSheet의 scrollTop=0 반복 호출이었다)
 (function setupSheetDrag() {
   const sheet = document.getElementById('placeSheet');
-  if (!sheet) return;
+  const bar   = document.getElementById('sheetTopBar');
+  if (!sheet || !bar) return;
 
-  const HANDLE_ZONE = 44;   // 시트 상단 이 픽셀 안에서만 드래그 시작 (Starspoon: 40)
+  const HANDLE_ZONE = 44;   // 시트 상단 이 픽셀 안에서만 드래그 시작
 
   let startY = 0, lastY = 0, startH = 0, dragging = false, velocity = 0, moved = false;
   const MIN_H = 92;                                   // 접힘 최소 높이(px) — 핸들+장소명 보임
   // 시트는 mapWrap(지도 영역) 안에 있으므로, 그 높이를 넘으면 위로 삐져나가 상단바를 가림.
-  // 따라서 최대 높이를 mapWrap 높이 기준으로 계산 → ✕·핸들이 절대 안 잘림.
   const wrapH = () => {
     const mw = document.getElementById('mapWrap');
     return mw ? mw.clientHeight : window.innerHeight;
@@ -1587,6 +1610,7 @@ function collapseSheet() {
     sheet.style.maxHeight = 'none';   // 펼침 상태는 상한 해제
     sheet.style.height = h + 'px';
     sheet.dataset.expanded = expanded ? '1' : '0';
+    sheet._userScrolled = false;   // 의도적 스냅이므로 자동 최상단 복귀 허용
     setTimeout(() => { sheet.style.transition = ''; try { map && map.relayout(); } catch(e){} }, 320);
     if (expanded) { _sheetCertsLoaded = false; loadPlaceCerts(); }
   }
@@ -1598,16 +1622,13 @@ function collapseSheet() {
     sheet.dataset.expanded = '0';
   }
 
-  // 드래그는 시트에 직접 건다 (sticky 바가 아니라 — 그게 따라 내려오는 게 문제였음)
-  sheet.addEventListener('touchstart', e => {
+  // 드래그는 시트 최상단 영역(손잡이 근처)에서 시작한 터치만.
+  // sticky 바가 스크롤을 따라 내려와도, 손가락이 시트 상단 44px 밖이면 드래그 안 걸린다.
+  bar.addEventListener('touchstart', e => {
     // ✕ 버튼에서 시작한 터치는 드래그 아님(닫기 전용)
     if (e.target && e.target.closest && e.target.closest('.place-close')) return;
-    // 본문이 스크롤돼 있으면 드래그 금지 (높이 변경 → scrollTop 되감김 방지)
-    if (sheet.scrollTop > 0) return;
-    // 시트 최상단 영역에서 시작한 터치만 드래그 (Starspoon과 동일한 판정)
     const rect = sheet.getBoundingClientRect();
     if (e.touches[0].clientY - rect.top > HANDLE_ZONE) return;
-
     startY = lastY = e.touches[0].clientY;
     startH = rect.height;
     dragging = true; velocity = 0; moved = false;
@@ -1659,13 +1680,11 @@ function collapseSheet() {
     handle.addEventListener('click', e => {
       if (e.target && e.target.closest && e.target.closest('.place-close')) return;
       if ('ontouchstart' in window) return;
-      if (sheet.scrollTop > 0) return;   // 스크롤 중이면 토글 금지 (본문 튕김 방지)
       toggleSheetExpand();
     });
   }
 
-  // 본문 스크롤이 지도로 새는 건 CSS의 overscroll-behavior:contain 이 막는다.
-  // (기존의 수동 stopPropagation 가드는 브라우저 기본 스크롤과 충돌해 제거)
+  // 본문 스크롤이 지도로 새는 건 #sheetScroll의 overscroll-behavior:contain 이 막는다.
 })();
 
 // ── 인증 (다음 단계에서 연결) ──
