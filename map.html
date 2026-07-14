@@ -332,7 +332,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.8.4';
+const VERSION = 'map v1.8.5';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -1584,16 +1584,19 @@ function collapseSheet() {
 
 // 시트 스와이프
 //
-// #sheetTopBar는 position:sticky라 스크롤하면 손가락 밑으로 따라 내려온다.
-// 그래서 '요소'가 아니라 '위치'로 판정한다:
-//   시트 최상단 44px 안에서 시작한 터치만 드래그로 본다.
-// (스크롤 튕김의 진짜 원인은 여기가 아니라 openPlaceSheet의 scrollTop=0 반복 호출이었다)
+// ⚠️ 스크롤 튕김의 진짜 원인 (콘솔 로그로 확인):
+//    scrollTop을 강제로 0으로 만드는 코드는 없었다.
+//    대신 본문 스크롤 중에 드래그가 걸려서 시트 높이가 396→92px로 줄어들었고,
+//    시트가 최소 높이까지 접히자 본문이 갈 데가 없어 scrollTop이 0이 됐다.
+//    → 스크롤이 튕긴 게 아니라, 시트가 접히면서 스크롤이 사라진 것.
+//
+// 원인: 드래그를 #sheetTopBar(position:sticky)에 걸었는데,
+//       이 바는 스크롤하면 손가락 밑으로 따라 내려온다 → touchstart가 발생 → 드래그 시작.
+// 해결: 드래그는 손잡이(#sheetHandle)에서만. + 스크롤된 상태면 절대 시작 안 함.
 (function setupSheetDrag() {
-  const sheet = document.getElementById('placeSheet');
-  const bar   = document.getElementById('sheetTopBar');
-  if (!sheet || !bar) return;
-
-  const HANDLE_ZONE = 44;   // 시트 상단 이 픽셀 안에서만 드래그 시작
+  const sheet  = document.getElementById('placeSheet');
+  const handle = document.getElementById('sheetHandle');
+  if (!sheet || !handle) return;
 
   let startY = 0, lastY = 0, startH = 0, dragging = false, velocity = 0, moved = false;
   const MIN_H = 92;                                   // 접힘 최소 높이(px) — 핸들+장소명 보임
@@ -1622,15 +1625,13 @@ function collapseSheet() {
     sheet.dataset.expanded = '0';
   }
 
-  // 드래그는 시트 최상단 영역(손잡이 근처)에서 시작한 터치만.
-  // sticky 바가 스크롤을 따라 내려와도, 손가락이 시트 상단 44px 밖이면 드래그 안 걸린다.
-  bar.addEventListener('touchstart', e => {
-    // ✕ 버튼에서 시작한 터치는 드래그 아님(닫기 전용)
+  // 드래그는 '손잡이(━)'에서만 시작. sticky 바 전체가 아니다.
+  // + 시트가 조금이라도 스크롤돼 있으면 절대 시작하지 않는다. (핵심 방어)
+  handle.addEventListener('touchstart', e => {
     if (e.target && e.target.closest && e.target.closest('.place-close')) return;
-    const rect = sheet.getBoundingClientRect();
-    if (e.touches[0].clientY - rect.top > HANDLE_ZONE) return;
+    if (sheet.scrollTop > 0) return;   // 스크롤 중 → 드래그 금지
     startY = lastY = e.touches[0].clientY;
-    startH = rect.height;
+    startH = sheet.getBoundingClientRect().height;
     dragging = true; velocity = 0; moved = false;
     sheet.style.transition = 'none';
     sheet.style.maxHeight = 'none';   // 드래그 중엔 62vh 상한 해제(크게 열 수 있게)
@@ -1638,6 +1639,14 @@ function collapseSheet() {
 
   document.addEventListener('touchmove', e => {
     if (!dragging) return;
+    // 안전장치: 드래그 중인데 시트가 스크롤됐다면 → 이건 스크롤이지 드래그가 아니다.
+    // 즉시 중단해서 시트가 접히는 걸 막는다.
+    if (sheet.scrollTop > 0) {
+      dragging = false;
+      sheet.style.transition = '';
+      sheet.style.height = startH + 'px';   // 건드린 높이 원복
+      return;
+    }
     const y = e.touches[0].clientY;
     velocity = lastY - y; lastY = y;
     if (Math.abs(y - startY) > 6) moved = true;
