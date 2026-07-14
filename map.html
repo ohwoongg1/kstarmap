@@ -332,7 +332,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.8.0';
+const VERSION = 'map v1.8.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -1560,7 +1560,11 @@ function collapseSheet() {
 // 핸들 영역만 드래그 시작. ✕ 버튼·본문 스크롤·다른 기능엔 영향 없음.
 (function setupSheetDrag() {
   const sheet = document.getElementById('placeSheet');
-  const handle = document.getElementById('sheetTopBar') || document.getElementById('sheetHandle');
+  // 드래그는 그립바(#sheetHandle)에서만 시작한다.
+  // 기존엔 #sheetTopBar 전체가 대상이었는데, 이 바는 position:sticky라
+  // 본문을 스크롤하면 손가락 밑으로 따라 내려온다 → 스크롤이 드래그로 오인되고,
+  // touchend에서 height를 바꾸는 순간 브라우저가 scrollTop을 되감아 위로 튕겨 올라갔다.
+  const handle = document.getElementById('sheetHandle') || document.getElementById('sheetTopBar');
   if (!sheet || !handle) return;
 
   let startY = 0, lastY = 0, startH = 0, dragging = false, velocity = 0, moved = false;
@@ -1593,6 +1597,10 @@ function collapseSheet() {
   handle.addEventListener('touchstart', e => {
     // ✕ 버튼에서 시작한 터치는 드래그 아님(닫기 전용)
     if (e.target && e.target.closest && e.target.closest('.place-close')) return;
+    // 본문이 스크롤된 상태면 드래그 금지.
+    // 드래그가 끝나면 height를 바꾸는데, 스크롤된 컨테이너의 높이를 줄이면
+    // 브라우저가 scrollTop을 강제로 되감아 본문이 맨 위로 튕긴다.
+    if (sheet.scrollTop > 0) return;
     startY = lastY = e.touches[0].clientY;
     startH = sheet.getBoundingClientRect().height;
     dragging = true; velocity = 0; moved = false;
@@ -1642,6 +1650,7 @@ function collapseSheet() {
   handle.addEventListener('click', e => {
     if (e.target && e.target.closest && e.target.closest('.place-close')) return;
     if ('ontouchstart' in window) return;
+    if (sheet.scrollTop > 0) return;   // 스크롤 중이면 토글 금지 (본문 튕김 방지)
     toggleSheetExpand();
   });
 

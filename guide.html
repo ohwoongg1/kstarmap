@@ -43,6 +43,7 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
 
   .divider{height:9px;background:var(--bg2)}
   .sec-title{font-size:17px;font-weight:800;padding:22px 22px 2px;display:flex;align-items:center;gap:8px}
+  .sec-desc{font-size:13px;color:var(--text3);padding:3px 22px 0}
 
   .icons{padding:6px 22px 22px}
   .icon-row{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--border)}
@@ -52,6 +53,20 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
   .icon-row .txt p{font-size:12.5px;color:var(--text3)}
 
   .pin{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:3px}
+
+  /* 코스 카드 미리보기 */
+  .course-demo{margin:14px 22px 12px;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .course-demo .cover{background:linear-gradient(135deg,#6b6255,#3b352d);padding:14px;color:#fff}
+  .course-demo .badges{display:flex;gap:5px;margin-bottom:24px}
+  .course-demo .badge{background:rgba(255,255,255,.93);color:var(--gold);font-size:10px;font-weight:800;padding:4px 9px;border-radius:20px}
+  .course-demo .badge.dark{background:rgba(0,0,0,.42);color:#fff}
+  .course-demo .region{font-size:11px;font-weight:600;opacity:.85}
+  .course-demo .cname{font-size:18px;font-weight:800}
+  .course-demo .stat{display:flex;align-items:center;gap:14px;padding:11px 14px;font-size:12px;color:var(--text2);font-weight:600}
+  .course-demo .stat .more{margin-left:auto;color:var(--gold);font-weight:800}
+  .course-note{font-size:12.5px;color:var(--text3);padding:0 22px 18px;line-height:1.65}
+  .course-note b{color:var(--text2)}
+  .sub-title{font-size:14.5px;font-weight:800;padding:8px 22px 0}
 
   .faq{padding:8px 22px 22px}
   .faq details{border-bottom:1px solid var(--border);padding:14px 0}
@@ -77,7 +92,7 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
   <div class="hero">
     <div class="star">⭐</div>
     <h1>한류 성지, 지도에서 찾다</h1>
-    <p>좋아하는 드라마·배우가 다녀간 실제 장소를 지도에서 찾고, 직접 가본 곳을 사진으로 남겨보세요.</p>
+    <p>좋아하는 드라마·배우가 다녀간 실제 장소를 지도에서 찾고, 코스로 묶어 떠나고, 가본 곳을 사진으로 남겨보세요.</p>
   </div>
 
   <div class="sec-title">🚀 5분이면 충분해요</div>
@@ -86,7 +101,7 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
       <div class="num">1</div>
       <div class="body">
         <h3>🔎 장소·배우로 검색</h3>
-        <p>위쪽 검색창에 지명(예: 서울역)을 넣으면 지도에서 찾아줘요. 아래 <b>배우·드라마 검색</b>에 배우 이름을 넣으면 그 배우의 성지가 한 번에 모여요.</p>
+        <p>위쪽 검색창에 지명(예: 서울역)을 넣으면 지도에서 찾아줘요. 아래 <b>배우·드라마·그룹 검색</b>에 이름을 넣으면 그 배우의 성지가 한 번에 모여요.</p>
       </div>
     </div>
     <div class="step">
@@ -94,11 +109,19 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
       <div class="body">
         <h3>📍 핀을 눌러 정보 보기</h3>
         <p>지도의 핀을 누르면 아래에서 정보 창이 올라와요. 어떤 작품의 어떤 장면인지, 주소, 사진을 볼 수 있어요.</p>
-        <div class="tip">💡 정보 창을 위로 밀면 더 크게, 아래로 밀면 접혀요</div>
+        <div class="tip">💡 위쪽 손잡이(━)를 잡고 올리면 크게, 내리면 접혀요</div>
       </div>
     </div>
     <div class="step">
       <div class="num">3</div>
+      <div class="body">
+        <h3>🧭 코스로 떠나기</h3>
+        <p>한 곳만 보고 오기 아쉽다면 <b>코스</b> 탭을 열어보세요. 가까운 성지들을 하루 동선으로 묶어뒀어요.</p>
+        <div class="tip">💡 바로 아래에서 자세히 알려드려요</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">4</div>
       <div class="body">
         <h3>📸 다녀왔으면 인증하기</h3>
         <p>실제로 가본 곳이라면 <b>가본곳·사진 올리기</b>를 눌러 사진을 남겨보세요. 내 기록으로 쌓이고, 다른 팬들도 볼 수 있어요.</p>
@@ -106,20 +129,84 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
       </div>
     </div>
     <div class="step">
-      <div class="num">4</div>
+      <div class="num">5</div>
       <div class="body">
         <h3>🔖 가고 싶은 곳 저장</h3>
         <p><b>저장</b>을 누르면 나중에 갈 곳으로 담아둘 수 있어요. <b>내 공간</b> 탭에서 모아볼 수 있어요.</p>
       </div>
     </div>
     <div class="step">
-      <div class="num">5</div>
+      <div class="num">6</div>
       <div class="body">
         <h3>🧭 길찾기</h3>
-        <p><b>길찾기</b>를 누르면 구글·네이버·카카오 지도로 연결돼요. 원하는 앱으로 바로 안내받으세요.</p>
+        <p><b>길찾기</b>를 누르면 구글·네이버·카카오 지도 중에서 고를 수 있어요. 원하는 앱으로 바로 안내받으세요.</p>
       </div>
     </div>
   </section>
+
+  <div class="divider"></div>
+
+  <!-- ═══ 코스 탭 (신규 기능) ═══ -->
+  <div class="sec-title">🧭 코스 &mdash; 최애의 발자국</div>
+  <div class="sec-desc">그들이 걸었던 길을, 그대로</div>
+
+  <div class="course-demo">
+    <div class="cover">
+      <div class="badges">
+        <span class="badge">⭐ K-POP</span>
+        <span class="badge dark">하루</span>
+      </div>
+      <div class="region">부산</div>
+      <div class="cname">에이핑크의 부산</div>
+    </div>
+    <div class="stat">
+      <span>🧭 6곳</span>
+      <span>⏱ 7h 22m</span>
+      <span>📏 11km</span>
+      <span class="more">코스 보기 ▼</span>
+    </div>
+  </div>
+
+  <div class="course-note">
+    카드에 <b>몇 곳</b>을 도는지, <b>얼마나</b> 걸리는지, <b>총 거리</b>가 적혀 있어요.<br>
+    <b>코스 보기</b>를 누르면 1번부터 순서대로 펼쳐집니다.
+  </div>
+
+  <div class="sub-title">펼치면 이런 게 보여요</div>
+  <div class="icons">
+    <div class="icon-row">
+      <div class="ic">1️⃣</div>
+      <div class="txt"><h4>순서대로 도는 길</h4><p>가까운 곳끼리 묶어 동선을 짜뒀어요. 1번부터 차례로 가면 돼요</p></div>
+    </div>
+    <div class="icon-row">
+      <div class="ic">⏱</div>
+      <div class="txt"><h4>머무르기 시간</h4><p>각 장소에서 얼마나 있으면 좋을지 알려줘요</p></div>
+    </div>
+    <div class="icon-row">
+      <div class="ic">🚌</div>
+      <div class="txt"><h4>다음 장소까지</h4><p>거리·예상 시간이 나와요. <b>길찾기</b>를 누르면 카카오맵으로 연결돼요</p></div>
+    </div>
+    <div class="icon-row">
+      <div class="ic">🗺️</div>
+      <div class="txt"><h4>지도에서 보기</h4><p>그 장소를 지도에서 바로 열어볼 수 있어요</p></div>
+    </div>
+  </div>
+
+  <div class="sub-title">원하는 코스만 골라 보기</div>
+  <div class="icons">
+    <div class="icon-row">
+      <div class="ic">🔍</div>
+      <div class="txt"><h4>검색</h4><p>아티스트·작품·지역으로 찾기 (예: 방탄, 경주)</p></div>
+    </div>
+    <div class="icon-row">
+      <div class="ic">⭐</div>
+      <div class="txt"><h4>K-POP · 🎬 드라마</h4><p>보고 싶은 종류만 골라서</p></div>
+    </div>
+    <div class="icon-row">
+      <div class="ic">☀️</div>
+      <div class="txt"><h4>반나절 · 🌙 하루</h4><p>시간에 맞는 코스만 골라서</p></div>
+    </div>
+  </div>
 
   <div class="divider"></div>
 
@@ -156,12 +243,38 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
       <div class="txt"><h4>피드</h4><p>다른 팬들의 인증 사진 구경</p></div>
     </div>
     <div class="icon-row">
+      <div class="ic">🧭</div>
+      <div class="txt"><h4>코스</h4><p>성지를 하루 동선으로 묶은 추천 코스</p></div>
+    </div>
+    <div class="icon-row">
       <div class="ic">🌐</div>
       <div class="txt"><h4>언어</h4><p>원하는 언어로 화면 번역</p></div>
     </div>
     <div class="icon-row">
       <div class="ic">👤</div>
       <div class="txt"><h4>내 공간</h4><p>내 인증·저장·받은 하트 모아보기</p></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sec-title">☰ 더보기 메뉴</div>
+  <div class="icons">
+    <div class="icon-row">
+      <div class="ic">📖</div>
+      <div class="txt"><h4>사용 설명서</h4><p>지금 보고 계신 이 화면이에요</p></div>
+    </div>
+    <div class="icon-row">
+      <div class="ic">📝</div>
+      <div class="txt"><h4>자유게시판</h4><p>팬들끼리 이야기 나누는 곳</p></div>
+    </div>
+    <div class="icon-row">
+      <div class="ic">✉️</div>
+      <div class="txt"><h4>개발자에게 의견</h4><p>불편한 점·바라는 점을 알려주세요</p></div>
+    </div>
+    <div class="icon-row">
+      <div class="ic">🌐</div>
+      <div class="txt"><h4>언어 선택</h4><p>화면 언어 바꾸기</p></div>
     </div>
   </div>
 
@@ -182,6 +295,14 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
   <div class="sec-title">❓ 자주 묻는 질문</div>
   <div class="faq">
     <details>
+      <summary>코스는 누가 만든 건가요?</summary>
+      <p>가까운 성지끼리 자동으로 묶어 동선을 짠 추천 코스예요. 이동 시간은 예상치라서, 정확한 경로는 각 구간의 <b>길찾기</b>에서 확인하시는 게 좋아요.</p>
+    </details>
+    <details>
+      <summary>코스를 꼭 순서대로 가야 하나요?</summary>
+      <p>아니요. 가까운 곳끼리 묶은 추천 순서일 뿐이에요. 마음에 드는 곳만 골라 가셔도 좋아요.</p>
+    </details>
+    <details>
       <summary>사진을 올리려면 꼭 로그인해야 하나요?</summary>
       <p>네, 사진 인증은 구글 로그인이 필요해요. 저장(가고싶어요)은 로그인 없이도 됩니다.</p>
     </details>
@@ -195,7 +316,7 @@ function googleTranslateElementInit(){new google.translate.TranslateElement({pag
     </details>
     <details>
       <summary>성지 정보가 틀렸어요 / 추가하고 싶어요</summary>
-      <p>더보기(☰) → 문의·건의로 알려주시면 확인해서 반영할게요.</p>
+      <p>더보기(☰) → 개발자에게 의견으로 알려주시면 확인해서 반영할게요.</p>
     </details>
   </div>
 
