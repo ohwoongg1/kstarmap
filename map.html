@@ -340,7 +340,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.8.7';
+const VERSION = 'map v1.8.8';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -977,7 +977,7 @@ window.openHallyuSearch = function() {
       '<button onclick="document.getElementById(\'hallyuSearch\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">‹</button>' +
       '<div style="flex:1;display:flex;align-items:center;gap:7px;background:var(--bg2);border-radius:22px;padding:9px 14px">' +
         '<span style="font-size:15px;color:var(--gold)">🔍</span>' +
-        '<input id="hallyuInput" type="text" placeholder="배우·드라마·영화·그룹명 검색" autocomplete="off" style="flex:1;border:none;outline:none;background:none;font-size:14px;color:var(--text)">' +
+        '<input id="hallyuInput" type="text" placeholder="' + (isEn() ? 'Search artist, drama, movie' : '배우·드라마·영화·그룹명 검색') + '" autocomplete="off" style="flex:1;border:none;outline:none;background:none;font-size:14px;color:var(--text)">' +
       '</div>' +
     '</div>' +
     '<div id="hallyuResults" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">' +
@@ -998,12 +998,15 @@ function doHallyuSearch(q) {
   if (!box) return;
   if (!q) { box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px"><div style="font-size:34px;margin-bottom:10px">🎬</div>' + t('hallyuPlaceholder') + '</div>'; return; }
   const lq = q.replace(/\s/g,'').toLowerCase();
-  const matched = _pilgrimData.filter(d => {
-    const title = (d.title||'').replace(/\s/g,'').toLowerCase();
-    const place = (d.placeName||'').replace(/\s/g,'').toLowerCase();
-    const actors = (Array.isArray(d.actors) ? d.actors.join('') : (d.actors||'')).replace(/\s/g,'').toLowerCase();
-    return title.includes(lq) || place.includes(lq) || actors.includes(lq);
-  });
+  // 한국어 + 영어 필드를 모두 검색한다.
+  // (title_en 이 데이터에 있는데 그동안 검색에 안 써서 'BTS','Blackpink'로 검색이 안 됐다)
+  const norm = s => String(s || '').replace(/\s/g,'').toLowerCase();
+  const blobOf = d => {
+    const actors = Array.isArray(d.actors) ? d.actors.join('') : (d.actors || '');
+    return norm(d.title) + '|' + norm(d.title_en) + '|' +
+           norm(d.placeName) + '|' + norm(actors) + '|' + norm(d.addr_en);
+  };
+  const matched = _pilgrimData.filter(d => blobOf(d).includes(lq));
   if (!matched.length) {
     box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">' + t('noResult') + '</div>';
     return;
@@ -1021,7 +1024,7 @@ function doHallyuSearch(q) {
     if (found) { actorLabel = found; break; }
   }
 
-  let html = '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">' + matched.length + '곳의 성지를 찾았어요</div>';
+  let html = '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">' + matched.length + (isEn() ? ' spots found' : '곳의 성지를 찾았어요') + '</div>';
 
   // ★ 배우 필터 항목 (맨 위, 강조)
   if (actorMatched.length) {
@@ -1041,10 +1044,12 @@ function doHallyuSearch(q) {
     const d0 = list[0];
     const icon = d0.mediaType === 'artist' ? '⭐' : d0.mediaType === 'movie' ? '🎬' : '📺';
     const actors = Array.isArray(d0.actors) ? d0.actors.slice(0,3).join(', ') : (d0.actors||'');
+    // 영어 모드면 영문 제목을 보여준다 (필터 값은 한글 title 그대로 — 데이터 키이므로)
+    const shown = (isEn() && d0.title_en) ? d0.title_en : title;
     return '<div onclick="applyTitleFilter(\'' + title.replace(/'/g,"\\'") + '\')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer">' +
       '<div style="width:44px;height:44px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">' + icon + '</div>' +
-      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text)">' + title.replace(/</g,'&lt;') + '</div>' +
-      '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + list.length + '곳' + (actors?' · '+actors.replace(/</g,'&lt;'):'') + '</div></div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text)">' + shown.replace(/</g,'&lt;') + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + list.length + (isEn()?' spots':'곳') + (actors?' · '+actors.replace(/</g,'&lt;'):'') + '</div></div>' +
       '<span style="color:var(--gold);font-size:13px;font-weight:700;flex-shrink:0">' + (isEn()?'Filter ›':'필터 ›') + '</span>' +
     '</div>';
   }).join('');
