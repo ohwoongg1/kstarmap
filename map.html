@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <!-- Google Analytics -->
@@ -2691,7 +2691,7 @@ window.renderCourseList = async function(force) {
   const q = _courseQuery.replace(/\s/g, '').toLowerCase();
   if (q) {
     list = list.filter(c => {
-      const hay = ((c.title || '') + (c.region || '') + (c.name || '') +
+      const hay = ((c.title || '') + (c.title_en || '') + (c.region || '') + (c.name || '') +
         (Array.isArray(c.stops) ? c.stops.map(s => s.name).join('') : ''))
         .replace(/\s/g, '').toLowerCase();
       return hay.includes(q);
