@@ -1,6 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KCN5LJW50M"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-KCN5LJW50M');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>KStarMap · 통합지도</title>
@@ -41,6 +49,69 @@
   .c-pill{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:15px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer}
   .c-pill.on{background:var(--gold);border-color:var(--gold);color:#fff}
 
+  /* ═══ 코스 탭: 카드 ═══ */
+  .cs-card{transition:transform .18s ease, box-shadow .18s ease}
+
+  /* ═══ 코스 탭: 데스크톱 (≥900px) ═══
+     모바일(<900px)은 기존 그대로. 여기서만 폭 제한 + 그리드. */
+  @media (min-width:900px){
+    /* 헤더·검색·필터·목록 모두 같은 폭으로 중앙 정렬 */
+    .cs-wrap{max-width:1160px;margin:0 auto;width:100%;box-sizing:border-box}
+
+    #courseView{background:var(--bg2)}
+    #courseView .cs-head{padding:38px 24px 6px}
+    #courseView .cs-head .cs-title{font-size:34px;letter-spacing:-.8px}
+    #courseView .cs-head .cs-sub{font-size:14.5px;margin-top:7px}
+
+    /* 검색 + 필터를 한 줄로 */
+    .cs-controls{display:flex;align-items:center;gap:14px;padding:18px 24px 20px;flex-wrap:wrap}
+    .cs-controls .cs-search{flex:0 0 320px;position:relative;padding:0}
+    .cs-controls #courseFilters{flex:1;min-width:0;padding:0;overflow-x:visible;flex-wrap:wrap}
+
+    /* 목록: 카드 그리드 */
+    .cs-count{padding:0 24px 12px !important}
+    .cs-grid{
+      padding:0 24px 60px !important;
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+      gap:22px;
+      align-items:start;
+    }
+    /* 펼쳐진 카드는 한 줄 전체를 차지 */
+    .cs-grid .cs-card.cs-open{grid-column:1 / -1}
+
+    .cs-card{margin-bottom:0 !important;border:1px solid var(--border)}
+    .cs-card:hover{transform:translateY(-3px);box-shadow:0 4px 10px rgba(0,0,0,.07),0 14px 34px rgba(0,0,0,.09)}
+    .cs-card .cs-cover{height:194px !important}
+    .cs-card.cs-open .cs-cover{height:290px !important}
+    .cs-card.cs-open .cs-cover .cs-name{font-size:27px !important}
+
+    /* 펼친 타임라인: 2열 그리드 — 세로로 먼저 채움 (1,2,3 / 4,5)
+       코스는 순서대로 걷는 것이므로 좌열을 다 읽고 우열로 넘어가야 흐름이 맞음.
+       ※ column-count는 스텝 연결선(flex:1)이 열 높이만큼 늘어나므로 사용 불가
+       ※ --cs-rows 는 renderCourseList에서 stop 수에 따라 주입 */
+    .cs-card.cs-open .cs-timeline{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      grid-template-rows:repeat(var(--cs-rows,1), auto);
+      grid-auto-flow:column;
+      gap:4px 34px;
+      align-items:start;
+      padding:22px 26px 18px !important;
+    }
+    /* 안내문은 흐름에서 빼고 항상 마지막 줄 전체 */
+    .cs-card.cs-open .cs-note{
+      grid-row:calc(var(--cs-rows,1) + 1);
+      grid-column:1 / -1;
+    }
+    /* 좌열 맨 아래 스톱: 아래로 이어질 것이 없으므로 연결선 숨김
+       (모바일은 1열이라 실제로 아래로 이어지므로 선을 그대로 둠) */
+    .cs-card.cs-open .cs-stop.cs-colend .cs-line{display:none}
+
+    .cs-card button{transition:filter .15s,background .15s}
+    .cs-card button:hover{filter:brightness(.93)}
+  }
+
   /* 지도 */
   #mapWrap{flex:1;position:relative;min-height:0}
   #map{width:100%;height:100%}
@@ -48,16 +119,18 @@
   .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
 
   /* 장소 시트 */
-  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:6px 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #placeSheet.show{transform:translateY(0)}
   #sheetExtra{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
+  #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:12;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
   .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
-  .place-head{display:flex;align-items:center;gap:11px}
+  /* 장소명도 상단에 고정 → 스크롤해도 어느 곳인지 항상 보임 */
+  .place-head{position:sticky;top:44px;background:var(--bg);z-index:11;display:flex;align-items:center;gap:11px;margin:0 -16px;padding:0 16px 4px}
   .place-pin{width:36px;height:36px;flex-shrink:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
   .place-name{font-size:15px;font-weight:800;color:var(--text)}
   .place-sub{font-size:12px;color:var(--text3);margin-top:2px}
   .cert-btn{width:100%;margin-top:12px;padding:12px;background:var(--gold);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
-  .place-close{position:absolute;top:12px;right:14px;width:28px;height:28px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:15px;cursor:pointer}
+  .place-close{position:absolute;top:8px;right:14px;width:32px;height:32px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:15px;cursor:pointer;z-index:4}
 
   /* 검색 결과 리스트 */
   #searchResults{position:absolute;top:0;left:0;right:0;background:var(--bg);max-height:100%;overflow-y:auto;z-index:28;display:none}
@@ -92,7 +165,7 @@
       <input id="searchInput" type="text" placeholder="장소·주소 검색 (예: 중앙고등학교)" autocomplete="off">
       <span id="searchClear" style="display:none;font-size:16px;color:var(--text3);cursor:pointer">✕</span>
     </div>
-    <button id="langToggle" onclick="setLang(document.documentElement.dataset.lang==='en'?'ko':'en')" style="flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">EN</button>
+    <button id="langToggle" onclick="openMoreMenu()" style="flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;font-size:15px;font-weight:700;color:var(--text2);cursor:pointer">☰</button>
   </div>
 
   <div id="contentBar" style="display:flex;gap:6px;padding:6px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
@@ -104,16 +177,17 @@
       <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
       <div class="chip" id="chipRest" onclick="toggleFilter('rest')"><span class="dot" style="background:var(--amber)"></span>맛집</div>
     </div>
-    <button class="search-here-btn" id="searchHereBtn" onclick="searchThisArea()">🔄 이 지역 다시 검색</button>
     <button class="my-loc-btn" onclick="goMyLocation()">📍</button>
 
     <div id="searchResults"></div>
 
     <div id="placeSheet">
-      <div id="sheetHandle" style="padding:8px 0 10px;cursor:grab;text-align:center;flex-shrink:0">
-        <div class="sheet-handle" style="margin:0 auto"></div>
+      <div id="sheetTopBar">
+        <div id="sheetHandle" style="padding:10px 0 14px;cursor:grab;text-align:center;flex-shrink:0">
+          <div class="sheet-handle" style="margin:0 auto"></div>
+        </div>
+        <button class="place-close" onclick="closePlaceSheet()">✕</button>
       </div>
-      <button class="place-close" onclick="closePlaceSheet()">✕</button>
       <div class="place-head">
         <div class="place-pin" id="sheetPin" style="background:var(--red)"></div>
         <div style="flex:1;min-width:0">
@@ -123,7 +197,7 @@
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
-        <button onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px" title="저장"><span id="saveBtnIcon" style="font-size:18px">📑</span><span style="font-size:10px;font-weight:700">저장</span></button>
+        <button id="saveBtn" onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px" title="저장"><span id="saveBtnIcon" style="font-size:18px">🔖</span><span id="saveBtnLabel" style="font-size:10px;font-weight:700">저장</span></button>
         <button onclick="openNavigation()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px"><span style="font-size:18px">🧭</span><span id="navLabel" style="font-size:10px;font-weight:700">길찾기</span></button>
       </div>
       <div id="sheetExtra">
@@ -151,18 +225,45 @@
     </div>
   </div>
 
+  <div id="courseView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg2)">
+    <div class="cs-wrap cs-head" style="padding:16px 16px 10px">
+      <div class="cs-title" style="font-size:21px;font-weight:800;color:var(--text);letter-spacing:-.3px">최애의 발자국</div>
+      <div class="cs-sub" style="font-size:12.5px;color:var(--text3);margin-top:4px;line-height:1.4">그들이 걸었던 길을, 그대로</div>
+    </div>
+    <div class="cs-wrap cs-controls">
+      <div class="cs-search" style="padding:0 16px 10px;position:relative">
+        <span style="position:absolute;left:28px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5;pointer-events:none">🔍</span>
+        <input id="courseSearchInput" type="text" oninput="onCourseSearch(this.value)"
+          placeholder="아티스트·작품·지역 검색 (예: 방탄, 경주)"
+          style="width:100%;padding:11px 36px 11px 34px;font-size:13.5px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none">
+        <button id="courseClearBtn" onclick="clearCourseSearch()" style="display:none;position:absolute;right:26px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:15px;color:var(--text3);cursor:pointer;padding:4px">✕</button>
+      </div>
+      <div id="courseFilters" style="display:flex;gap:7px;overflow-x:auto;padding:2px 16px 12px;scrollbar-width:none;-ms-overflow-style:none"></div>
+    </div>
+    <div id="courseBody" class="cs-wrap">
+      <div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)">불러오는 중...</div>
+    </div>
+  </div>
+
   <div id="myView" style="display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)">
     <div id="myProfile" style="padding:20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px"></div>
     <div id="myBody">
       <div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)">불러오는 중...</div>
+    </div>
+    <div style="padding:24px 16px 40px;text-align:center;border-top:1px solid var(--border);margin-top:20px">
+      <div style="font-size:15px;font-weight:800;color:var(--gold)">⭐ KStarMap</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">K-드라마·K-스타 성지 지도</div>
+      <div id="appVersion" style="font-size:11px;color:var(--text3);margin-top:8px"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">관광정보 · 사진 제공: 한국관광공사</div>
     </div>
   </div>
 
   <div class="bottomnav">
     <div class="navtab active" onclick="switchTab('map')"><div class="ic">🗺️</div><div class="tx">지도</div></div>
     <div class="navtab" onclick="switchTab('feed')"><div class="ic">📸</div><div class="tx">피드</div></div>
-    <div class="navtab" onclick="switchTab('saved')"><div class="ic">🔖</div><div class="tx">저장</div></div>
-    <div class="navtab" onclick="switchTab('my')"><div class="ic">👤</div><div class="tx">내정보</div></div>
+    <div class="navtab" onclick="switchTab('course')"><div class="ic">🧭</div><div class="tx">코스</div></div>
+    <div class="navtab" onclick="openLangPicker()"><div class="ic">🌐</div><div class="tx">언어</div></div>
+    <div class="navtab" onclick="switchTab('my')"><div class="ic">👤</div><div class="tx">내 공간</div></div>
   </div>
 
 </div>
@@ -229,16 +330,18 @@ let _pilgrimData = [], _restData = [];
 let _pilgrimMarkers = [], _restMarkers = [], _searchMarkers = [];
 let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
-const VERSION = 'map v0.5.7';
+let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
+let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
+const VERSION = 'map v1.8.1';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
-let LANG = localStorage.getItem('starspoon_lang') || 'ko';
+let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
 const I18N = {
   ko: {
     searchPlace: '장소·주소 검색 (예: 중앙고등학교)',
     search:'검색', pilgrim:'성지', rest:'맛집',
     hallyuSearch:'배우·드라마·그룹 검색', all:'전체',
-    tabMap:'지도', tabFeed:'피드', tabSaved:'저장', tabMy:'내정보',
+    tabMap:'지도', tabFeed:'피드', tabSaved:'저장', tabMy:'내 공간',
     certBtn:'📸 가본곳 · 사진 올리기', save:'저장', nav:'길찾기',
     thisCert:'📸 이곳의 인증', noCertHere:'아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!',
     expandHint:'위로 올리면 이곳의 인증을 볼 수 있어요',
@@ -262,7 +365,7 @@ const I18N = {
     searchPlace: 'Search place or address',
     search:'Search', pilgrim:'Spots', rest:'Food',
     hallyuSearch:'Search actor·drama·group', all:'All',
-    tabMap:'Map', tabFeed:'Feed', tabSaved:'Saved', tabMy:'Me',
+    tabMap:'Map', tabFeed:'Feed', tabSaved:'Saved', tabMy:'My Space',
     certBtn:'📸 I\'ve been here · Add photo', save:'Save', nav:'Directions',
     thisCert:'📸 Visits here', noCertHere:'No visits yet.<br>Be the first to check in!',
     expandHint:'Swipe up to see visits here',
@@ -291,6 +394,239 @@ window.setLang = function(lang) {
   applyLangToUI();
   showToast(lang === 'en' ? 'Language: English' : '언어: 한국어');
 };
+
+// ── 언어 선택 시트 (하단 🌐) ──
+// ko/en = 앱 자체 번역(고품질), 그 외 = 구글 번역 위젯 자동번역
+const LANG_LIST = [
+  { code: 'ko',    label: '한국어',    flag: '🇰🇷', google: null },
+  { code: 'en',    label: 'English',   flag: '🇺🇸', google: 'en' },
+  { code: 'ja',    label: '日本語',     flag: '🇯🇵', google: 'ja' },
+  { code: 'zh-CN', label: '中文(简体)', flag: '🇨🇳', google: 'zh-CN' },
+  { code: 'zh-TW', label: '中文(繁體)', flag: '🇹🇼', google: 'zh-TW' },
+  { code: 'es',    label: 'Español',   flag: '🇪🇸', google: 'es' },
+  { code: 'th',    label: 'ไทย',       flag: '🇹🇭', google: 'th' },
+  { code: 'vi',    label: 'Tiếng Việt', flag: '🇻🇳', google: 'vi' },
+  { code: 'id',    label: 'Indonesia', flag: '🇮🇩', google: 'id' },
+];
+
+// ── 더보기(햄버거 ☰) 메뉴 — 사이트 확장용 ──
+window.openMoreMenu = function() {
+  const old = document.getElementById('moreSheet');
+  if (old) old.remove();
+  const item = (icon, label, onclick) =>
+    '<button onclick="' + onclick + '" style="display:flex;align-items:center;gap:14px;width:100%;padding:16px;background:none;border:none;border-bottom:0.5px solid var(--border);font-size:15px;color:var(--text);cursor:pointer;text-align:left">' +
+      '<span style="font-size:22px;width:26px;text-align:center">' + icon + '</span>' +
+      '<span style="flex:1;font-weight:600">' + label + '</span>' +
+      '<span style="color:var(--text3);font-size:18px">›</span>' +
+    '</button>';
+  const sheet = document.createElement('div');
+  sheet.id = 'moreSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'moreSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
+      '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
+      '<div style="font-size:16px;font-weight:800;color:var(--text);padding:4px 16px 10px">☰ 더보기</div>' +
+      item('📖', '사용 설명서', "location.href='guide.html'") +
+      item('📝', '자유게시판', "document.getElementById('moreSheet').remove();openBoard()") +
+      item('✉️', '개발자에게 의견', "document.getElementById('moreSheet').remove();openDevFeedback()") +
+      item('🌐', '언어 선택', "document.getElementById('moreSheet').remove();openLangPicker()") +
+      '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 성지 지도</div>' +
+    '</div>';
+  document.body.appendChild(sheet);
+};
+
+// ── 개발자에게 의견 (Firebase 저장) ──
+window.openDevFeedback = function() {
+  const old = document.getElementById('devSheet');
+  if (old) old.remove();
+  const sheet = document.createElement('div');
+  sheet.id = 'devSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'devSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:0 18px calc(20px + env(safe-area-inset-bottom))">' +
+      '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 8px"></div>' +
+      '<div style="font-size:16px;font-weight:800;padding:4px 0 4px">✉️ 개발자에게 의견</div>' +
+      '<div style="font-size:12.5px;color:var(--text3);margin-bottom:12px">버그·건의·성지 추가 요청 등 자유롭게 남겨주세요.</div>' +
+      '<textarea id="devMsg" placeholder="의견을 입력하세요..." style="width:100%;height:120px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+      '<input id="devContact" placeholder="답변받을 이메일 (선택)" style="width:100%;margin-top:8px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;background:var(--bg2);color:var(--text)">' +
+      '<button onclick="submitDevFeedback()" style="width:100%;margin-top:12px;padding:14px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">보내기</button>' +
+    '</div>';
+  document.body.appendChild(sheet);
+};
+window.submitDevFeedback = async function() {
+  const msg = document.getElementById('devMsg').value.trim();
+  const contact = document.getElementById('devContact').value.trim();
+  if (!msg) { showToast('의견을 입력해주세요'); return; }
+  try {
+    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
+    await addDoc(collection(db, 'feedback'), {
+      message: msg, contact: contact,
+      uid: window.currentUser?.uid || '', userName: window.currentUser?.displayName || '',
+      createdAt: serverTimestamp()
+    });
+    document.getElementById('devSheet').remove();
+    showToast('🙏 소중한 의견 감사합니다!');
+  } catch(e) { showToast('전송 실패: ' + (e.message||e)); }
+};
+
+// ── 자유게시판 (Firebase board 컬렉션) ──
+window.openBoard = async function() {
+  const old = document.getElementById('boardSheet');
+  if (old) old.remove();
+  const sheet = document.createElement('div');
+  sheet.id = 'boardSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column';
+  sheet.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
+      '<button onclick="document.getElementById(\'boardSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<div style="font-size:16px;font-weight:800;flex:1">📝 자유게시판</div>' +
+      '<button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
+    '</div>' +
+    '<div id="boardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
+  document.body.appendChild(sheet);
+  loadBoardList();
+};
+async function loadBoardList() {
+  const list = document.getElementById('boardList');
+  try {
+    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
+    const snap = await getDocs(query(collection(db, 'board'), orderBy('createdAt', 'desc'), limit(50)));
+    const posts = [];
+    snap.forEach(d => posts.push({ id: d.id, ...d.data() }));
+    if (!posts.length) {
+      list.innerHTML = '<div style="padding:60px 24px;text-align:center;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">📝</div>아직 글이 없어요.<br>첫 글을 남겨보세요!</div>';
+      return;
+    }
+    list.innerHTML = posts.map(p =>
+      '<div style="padding:15px 18px;border-bottom:1px solid var(--border)">' +
+        '<div style="font-size:15px;font-weight:700;margin-bottom:5px">' + escB(p.title||'') + '</div>' +
+        '<div style="font-size:13px;color:var(--text2);line-height:1.5;white-space:pre-wrap;margin-bottom:8px">' + escB(p.body||'') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3)">' + escB(p.userName||'익명') + ' · ' + timeAgoB(p.createdAt) + '</div>' +
+      '</div>'
+    ).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
+  }
+}
+window.openBoardWrite = function() {
+  if (!window.currentUser) { showToast('로그인이 필요해요'); if (window.loginWithGoogle) loginWithGoogle(); return; }
+  const old = document.getElementById('boardWrite');
+  if (old) old.remove();
+  const w = document.createElement('div');
+  w.id = 'boardWrite';
+  w.style.cssText = 'position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;flex-direction:column';
+  w.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
+      '<button onclick="document.getElementById(\'boardWrite\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<div style="font-size:16px;font-weight:800;flex:1">글쓰기</div>' +
+      '<button onclick="submitBoardPost()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">등록</button>' +
+    '</div>' +
+    '<div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:10px">' +
+      '<input id="boardTitle" placeholder="제목" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
+      '<textarea id="boardBody" placeholder="내용을 입력하세요..." style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+    '</div>';
+  document.body.appendChild(w);
+};
+window.submitBoardPost = async function() {
+  const title = document.getElementById('boardTitle').value.trim();
+  const body = document.getElementById('boardBody').value.trim();
+  if (!title || !body) { showToast('제목과 내용을 입력해주세요'); return; }
+  try {
+    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
+    await addDoc(collection(db, 'board'), {
+      title, body,
+      uid: window.currentUser.uid, userName: window.currentUser.displayName || '익명',
+      createdAt: serverTimestamp()
+    });
+    document.getElementById('boardWrite').remove();
+    showToast('✅ 글이 등록됐어요');
+    loadBoardList();
+  } catch(e) { showToast('등록 실패: ' + (e.message||e)); }
+};
+function escB(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function timeAgoB(ts){
+  if(!ts) return '방금';
+  const t = ts.toMillis ? ts.toMillis() : Date.parse(ts);
+  const diff = Date.now() - t;
+  const m = Math.floor(diff/60000), h = Math.floor(diff/3600000), d = Math.floor(diff/86400000);
+  if (d>0) return d+'일 전'; if (h>0) return h+'시간 전'; if (m>0) return m+'분 전'; return '방금';
+}
+
+window.openLangPicker = function() {
+  const old = document.getElementById('langSheet');
+  if (old) old.remove();
+  const cur = localStorage.getItem('kstar_display_lang') || LANG;
+  const rows = LANG_LIST.map(l =>
+    '<button onclick="pickLang(\'' + l.code + '\')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;background:' + (cur === l.code ? 'var(--bg2)' : 'none') + ';border:none;border-bottom:0.5px solid var(--border);font-size:15px;color:var(--text);cursor:pointer;text-align:left">' +
+      '<span style="font-size:22px">' + l.flag + '</span>' +
+      '<span style="flex:1;font-weight:' + (cur === l.code ? '800' : '500') + '">' + l.label + '</span>' +
+      (cur === l.code ? '<span style="color:var(--gold);font-size:18px">✓</span>' : '') +
+    '</button>'
+  ).join('');
+  const sheet = document.createElement('div');
+  sheet.id = 'langSheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML =
+    '<div onclick="document.getElementById(\'langSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
+      '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
+      '<div style="font-size:16px;font-weight:800;color:var(--text);padding:4px 16px 10px">🌐 ' + (isEn()?'Language':'언어 선택') + '</div>' +
+      rows +
+      '<div style="font-size:11px;color:var(--text3);text-align:center;padding:14px 16px 4px">' +
+        'Powered by Google Translate' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(sheet);
+};
+
+window.pickLang = function(code) {
+  const l = LANG_LIST.find(x => x.code === code);
+  const s = document.getElementById('langSheet');
+  if (s) s.remove();
+  const prev = localStorage.getItem('kstar_display_lang') || 'ko';
+  if (code === prev) return;
+  localStorage.setItem('kstar_display_lang', code);
+  // 앱은 항상 한국어 원문. 번역은 전부 구글에 맡김(하이브리드 충돌 제거).
+  localStorage.setItem('starspoon_lang', 'ko');
+  if (code === 'ko') {
+    setGoogTransCookie('');                    // 번역 해제 → 한국어 원문
+  } else {
+    setGoogTransCookie('/ko/' + l.google);     // 한국어 → 목표언어(영어 포함)
+  }
+  location.reload();
+};
+
+// 구글 번역 해제 (한국어/영어로 되돌릴 때)
+function clearGoogleTranslate() {
+  setGoogTransCookie('');
+}
+function setGoogTransCookie(val) {
+  // googtrans 쿠키를 도메인 전체에 설정/삭제 (1년 유지 → 나갔다 와도 언어 유지)
+  const host = location.hostname;
+  const expANY = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
+  const base = val
+    ? ('googtrans=' + val + ';expires=' + expANY)
+    : ('googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT');
+  document.cookie = base + ';path=/';
+  document.cookie = base + ';path=/;domain=' + host;
+  document.cookie = base + ';path=/;domain=.' + host;
+}
+
+// 앱 UI는 항상 한국어 원문. 저장된 언어는 구글 번역 쿠키로 자동 적용됨.
+// 나갔다 와서 쿠키가 사라졌으면 localStorage 언어로 복원 → 새로고침해서 그 언어로 다시 뜸.
+(function restoreLangCookie() {
+  const saved = localStorage.getItem('kstar_display_lang');
+  if (!saved || saved === 'ko') return;
+  const l = LANG_LIST.find(x => x.code === saved);
+  if (!l || !l.google) return;
+  const hasCookie = document.cookie.indexOf('googtrans=') !== -1;
+  if (!hasCookie) {
+    setGoogTransCookie('/ko/' + l.google);
+    location.reload();   // 쿠키 복원 후 새로고침 → 저장한 언어로 표시
+  }
+})();
 function applyLangToUI() {
   document.documentElement.dataset.lang = LANG;
   const set = (id, key, attr) => {
@@ -309,25 +645,23 @@ function applyLangToUI() {
   if (chipRest) chipRest.innerHTML = '<span class="dot" style="background:var(--amber)"></span>' + t('rest');
   // 하단 탭
   const tabs = document.querySelectorAll('.navtab .tx');
-  if (tabs.length >= 4) {
-    tabs[0].textContent = t('tabMap'); tabs[1].textContent = t('tabFeed');
-    tabs[2].textContent = t('tabSaved'); tabs[3].textContent = t('tabMy');
+  if (tabs.length >= 5) {
+    tabs[0].textContent = t('tabMap');
+    tabs[1].textContent = t('tabFeed');
+    tabs[2].textContent = isEn() ? 'Courses' : '코스';
+    tabs[3].textContent = isEn() ? 'Language' : '언어';
+    tabs[4].textContent = t('tabMy');
   }
   // 시트 버튼
   const certLabel = document.querySelector('#placeSheet .cert-btn');
   if (certLabel) certLabel.textContent = t('certBtn');
-  const saveLabel = document.querySelector('#saveBtnIcon')?.nextElementSibling;
-  if (saveLabel) saveLabel.textContent = t('save');
   const navLabel = document.getElementById('navLabel');
   if (navLabel) navLabel.textContent = t('nav');
-  // 언어 토글 버튼 라벨
-  const lt = document.getElementById('langToggle');
-  if (lt) lt.textContent = isEn() ? '한' : 'EN';
+  // 언어 버튼은 🌐 고정 (구글 번역 시트 열기)
   // 정적 제목들
   const ft = document.getElementById('feedTitleEl'); if (ft) ft.textContent = t('feedTitle');
   const st = document.getElementById('savedTitleEl'); if (st) st.textContent = t('savedTitle');
   const tc = document.getElementById('thisCertTitle'); if (tc) tc.textContent = t('thisCert');
-  const sh = document.getElementById('searchHereBtn'); if (sh) sh.textContent = t('searchHere');
   // 칩바/피드/저장 재렌더
   if (window.updateContentBar) updateContentBar();
 }
@@ -340,6 +674,40 @@ function showToast(msg) {
   window._toastT = setTimeout(() => t.classList.remove('show'), 2800);
 }
 window.showToast = showToast;
+
+// ── 첫 방문 환영 팝업 (오늘 그만 보기) ──
+function showWelcomePopup() {
+  const skip = localStorage.getItem('kstar_welcome_skip');
+  const today = new Date().toISOString().slice(0,10);
+  if (skip === today) return;   // 오늘 그만 보기 누른 날이면 스킵
+  const old = document.getElementById('welcomePopup');
+  if (old) old.remove();
+  const pop = document.createElement('div');
+  pop.id = 'welcomePopup';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,0.45)';
+  pop.innerHTML =
+    '<div style="background:var(--bg);border-radius:20px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25)">' +
+      '<div style="padding:30px 24px 20px;text-align:center;background:linear-gradient(180deg,rgba(181,121,15,0.1),transparent)">' +
+        '<div style="font-size:44px">⭐</div>' +
+        '<div style="font-size:19px;font-weight:800;margin:10px 0 6px">KStarMap에 오신 걸 환영해요</div>' +
+        '<div style="font-size:13.5px;color:var(--text2);line-height:1.6">좋아하는 드라마·배우가 다녀간<br>실제 성지를 지도에서 찾아보세요.</div>' +
+      '</div>' +
+      '<div style="padding:0 20px 20px">' +
+        '<button onclick="location.href=\'guide.html\'" style="width:100%;padding:14px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:9px">📖 사용 설명서 보기</button>' +
+        '<button onclick="closeWelcome()" style="width:100%;padding:13px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">바로 시작하기</button>' +
+        '<label style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:14px;font-size:13px;color:var(--text3);cursor:pointer">' +
+          '<input type="checkbox" id="welcomeSkipChk" style="width:16px;height:16px;accent-color:var(--gold)">오늘 그만 보기</label>' +
+      '</div>' +
+    '</div>';
+  pop.addEventListener('click', (e) => { if (e.target === pop) closeWelcome(); });
+  document.body.appendChild(pop);
+}
+window.closeWelcome = function() {
+  const chk = document.getElementById('welcomeSkipChk');
+  if (chk && chk.checked) localStorage.setItem('kstar_welcome_skip', new Date().toISOString().slice(0,10));
+  const p = document.getElementById('welcomePopup');
+  if (p) p.remove();
+};
 
 // ── 지도 초기화 ──
 function initMap() {
@@ -359,14 +727,11 @@ function initMap() {
     renderPilgrimPinsInView();
     renderRestPinsInView();
   });
-  kakao.maps.event.addListener(map, 'dragend', () => {
-    document.getElementById('searchHereBtn').style.display = 'flex';
-  });
-  // 지도 빈 곳 탭 → 시트 닫기
+  // 지도 빈 곳 탭 → 시트 닫기 (단, 핀을 방금 눌러 연 경우는 무시)
   kakao.maps.event.addListener(map, 'click', function() {
+    if (Date.now() - _lastPinTap < 400) return;   // 핀 탭 직후의 지도 click은 무시
     closePlaceSheet();
-    // 검색 핀 제거 (초기 상태로)
-    if (_searchMarkers.length) { clearMarkers(_searchMarkers); }
+    // 검색 핀은 유지 (지우지 않음) — 검색 결과를 계속 볼 수 있게
   });
 
   // 내 위치
@@ -451,15 +816,17 @@ async function loadAllData() {
 
 // ── 핀 렌더 (뷰포트 기반) ──
 // content를 실제 DOM 엘리먼트로 생성 → 클릭 리스너 직접 연결(안정적)
-function makePinEl(color, icon, handler, highlight) {
+let _lastPinTap = 0;
+function makePinEl(color, icon, handler, highlight, sizeOverride) {
   const el = document.createElement('div');
-  const size = highlight ? 36 : 26;
+  const size = sizeOverride || (highlight ? 36 : 26);
   el.style.cssText = 'position:relative;width:' + size + 'px;height:' + size + 'px;cursor:pointer;z-index:' + (highlight ? 10 : 3);
   const pinColor = highlight ? '#E5197B' : color;
   const ring = highlight ? 'box-shadow:0 0 0 3px rgba(229,25,123,0.3),0 2px 6px rgba(0,0,0,0.4);' : 'box-shadow:0 1px 3px rgba(0,0,0,0.3);';
   const border = highlight ? '3px solid #fff' : '2px solid #fff';
-  el.innerHTML = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50% 50% 50% 0;background:' + pinColor + ';transform:rotate(-45deg);border:' + border + ';' + ring + '"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:' + (highlight?16:12) + 'px;pointer-events:none">' + (highlight ? '⭐' : icon) + '</div>';
-  el.addEventListener('click', (e) => { e.stopPropagation(); handler(); });
+  const iconSize = Math.round(size * 0.46);
+  el.innerHTML = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50% 50% 50% 0;background:' + pinColor + ';transform:rotate(-45deg);border:' + border + ';' + ring + '"></div><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:' + (highlight?16:iconSize) + 'px;pointer-events:none">' + (highlight ? '⭐' : icon) + '</div>';
+  el.addEventListener('click', (e) => { e.stopPropagation(); _lastPinTap = Date.now(); handler(); });
   return el;
 }
 
@@ -512,7 +879,7 @@ function renderPilgrimPinsInView() {
     // 필터/작품칩이 걸려있으면 그 핀을 강조
     const highlight = !!(_hallyuFilter || _contentFilter || _hallyuFocus);
     const el = makePinEl('#378ADD', icon, () => openPlaceSheet({
-      name: (isEn() ? (d.placeName || d.title_en || d.title) : (d.placeName || d.title)) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
+      name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
       lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
     }), highlight);
     const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: highlight ? 10 : 3 });
@@ -575,8 +942,16 @@ window.clearHallyuFilter = function() {
 };
 function renderActiveFilterChip() { updateContentBar(); }
 window.selectContent = function(title) {
+  // 같은 항목을 다시 누르면 해제(토글)
+  if (title && _contentFilter === title) {
+    _contentFilter = null;
+    _hallyuFocus = null;
+    renderPilgrimPinsInView();
+    showToast('필터 해제');
+    return;
+  }
   _contentFilter = title;
-  if (!title) _hallyuFocus = null;  // 전체 선택 시 포커스 해제
+  if (!title) _hallyuFocus = null;
   renderPilgrimPinsInView();
   if (title) showToast('🎬 ' + title + ' 성지만 표시');
 };
@@ -686,17 +1061,35 @@ function finishHallyuFilter(label) {
   _filters.pilgrim = true;
   document.getElementById('chipPilgrim')?.classList.remove('off');
   renderActiveFilterChip();
-  // 필터 통과 성지 중 내 주변 우선
   const list = _pilgrimData.filter(d => d.lat && d.lng && passHallyuFilter(d));
   if (!list.length) { showToast('해당 성지가 없어요'); return; }
-  const dist = (d) => { const a=(d.lat-myLat)*111, b=(d.lng-myLng)*88; return Math.sqrt(a*a+b*b); };
-  const sorted = [...list].sort((x,y) => dist(x)-dist(y));
+
+  // 현재 지도 중심 기준 (명동 검색해서 보고 있으면 명동 유지)
+  let cLat, cLng;
+  try { const c = map.getCenter(); cLat = c.getLat(); cLng = c.getLng(); }
+  catch(e) { cLat = myLat; cLng = myLng; }
+  const dist = (d, la, ln) => { const a=(d.lat-la)*111, b=(d.lng-ln)*88; return Math.sqrt(a*a+b*b); };
+
+  // 지금 보고 있는 화면 안에 필터 성지가 있으면 → 지도 안 움직이고 필터만
+  let inView = [];
+  try {
+    const b = map.getBounds();
+    inView = list.filter(d => b.contain(new kakao.maps.LatLng(d.lat, d.lng)));
+  } catch(e) {}
+  if (inView.length) {
+    showToast(label + ' 성지 ' + inView.length + '곳 (이 지역)');
+    setTimeout(() => renderPilgrimPinsInView(), 100);
+    return;
+  }
+
+  // 화면에 없으면 → 현재 지도 중심에서 가장 가까운 성지로
+  const sorted = [...list].sort((x,y) => dist(x,cLat,cLng) - dist(y,cLat,cLng));
   const nearest = sorted[0];
-  if (dist(nearest) <= 30) {
-    const n = sorted.filter(d => dist(d) <= 30).length;
-    map.setCenter(new kakao.maps.LatLng(myLat, myLng));
+  if (dist(nearest,cLat,cLng) <= 30) {
+    const n = sorted.filter(d => dist(d,cLat,cLng) <= 30).length;
+    map.setCenter(new kakao.maps.LatLng(cLat, cLng));
     map.setLevel(n > 1 ? 6 : 5);
-    showToast('내 주변 ' + label + ' 성지 ' + n + '곳');
+    showToast('이 근처 ' + label + ' 성지 ' + n + '곳');
   } else {
     map.setCenter(new kakao.maps.LatLng(nearest.lat, nearest.lng));
     map.setLevel(6);
@@ -773,15 +1166,40 @@ document.getElementById('searchInput').addEventListener('input', function() {
   document.getElementById('searchClear').style.display = q ? 'block' : 'none';
   clearTimeout(_searchTimer);
   if (!q) { hideSearchResults(); return; }
+  // 다른 탭(피드·저장·내정보)에서 검색하면 지도 탭으로 전환해 결과가 보이게
+  if (_currentView !== 'map') switchTab('map');
   _searchTimer = setTimeout(() => doSearch(q), 350);
 });
 document.getElementById('searchClear').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('searchClear').style.display = 'none';
   hideSearchResults();
+  document.getElementById('searchInput').blur();
+  // 검색 핀 제거 + 검색 시트 닫기
+  clearMarkers(_searchMarkers);
+  closePlaceSheet();
+  // ✕ 로 검색어 지우면 검색 전 보던 지도로 복귀
+  restorePreSearchView();
 });
 
+// 검색으로 지도가 이동하기 직전의 지도 상태 저장 (✕ 복귀용)
+let _preSearchView = null;
+function capturePreSearchView() {
+  if (!map) return;
+  // 이미 검색 세션 중이면 덮어쓰지 않음 (최초 검색 직전 상태 보존)
+  if (_preSearchView) return;
+  const c = map.getCenter();
+  _preSearchView = { lat: c.getLat(), lng: c.getLng(), level: map.getLevel() };
+}
+function restorePreSearchView() {
+  if (!map || !_preSearchView) return;
+  map.setLevel(_preSearchView.level);
+  map.setCenter(new kakao.maps.LatLng(_preSearchView.lat, _preSearchView.lng));
+  _preSearchView = null;
+}
+
 function doSearch(q) {
+  capturePreSearchView();
   // 전국 검색: radius 제한 없이, 내 위치는 정렬 참고용으로만
   ps.keywordSearch(q, (data, status) => {
     if (status === kakao.maps.services.Status.OK) {
@@ -812,41 +1230,117 @@ function showSearchResults(items) {
 function hideSearchResults() { document.getElementById('searchResults').style.display = 'none'; }
 function esc(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-window.pickSearchResult = function(i) {
-  const it = window._searchItems[i];
-  if (!it) return;
+// ── 검색 결과 ↔ 성지 연결 (100m 이내 + 이름 일치) ──
+const SEARCH_LINK_RADIUS = 100;   // m
+function findPilgrimNear(name, lat, lng) {
+  if (!_pilgrimData || !_pilgrimData.length) return null;
+  const n = String(name || '').replace(/\s+/g, '').toLowerCase();
+  if (!n) return null;
+  let best = null, bestD = Infinity;
+  for (const d of _pilgrimData) {
+    if (!d.lat || !d.lng) continue;
+    const dm = haversineM(lat, lng, d.lat, d.lng);
+    if (dm > SEARCH_LINK_RADIUS) continue;
+    const p = String(d.placeName || d.name || '').replace(/\s+/g, '').toLowerCase();
+    if (!p) continue;
+    // 이름 일치: 완전 포함 관계만 허용
+    if (!(p === n || p.includes(n) || n.includes(p))) continue;
+    if (dm < bestD) { best = d; bestD = dm; }
+  }
+  return best;
+}
+
+let _lastSearchPick = null;   // 마지막 검색 선택(토글 껐다 켤 때 복원용)
+function placeSearchPin(it) {
   const lat = parseFloat(it.y), lng = parseFloat(it.x);
-  hideSearchResults();
-  document.getElementById('searchInput').blur();
-  clearMarkers(_searchMarkers);
-  // 빨간 검색 핀
   const pos = new kakao.maps.LatLng(lat, lng);
-  const el = makePinEl('#E24B4A', '📍', () => openPlaceSheet({
-    name: it.place_name,
-    sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
-    lat, lng, color: 'var(--red)', type: 'search',
-    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
-  }));
+  const el = makePinEl('#E24B4A', '📍', () => {
+    // 같은 장소의 성지가 있으면 성지 시트로 (사진·스토리·인증 표시)
+    const pg = findPilgrimNear(it.place_name, lat, lng);
+    if (pg) {
+      openPlaceSheet({
+        name: pg.placeName || pg.name, sub: pg.title || '',
+        lat: pg.lat, lng: pg.lng, color: 'var(--blue)', type: 'pilgrim', raw: pg
+      });
+      return;
+    }
+    openPlaceSheet({
+      name: it.place_name,
+      sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
+      lat, lng, color: 'var(--red)', type: 'search',
+      raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
+    });
+  }, false, 42);
   const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 6 });
   ov.setMap(map);
   _searchMarkers.push(ov);
+  return pos;
+}
+
+window.pickSearchResult = function(i) {
+  const it = window._searchItems[i];
+  if (!it) return;
+  hideSearchResults();
+  document.getElementById('searchInput').blur();
+  clearMarkers(_searchMarkers);
+  _lastSearchPick = it;            // 복원용 저장
+  if (!_filters.search) {          // 검색 레이어가 꺼져 있으면 켜줌
+    _filters.search = true;
+    const chip = document.getElementById('chipSearch');
+    if (chip) chip.classList.remove('off');
+  }
+  const pos = placeSearchPin(it);
   map.setCenter(pos);
   map.setLevel(4);
-  openPlaceSheet({
-    name: it.place_name,
-    sub: (it.road_address_name || it.address_name || '') + (it.category_group_name ? ' · ' + it.category_group_name : ''),
-    lat, lng, color: 'var(--red)', type: 'search',
-    raw: { placeName: it.place_name, lat, lng, address: it.road_address_name || it.address_name, kakaoId: it.id, category: it.category_group_name, phone: it.phone }
-  });
+  // 시트는 자동으로 안 띄움 — 핀만 표시, 사용자가 핀을 누르면 시트가 열림
+  showToast(isEn() ? 'Tap the pin to see details' : '핀을 누르면 상세정보가 열려요');
 };
 
-// "이 지역 다시 검색"
-window.searchThisArea = function() {
-  document.getElementById('searchHereBtn').style.display = 'none';
-  renderPilgrimPinsInView();
-  renderRestPinsInView();
-  showToast('이 지역 성지·맛집을 표시했어요');
-};
+// ── 관광공사 사진 매칭 신뢰도 게이트 ──
+// 사진↔장소 불일치를 막기 위해, 매칭 거리(미터)가 아주 가까울 때만 사진 표시.
+// Python 업로드 시 저장했을 법한 거리 필드명들을 폭넓게 지원.
+// 거리 필드가 아예 없으면(구버전 데이터) 좌표 직접 계산은 불가하므로,
+// 관광지 제목(tourTitle)과 성지명 유사성으로 보조 판정. 둘 다 없으면 보수적으로 숨김 없이 표시.
+const TOUR_PHOTO_MAX_DIST_M = 120; // 매칭 허용 반경(요청: 범위 대폭 축소)
+function tourPhotoTrusted(raw) {
+  if (!raw || !raw.tourImage) return false;
+  // 1) 저장된 매칭 거리(미터)가 있으면 그것으로 엄격 판정
+  const distCandidates = [raw.tourDist, raw.tourDistance, raw.tourMatchDist, raw.tour_dist, raw.tourDistM];
+  for (const dc of distCandidates) {
+    if (dc !== undefined && dc !== null && dc !== '') {
+      const d = Number(dc);
+      if (!isNaN(d)) return d <= TOUR_PHOTO_MAX_DIST_M;
+    }
+  }
+  // 2) 거리 없음 → 관광지 좌표(tourLat/tourLng)가 저장돼 있으면 직접 계산
+  const tLat = Number(raw.tourLat ?? raw.tour_lat);
+  const tLng = Number(raw.tourLng ?? raw.tour_lng);
+  if (!isNaN(tLat) && !isNaN(tLng) && tLat && tLng && raw.lat && raw.lng) {
+    return haversineM(raw.lat, raw.lng, tLat, tLng) <= TOUR_PHOTO_MAX_DIST_M;
+  }
+  // 3) 좌표도 없음 → 관광지 제목과 성지명 유사성 보조 판정(있을 때만)
+  const tTitle = (raw.tourTitle || raw.tourName || '').replace(/\s/g,'');
+  const pName  = (raw.placeName || raw.title || '').replace(/\s/g,'');
+  if (tTitle && pName) {
+    // 한쪽이 다른 쪽을 포함하거나 2글자 이상 공통이면 신뢰
+    if (tTitle.includes(pName) || pName.includes(tTitle)) return true;
+    return sharedBigrams(tTitle, pName) >= 1;
+  }
+  // 4) 판정 근거 전무(구버전) → 표시는 하되, 이후 Python 재매칭 권장
+  return true;
+}
+function haversineM(lat1, lng1, lat2, lng2) {
+  const R = 6371000, toR = Math.PI/180;
+  const dLat = (lat2-lat1)*toR, dLng = (lng2-lng1)*toR;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*toR)*Math.cos(lat2*toR)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function sharedBigrams(a, b) {
+  const bi = s => { const set = new Set(); for (let i=0;i<s.length-1;i++) set.add(s.slice(i,i+2)); return set; };
+  const A = bi(a), B = bi(b); let n = 0;
+  A.forEach(x => { if (B.has(x)) n++; });
+  return n;
+}
 
 // ── 장소 시트 ──
 function openPlaceSheet(place) {
@@ -865,17 +1359,40 @@ function openPlaceSheet(place) {
     if (place.type === 'pilgrim') {
       const badge = raw.mediaType === 'artist' ? (isEn()?'K-Star':'한류스타') : raw.mediaType === 'movie' ? (isEn()?'Movie':'영화') : (isEn()?'Drama':'드라마');
       const badgeColor = raw.mediaType === 'artist' ? '#B5790F' : raw.mediaType === 'movie' ? '#EF4444' : '#7C3AED';
-      const actorsSrc = (isEn() && raw.actors_en) ? raw.actors_en : raw.actors;
+      const actorsSrc = raw.actors;
       const actors = Array.isArray(actorsSrc) ? actorsSrc.join(', ') : (actorsSrc||'');
-      const story = (isEn() ? (raw.story_en || raw.story) : raw.story) || '';
-      const dispTitle = (isEn() ? (raw.title_en || raw.title) : raw.title) || '';
-      const addr = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
-      html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+      const story = raw.story || '';
+      const dispTitle = raw.title || '';
+      const addr = raw.addr || raw.address || raw.area || '';
+      // 사진: tourImages(배열) 우선 → 여러 장 슬라이드, 없으면 tourImage(1장)
+     const tourImgs = window.visibleTourImgs ? window.visibleTourImgs(raw) : (Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://')) : []);
+      if (tourImgs.length >= 2) {
+        const slides = tourImgs.map(u => '<img src="' + esc(u) + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;height:200px" loading="lazy">').join('');
+        const dots = tourImgs.map((_,i)=>'<span class="tdot" style="width:6px;height:6px;border-radius:50%;background:' + (i===0?'#fff':'rgba(255,255,255,0.5)') + ';transition:background .2s"></span>').join('');
+        html += '<div class="tour-gallery" style="margin:-4px -16px 12px;position:relative">' +
+            '<div class="tour-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' +
+            '<span class="tour-counter" style="position:absolute;top:8px;right:10px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:2px 9px;border-radius:10px">1/' + tourImgs.length + '</span>' +
+            '<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px">' + dots + '</div>' +
+            '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span>' +
+          '</div>';
+      } else if (tourImgs.length === 1 || (raw.tourImage && tourPhotoTrusted(raw) && !(raw.hiddenImages||[]).includes(raw.tourImage))) {
+        const imgUrl = tourImgs[0] || String(raw.tourImage).replace(/^http:\/\//, 'https://');
+        html += '<div style="margin:-4px -16px 12px;position:relative"><img src="' + esc(imgUrl) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
+          '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span></div>';
+      }
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
         '<span style="background:' + badgeColor + ';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px">' + badge + '</span>' +
         (dispTitle ? '<span style="font-size:14px;font-weight:800;color:var(--text)">' + esc(dispTitle) + '</span>' : '') + '</div>';
       if (actors) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🎭 ' + esc(actors) + '</div>';
       if (addr) html += '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">📍 ' + esc(addr) + '</div>';
       if (story) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--gold);border-radius:6px;padding:10px 12px">' + esc(story) + '</div>';
+      if (raw.tourOverview) {
+        const ov = String(raw.tourOverview).replace(/<[^>]*>/g,'').slice(0, 300);
+        html += '<div style="font-size:12px;color:var(--text3);line-height:1.6;margin-top:8px">ℹ️ ' + esc(ov) + (raw.tourOverview.length>300?'…':'') + '</div>';
+      }
+      if (raw.tourUseTime) {
+        html += '<div style="font-size:12px;color:var(--text3);margin-top:8px">🕐 ' + esc(String(raw.tourUseTime).replace(/<[^>]*>/g,'')) + '</div>';
+      }
     } else if (place.type === 'rest') {
       const celeb = raw.celeb || '';
       const cat = raw.cat || raw.category || '';
@@ -884,23 +1401,51 @@ function openPlaceSheet(place) {
       if (comment) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px">' + esc(comment) + '</div>';
     }
     // 주소·전화 공통 정보 (맛집=address/phone, 성지=addr/tel)
-    const addr2 = (isEn() ? (raw.addr_en || raw.addr || raw.address) : (raw.addr || raw.address)) || raw.area || '';
+    const addr2 = (raw.addr || raw.address) || raw.area || '';
     const phone = raw.phone || raw.tel || '';
     let contact = '';
     // 성지는 위에서 이미 주소 표시했으므로 공통에선 맛집/검색만 주소 추가
     if (place.type !== 'pilgrim' && addr2) contact += '<div style="font-size:12px;color:var(--text3);margin-bottom:6px">📍 ' + esc(addr2) + '</div>';
     if (phone) contact += '<div style="font-size:12px;margin-bottom:6px">📞 <a href="tel:' + esc(String(phone).replace(/[^0-9+]/g,'')) + '" style="color:#185FA5;text-decoration:none">' + esc(phone) + '</a></div>';
     if (contact) html += '<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">' + contact + '</div>';
+    if (place.type === 'pilgrim' && window.renderAdminPanel) html += window.renderAdminPanel(place.raw || {});
+    window._selectedPlaceRef = place;
     info.innerHTML = html;
   }
-  // 인증 영역 초기화 (펼칠 때 로드)
+  // 인증 영역 초기화 후, 있으면 바로 로드 (접힌 상태에서도 인증 썸네일이 보이도록)
   const certs = document.getElementById('sheetCerts');
   if (certs) certs.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">' + t('expandHint') + '</div>';
   _sheetCertsLoaded = false;
+  // 시트가 접혀 있어도 인증을 미리 조회 (접힘: 개수 안내 / 펼침: 썸네일)
+  loadPlaceCerts();
   const sheet = document.getElementById('placeSheet');
   sheet.style.height = 'auto';
+  sheet.style.maxHeight = '';   // CSS 62vh 상한 적용(핀 진입 잘림 방지)
   sheet.dataset.expanded = '0';
   sheet.classList.add('show');
+  // 상단(핸들·✕·장소명)이 항상 보이도록 스크롤 최상단 고정
+  // 사진 등 콘텐츠가 뒤늦게 로드되며 레이아웃이 밀리는 경우까지 커버
+  sheet.scrollTop = 0;
+  requestAnimationFrame(() => { sheet.scrollTop = 0; });
+  setTimeout(() => { sheet.scrollTop = 0; }, 60);
+  setTimeout(() => { sheet.scrollTop = 0; }, 250);
+  const imgs = sheet.querySelectorAll('img');
+  imgs.forEach(im => { if (!im.complete) im.addEventListener('load', () => { if (sheet.dataset.expanded === '0') sheet.scrollTop = 0; }, { once:true }); });
+  // 관광공사 사진 갤러리(여러 장) 슬라이드 시 카운터·점 갱신
+  const gal = sheet.querySelector('.tour-gallery');
+  if (gal) {
+    const track = gal.querySelector('.tour-track');
+    const counter = gal.querySelector('.tour-counter');
+    const dotsEls = gal.querySelectorAll('.tdot');
+    if (track && counter) {
+      track.addEventListener('scroll', () => {
+        const idx = Math.round(track.scrollLeft / track.clientWidth);
+        const n = track.children.length;
+        counter.textContent = (idx + 1) + '/' + n;
+        dotsEls.forEach((d, i) => { d.style.background = (i === idx ? '#fff' : 'rgba(255,255,255,0.5)'); });
+      }, { passive: true });
+    }
+  }
 }
 let _sheetCertsLoaded = false;
 
@@ -926,10 +1471,31 @@ async function loadPlaceCerts() {
     snapG.forEach(d => { map[d.id] = { id: d.id, ...d.data() }; });
     snapP.forEach(d => { if (!map[d.id]) map[d.id] = { id: d.id, ...d.data() }; });
     const certs = Object.values(map);
+    // 최신순 정렬 (최근에 올린 인증이 맨 앞). createdAt이 아직 서버 반영 전이면 맨 앞으로.
+    certs.sort((a, b) => {
+      const ta = a.createdAt?.toMillis?.() ?? (a.createdAt ? Date.parse(a.createdAt) : Infinity);
+      const tb = b.createdAt?.toMillis?.() ?? (b.createdAt ? Date.parse(b.createdAt) : Infinity);
+      return tb - ta;
+    });
     window._placeCerts = {};
     certs.forEach(c => { window._placeCerts[c.id] = c; });
     if (!certs.length) {
       box.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>';
+      const th = document.getElementById('thisCertTitle');
+      if (th) th.textContent = t('thisCert');
+      return;
+    }
+    // 헤더에 인증 개수 표시 (접힌 상태에서도 인증 존재를 알 수 있게)
+    const th = document.getElementById('thisCertTitle');
+    if (th) th.textContent = t('thisCert') + ' ' + certs.length;
+    // 접힌 상태면 자동으로 펼치지 않고, '눌러서 보기' 안내를 sheetCerts 자리에 표시
+    const sheetEl = document.getElementById('placeSheet');
+    _autoExpandOnCerts = false;
+    if (sheetEl && sheetEl.dataset.expanded !== '1') {
+      // 접힘: 썸네일 대신 안내 버튼 (누르면 펼쳐짐)
+      box.innerHTML = '<div onclick="toggleSheetExpand()" style="cursor:pointer;text-align:center;padding:16px 0;color:var(--gold);font-size:13px;font-weight:700">' +
+        (isEn() ? ('📸 ' + certs.length + ' visit' + (certs.length>1?'s':'') + ' · tap to view') : ('📸 이곳의 인증 ' + certs.length + '개 · 눌러서 보기')) +
+        '</div>';
       return;
     }
     box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' +
@@ -955,57 +1521,148 @@ window.closePlaceSheet = function() {
   const sheet = document.getElementById('placeSheet');
   sheet.classList.remove('show');
   sheet.style.height = 'auto';
+  sheet.style.maxHeight = '';
   sheet.dataset.expanded = '0';
   _selectedPlace = null;
 };
 
-// 시트 펼침/접힘 토글
-// index.html 검증 방식: 핸들바 탭 → height 직접 토글 (기본 auto ↔ 펼침)
+// 시트 펼침/접힘 토글 (탭·프로그램 호출용). 스와이프는 아래 setupSheetDrag가 담당
 function toggleSheetExpand() {
   const sheet = document.getElementById('placeSheet');
   if (!sheet) return;
   const isExpanded = sheet.dataset.expanded === '1';
-  sheet.style.transition = 'height .3s ease';
+  sheet.style.transition = 'height .3s cubic-bezier(.25,.46,.45,.94)';
   if (isExpanded) {
     sheet.style.height = 'auto';
+    sheet.style.maxHeight = '';   // CSS 62vh 상한 복구
     sheet.dataset.expanded = '0';
   } else {
-    sheet.style.height = '70vh';
+    const mw = document.getElementById('mapWrap');
+    const wh = mw ? mw.clientHeight : window.innerHeight;
+    sheet.style.maxHeight = 'none';   // 상한 해제 후 크게
+    sheet.style.height = Math.round(wh * 0.60) + 'px';
     sheet.dataset.expanded = '1';
+    _sheetCertsLoaded = false;   // 펼치면 인증 그리드를 다시 그림(접힘 안내 → 썸네일)
     loadPlaceCerts();
   }
-  console.log('[sheet] toggle → expanded:', !isExpanded);
+  sheet.scrollTop = 0;
+  setTimeout(() => { sheet.scrollTop = 0; }, 50);
+  setTimeout(() => { sheet.scrollTop = 0; }, 350);
 }
 function collapseSheet() {
   const sheet = document.getElementById('placeSheet');
   sheet.style.height = 'auto';
   sheet.dataset.expanded = '0';
+  sheet.scrollTop = 0;
 }
 
-// 핸들바: 탭하면 토글 + 위/아래 스와이프도 지원
+// 시트 자연스러운 스와이프 (index.html 검증 방식: free-drag + 속도 기반 snap)
+// 핸들 영역만 드래그 시작. ✕ 버튼·본문 스크롤·다른 기능엔 영향 없음.
 (function setupSheetDrag() {
-  const handle = document.getElementById('sheetHandle');
-  if (!handle) { console.warn('[sheet] handle 없음'); return; }
-  console.log('[sheet] 드래그 셋업 완료');
-  let startY = 0, lastY = 0, active = false;
-  const start = (y) => { startY = y; lastY = y; active = true; };
-  const move = (y) => { if (active) lastY = y; };
-  const end = () => {
-    if (!active) return;
-    active = false;
-    const dy = lastY - startY;
-    const sheet = document.getElementById('placeSheet');
-    const isExpanded = sheet.dataset.expanded === '1';
-    if (dy < -25 && !isExpanded) toggleSheetExpand();       // 위로 → 펼침
-    else if (dy > 25 && isExpanded) toggleSheetExpand();    // 아래로 → 접힘
-    else if (Math.abs(dy) <= 25) toggleSheetExpand();       // 탭 → 토글
+  const sheet = document.getElementById('placeSheet');
+  // 드래그는 그립바(#sheetHandle)에서만 시작한다.
+  // 기존엔 #sheetTopBar 전체가 대상이었는데, 이 바는 position:sticky라
+  // 본문을 스크롤하면 손가락 밑으로 따라 내려온다 → 스크롤이 드래그로 오인되고,
+  // touchend에서 height를 바꾸는 순간 브라우저가 scrollTop을 되감아 위로 튕겨 올라갔다.
+  const handle = document.getElementById('sheetHandle') || document.getElementById('sheetTopBar');
+  if (!sheet || !handle) return;
+
+  let startY = 0, lastY = 0, startH = 0, dragging = false, velocity = 0, moved = false;
+  const MIN_H = 92;                                   // 접힘 최소 높이(px) — 핸들+장소명 보임
+  // 시트는 mapWrap(지도 영역) 안에 있으므로, 그 높이를 넘으면 위로 삐져나가 상단바를 가림.
+  // 따라서 최대 높이를 mapWrap 높이 기준으로 계산 → ✕·핸들이 절대 안 잘림.
+  const wrapH = () => {
+    const mw = document.getElementById('mapWrap');
+    return mw ? mw.clientHeight : window.innerHeight;
   };
-  handle.addEventListener('touchstart', e => start(e.touches[0].clientY), {passive:true});
-  handle.addEventListener('touchmove', e => move(e.touches[0].clientY), {passive:true});
-  handle.addEventListener('touchend', end);
-  handle.addEventListener('mousedown', e => { start(e.clientY); e.preventDefault(); });
-  window.addEventListener('mousemove', e => move(e.clientY));
-  window.addEventListener('mouseup', end);
+  const maxH = () => Math.round(wrapH() * 0.92);      // 최대(크게) — mapWrap 안에서만
+  const midH = () => Math.round(wrapH() * 0.60);      // 펼침(중간)
+
+  function snapTo(h, expanded) {
+    sheet.style.transition = 'height .3s cubic-bezier(.25,.46,.45,.94)';
+    sheet.style.maxHeight = 'none';   // 펼침 상태는 상한 해제
+    sheet.style.height = h + 'px';
+    sheet.dataset.expanded = expanded ? '1' : '0';
+    setTimeout(() => { sheet.style.transition = ''; try { map && map.relayout(); } catch(e){} }, 320);
+    if (expanded) { _sheetCertsLoaded = false; loadPlaceCerts(); }
+  }
+  // 접힘: 높이 auto + 인라인 max-height 제거 → CSS 62vh 상한 복구(핀 진입 잘림 방지)
+  function collapseToAuto() {
+    sheet.style.transition = 'height .3s cubic-bezier(.25,.46,.45,.94)';
+    sheet.style.height = 'auto';
+    sheet.style.maxHeight = '';   // CSS의 62vh가 다시 적용됨
+    sheet.dataset.expanded = '0';
+  }
+
+  handle.addEventListener('touchstart', e => {
+    // ✕ 버튼에서 시작한 터치는 드래그 아님(닫기 전용)
+    if (e.target && e.target.closest && e.target.closest('.place-close')) return;
+    // 본문이 스크롤된 상태면 드래그 금지.
+    // 드래그가 끝나면 height를 바꾸는데, 스크롤된 컨테이너의 높이를 줄이면
+    // 브라우저가 scrollTop을 강제로 되감아 본문이 맨 위로 튕긴다.
+    if (sheet.scrollTop > 0) return;
+    startY = lastY = e.touches[0].clientY;
+    startH = sheet.getBoundingClientRect().height;
+    dragging = true; velocity = 0; moved = false;
+    sheet.style.transition = 'none';
+    sheet.style.maxHeight = 'none';   // 드래그 중엔 62vh 상한 해제(크게 열 수 있게)
+  }, {passive:true});
+
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const y = e.touches[0].clientY;
+    velocity = lastY - y; lastY = y;
+    if (Math.abs(y - startY) > 6) moved = true;
+    // 손가락 따라 실시간 높이 (위로 끌면 커지고 아래로 내리면 작아짐)
+    const newH = Math.min(Math.max(startH + (startY - y), MIN_H), maxH());
+    sheet.style.height = newH + 'px';
+  }, {passive:true});
+
+  document.addEventListener('touchend', (e) => {
+    if (!dragging) return;
+    dragging = false;
+    // ✕ 위에서 끝난 순수 탭은 닫기 로직에 맡김
+    if (!moved && e && e.target && e.target.closest && e.target.closest('.place-close')) return;
+    const curH = sheet.getBoundingClientRect().height;
+    // 거의 안 움직였으면(탭) 펼침/접힘 토글
+    if (!moved) {
+      const expanded = sheet.dataset.expanded === '1';
+      if (expanded) {
+        collapseToAuto();
+      } else {
+        snapTo(midH(), true);
+      }
+      return;
+    }
+    // 스와이프: 속도 우선, 아니면 가까운 지점으로 snap
+    if (velocity > 8) snapTo(maxH(), true);            // 빠르게 위로 → 크게
+    else if (velocity < -8) collapseToAuto();          // 빠르게 아래로 → 접힘
+    else {
+      // 3지점 중 가까운 곳: 접힘(MIN_H)·중간(midH)·크게(maxH)
+      const pts = [MIN_H, midH(), maxH()];
+      const nearest = pts.reduce((a,b) => Math.abs(a-curH) < Math.abs(b-curH) ? a : b);
+      if (nearest === MIN_H) collapseToAuto();
+      else snapTo(nearest, true);
+    }
+  });
+
+  // 데스크톱: 핸들 클릭으로 토글 (터치 기기는 위 로직이 처리)
+  handle.addEventListener('click', e => {
+    if (e.target && e.target.closest && e.target.closest('.place-close')) return;
+    if ('ontouchstart' in window) return;
+    if (sheet.scrollTop > 0) return;   // 스크롤 중이면 토글 금지 (본문 튕김 방지)
+    toggleSheetExpand();
+  });
+
+  // 본문 스크롤이 지도로 전파되지 않게 (index.html과 동일)
+  sheet.addEventListener('touchstart', e => { sheet._ty = e.touches[0].clientY; sheet._st = sheet.scrollTop; }, {passive:true});
+  sheet.addEventListener('touchmove', e => {
+    if (dragging) return;
+    const dy = sheet._ty - e.touches[0].clientY;
+    const atTop = sheet.scrollTop <= 0 && dy < 0;
+    const atBottom = sheet.scrollTop + sheet.clientHeight >= sheet.scrollHeight && dy > 0;
+    if (!atTop && !atBottom) e.stopPropagation();
+  }, {passive:true});
 })();
 
 // ── 인증 (다음 단계에서 연결) ──
@@ -1053,10 +1710,29 @@ window.toggleSavePlace = function() {
   };
   const nowSaved = toggleLocalPlace(item);
   updateSaveBtnUI(nowSaved);
+  // 내 공간 탭이 열려있고 가고싶어요 서브탭이면 즉시 반영
+  const myView = document.getElementById('myView');
+  if (myView && myView.style.display !== 'none' && _mySubTab === 'wish' && window.renderMyPage) renderMyPage();
 };
 function updateSaveBtnUI(saved) {
-  const btn = document.getElementById('saveBtnIcon');
-  if (btn) btn.textContent = saved ? '🔖' : '📑';
+  const btn = document.getElementById('saveBtn');
+  const icon = document.getElementById('saveBtnIcon');
+  const label = document.getElementById('saveBtnLabel');
+  // 아이콘: 저장 시 채운 북마크, 아니면 빈 북마크 (텍스트는 안 건드림 → 구글 번역 유지)
+  if (icon) icon.textContent = saved ? '🔖' : '🔖';
+  if (btn) {
+    if (saved) {
+      btn.style.background = 'var(--gold)';
+      btn.style.borderColor = 'var(--gold)';
+      btn.style.color = '#fff';
+      if (label) label.style.color = '#fff';
+    } else {
+      btn.style.background = 'var(--bg2)';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--text2)';
+      if (label) label.style.color = '';
+    }
+  }
 }
 function currentPlaceSaved() {
   if (!_selectedPlace) return false;
@@ -1069,7 +1745,7 @@ window.renderSavedList = function() {
   if (!body) return;
   const places = getLocalPlaces();
   if (!places.length) {
-    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">🔖</div>' + t('noSaved') + '<div style="font-size:12px;margin-top:8px">지도에서 장소 → 📑 저장 버튼을 눌러보세요!</div></div>';
+    body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">🔖</div>' + t('noSaved') + '<div style="font-size:12px;margin-top:8px">지도에서 장소 → 🔖 저장 버튼을 눌러보세요!</div></div>';
     return;
   }
   body.innerHTML = places.map(p => {
@@ -1111,6 +1787,8 @@ window.navFromList = function(name, lat, lng) {
 };
 
 // 내정보 페이지 (프로필 + 통계 + 내 인증 그리드)
+window.setMySubTab = function(tab) { _mySubTab = tab; renderMyPage(); };
+
 window.renderMyPage = async function() {
   const prof = document.getElementById('myProfile');
   const body = document.getElementById('myBody');
@@ -1118,7 +1796,8 @@ window.renderMyPage = async function() {
   const cu = window.currentUser;
   if (!cu) {
     prof.innerHTML = '<div style="flex:1;text-align:center"><div style="font-size:14px;color:var(--text3);margin-bottom:12px">' + t('loginToSee') + '</div><button onclick="loginWithGoogle()" style="padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">' + t('login') + '</button></div>';
-    body.innerHTML = '';
+    // 비로그인도 가고싶어요(localStorage)는 볼 수 있게
+    body.innerHTML = renderMySubTabs(0, getLocalPlaces().length) + renderMySubContent([]);
     return;
   }
   const avatar = cu.photoURL
@@ -1136,28 +1815,125 @@ window.renderMyPage = async function() {
     const certs = [];
     snap.forEach(d => certs.push({ id: d.id, ...d.data() }));
     certs.sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0));
-    if (!certs.length) {
-      body.innerHTML = '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>' + t('noMyCert') + '<div style="font-size:12px;margin-top:8px">' + t('noMyCertSub') + '</div></div>';
-      return;
-    }
+    window._myCerts = {};
+    certs.forEach(c => { window._myCerts[c.id] = c; });
+
+    // 통계 + 하트 (항상 표시)
     const uniqueTitles = new Set(certs.map(c => c.title).filter(Boolean));
     const uniquePlaces = new Set(certs.map(c => c.placeKey).filter(Boolean));
     const summary = '<div style="display:flex;gap:12px;padding:16px;border-bottom:1px solid var(--border)">' +
       '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--gold)">' + certs.length + '</div><div style="font-size:11px;color:var(--text3)">' + t('statCert') + '</div></div>' +
       '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniquePlaces.size + '</div><div style="font-size:11px;color:var(--text3)">' + t('statPlace') + '</div></div>' +
       '<div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--text)">' + uniqueTitles.size + '</div><div style="font-size:11px;color:var(--text3)">' + t('statWork') + '</div></div></div>';
-    window._myCerts = {};
-    certs.forEach(c => { window._myCerts[c.id] = c; });
-    const grid = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px">' + certs.map(c => {
-      const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
-      const multi = photos.length > 1 ? '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 4px;border-radius:5px">📷' + photos.length + '</span>' : '';
-      return '<div style="position:relative;aspect-ratio:1;background:var(--bg2);overflow:hidden;cursor:pointer" onclick="viewCert(\'' + c.id + '\')"><img src="' + (photos[0]||'') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' + multi + '</div>';
-    }).join('') + '</div>';
-    body.innerHTML = summary + grid;
+    const totalLikes = certs.reduce((sum, c) => sum + (typeof c.likeCount === 'number' ? c.likeCount : (Array.isArray(c.likedBy) ? c.likedBy.length : 0)), 0);
+    const heartBlock = renderHeartProgress(totalLikes);
+
+    // 서브탭 + 선택된 내용
+    const tabs = renderMySubTabs(certs.length, getLocalPlaces().length);
+    const content = renderMySubContent(certs);
+    body.innerHTML = summary + heartBlock + tabs + content;
   } catch(e) {
     body.innerHTML = '<div style="padding:40px 20px;text-align:center;font-size:13px;color:var(--text3)">불러오기 실패<br><small style="opacity:0.6">' + (e.message||'') + '</small></div>';
   }
 };
+
+// 서브탭 바 (다녀왔어요 / 가고싶어요)
+function renderMySubTabs(visitedN, wishN) {
+  const en = isEn();
+  const tab = (key, label, n) => {
+    const on = _mySubTab === key;
+    return '<button onclick="setMySubTab(\'' + key + '\')" style="flex:1;padding:12px 0;background:none;border:none;border-bottom:2.5px solid ' + (on ? 'var(--gold)' : 'transparent') + ';font-size:13px;font-weight:800;color:' + (on ? 'var(--gold)' : 'var(--text3)') + ';cursor:pointer">' + label + ' ' + n + '</button>';
+  };
+  return '<div style="display:flex;border-bottom:1px solid var(--border)">' +
+    tab('visited', en ? '📸 Visited' : '📸 다녀왔어요', visitedN) +
+    tab('wish', en ? '🔖 Wishlist' : '🔖 가고싶어요', wishN) +
+    '</div>';
+}
+
+// 서브탭 내용 (다녀왔어요=인증 그리드 / 가고싶어요=저장 리스트)
+function renderMySubContent(certs) {
+  if (_mySubTab === 'wish') {
+    const places = getLocalPlaces();
+    if (!places.length) {
+      return '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">🔖</div>' + t('noSaved') + '<div style="font-size:12px;margin-top:8px">지도에서 장소 → 🔖 저장을 눌러보세요!</div></div>';
+    }
+    return '<div>' + places.map(p => {
+      const nm = (p.name||'').replace(/'/g,"\\'");
+      return '<div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border)">' +
+        '<div style="width:40px;height:40px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">' + (p.icon||'📍') + '</div>' +
+        '<div style="flex:1;min-width:0;cursor:pointer" onclick="goSavedPlace(' + (p.lat||0) + ',' + (p.lng||0) + ')">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (p.name||'') + '</div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + (p.sub||'') + '</div></div>' +
+        '<button onclick="unsaveFromMy(\'' + p.id + '\')" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0">✕</button>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  // 다녀왔어요 (인증 그리드)
+  if (!certs.length) {
+    return '<div style="padding:50px 20px;text-align:center;font-size:14px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📸</div>' + t('noMyCert') + '<div style="font-size:12px;margin-top:8px">' + t('noMyCertSub') + '</div></div>';
+  }
+  return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px">' + certs.map(c => {
+    const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
+    const multi = photos.length > 1 ? '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 4px;border-radius:5px">📷' + photos.length + '</span>' : '';
+    return '<div style="position:relative;aspect-ratio:1;background:var(--bg2);overflow:hidden;cursor:pointer" onclick="viewCert(\'' + c.id + '\')"><img src="' + (photos[0]||'') + '" style="width:100%;height:100%;object-fit:cover" loading="lazy">' + multi + '</div>';
+  }).join('') + '</div>';
+}
+
+// 내 공간에서 가고싶어요 삭제
+window.unsaveFromMy = function(id) {
+  let places = getLocalPlaces();
+  places = places.filter(p => p.id !== id);
+  setLocalPlaces(places);
+  renderMyPage();
+};
+
+// ── 하트 진행도: 고유 인증 장소 10곳당 하트 1개 완성 ──
+function renderHeartProgress(likeTotal) {
+  likeTotal = likeTotal || 0;
+  const PER_HEART = 10;                                 // 하트 하나 완성에 필요한 좋아요 수
+  const filled = Math.floor(likeTotal / PER_HEART);     // 완성된 하트 수
+  const inHeart = likeTotal % PER_HEART;                // 현재 하트 진행분
+  const pct = Math.round((inHeart / PER_HEART) * 100);  // 현재 하트 채움 %
+  const nextNeed = PER_HEART - inHeart;                 // 다음 하트까지 남은 좋아요 수
+
+  // 채워지는 하트 SVG (아래→위 clip)
+  const heartSvg = (fillPct) => {
+    const uid = 'hg' + Math.random().toString(36).slice(2,7);
+    const y = 100 - fillPct; // 위에서부터 비는 높이(%)
+    return '<svg viewBox="0 0 24 24" width="40" height="40" style="display:block">' +
+      '<defs><clipPath id="' + uid + '"><rect x="0" y="' + (y*0.24).toFixed(2) + '" width="24" height="24"/></clipPath></defs>' +
+      '<path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z" fill="none" stroke="#E9C6D3" stroke-width="1.5"/>' +
+      '<path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z" fill="#D4537E" clip-path="url(#' + uid + ')"/>' +
+      '</svg>';
+  };
+
+  // 완성된 하트들 + 현재 진행 중 하트
+  let hearts = '';
+  for (let i = 0; i < filled; i++) hearts += '<div title="완성">' + heartSvg(100) + '</div>';
+  hearts += '<div title="진행 중">' + heartSvg(inHeart === 0 && likeTotal > 0 ? 0 : pct) + '</div>';
+
+  const en = isEn();
+  const title = en ? '❤️ Hearts from fans' : '❤️ 받은 하트';
+  const big = en
+    ? ('<b style="color:#D4537E">' + likeTotal + '</b> likes · <b>' + filled + '</b> heart' + (filled!==1?'s':'') + ' complete')
+    : ('좋아요 <b style="color:#D4537E">' + likeTotal + '</b>개 · 하트 <b>' + filled + '</b>개 완성');
+  const sub = en
+    ? (nextNeed + ' more like' + (nextNeed>1?'s':'') + ' to next heart')
+    : ('다음 하트까지 ' + nextNeed + '개');
+
+  return '<div style="padding:16px;border-bottom:1px solid var(--border)">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
+      '<div style="font-size:13px;font-weight:800;color:var(--text)">' + title + '</div>' +
+      '<div style="font-size:11px;color:var(--text3)">' + sub + '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">' + big + '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + hearts + '</div>' +
+    // 현재 하트 진행 바
+    '<div style="margin-top:10px;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">' +
+      '<div style="height:100%;width:' + (inHeart===0&&likeTotal>0?0:pct) + '%;background:linear-gradient(90deg,#E9899F,#D4537E);border-radius:3px;transition:width .4s ease"></div>' +
+    '</div>' +
+  '</div>';
+}
 window.doLogout = function() {
   const { auth, signOut } = window._mapAuth;
   signOut(auth).then(() => { showToast('로그아웃 됐어요'); renderMyPage(); });
@@ -1334,13 +2110,15 @@ window.submitCert = async function() {
       urls.push(await getDownloadURL(snap.ref));
     }
     const raw = p.raw || {};
+    const _saveGroupKey = makeGroupKey(p.name, raw.title || '');
+    const _savePlaceKey = 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4);
     await addDoc(collection(db, 'certifications'), {
       uid: window.currentUser.uid,
       userName: window.currentUser.displayName || '',
       userPhoto: window.currentUser.photoURL || '',
       placeId: raw._id || '',
-      placeKey: 'pk_' + (p.lat||0).toFixed(4) + '_' + (p.lng||0).toFixed(4),
-      groupKey: makeGroupKey(p.name, raw.title || ''),
+      placeKey: _savePlaceKey,
+      groupKey: _saveGroupKey,
       placeName: p.name || '',
       placeType: p.type || 'search',      // search=임의장소, pilgrim=성지, rest=맛집
       title: raw.title || '',
@@ -1355,6 +2133,14 @@ window.submitCert = async function() {
     if (s) s.remove();
     showToast('🎉 인증 완료! 내 기록에 남았어요');
     _feedLoaded = false;
+    // 방금 올린 인증이 '이곳의 인증'에 바로 보이도록 재로드
+    _sheetCertsLoaded = false;
+    if (_selectedPlace) {
+      // 시트가 접혀있으면 펼쳐서 인증 그리드를 보여줌
+      const sheet = document.getElementById('placeSheet');
+      if (sheet && sheet.dataset.expanded !== '1') toggleSheetExpand();
+      else loadPlaceCerts();
+    }
   } catch(e) {
     btn.disabled = false;
     btn.textContent = '게시하기 (' + total + ')';
@@ -1363,51 +2149,114 @@ window.submitCert = async function() {
 };
 
 // ── 길찾기 (네이버/카카오/구글로 넘김) ──
+// ── 길찾기 (index.html 검증 방식: "장소 먼저 보기" → 사용자가 앱 선택) ──
+// 직접 경로안내가 아니라, 각 지도앱에서 "장소를 먼저 열어" 사진·리뷰·영업시간을 확인한 뒤
+// 사용자가 길찾기를 누르도록 유도 (구글·네이버·카카오 동일 패턴)
 window.openNavigation = function() {
   if (!_selectedPlace) return;
   const p = _selectedPlace;
-  const name = encodeURIComponent(p.name);
-  const naverApp = 'nmap://place?lat=' + p.lat + '&lng=' + p.lng + '&name=' + name + '&appname=kstarmap';
-  const naverWeb = 'https://map.naver.com/p/search/' + name;
-  const kakaoWeb = 'https://map.kakao.com/link/to/' + name + ',' + p.lat + ',' + p.lng;
-  const googleWeb = 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng;
+  const name = p.name || '';
+  const q = encodeURIComponent(name);
+  const ll = p.lat + ',' + p.lng;
+  // 장소 먼저 보기(검색) URL — 좌표+이름으로 해당 지점을 열어줌
+  const googleUrl = 'https://www.google.com/maps/search/?api=1&query=' + q + '%20' + ll;
+  const naverApp  = 'nmap://place?lat=' + p.lat + '&lng=' + p.lng + '&name=' + q + '&appname=kstarmap';
+  const naverWeb  = 'https://map.naver.com/p/search/' + q;
+  const kakaoWeb  = 'https://map.kakao.com/link/map/' + q + ',' + p.lat + ',' + p.lng;
+  showNavSheet(name, googleUrl, naverApp, naverWeb, kakaoWeb);
+};
 
+function escNav(s){return (s||'').replace(/</g,'&lt;');}
+
+function showNavSheet(destName, googleUrl, naverApp, naverWeb, kakaoWeb) {
   const old = document.getElementById('navSheet');
   if (old) old.remove();
+  const en = isEn();
+  const L = en
+    ? { title:'🗺️ Directions', sub:'View the place first, then navigate',
+        g:'View on Google Maps', gsub:'Photos · reviews · hours, then directions',
+        n:'View on Naver Map', nsub:'Open the place, then navigate',
+        k:'View on Kakao Map', ksub:'Open the place, then navigate', close:'Close' }
+    : { title:'🗺️ 길찾기', sub:'장소를 먼저 확인한 뒤 길찾기 하세요',
+        g:'구글 지도에서 장소 보기', gsub:'사진·리뷰·영업시간 확인 후 길찾기',
+        n:'네이버 지도에서 장소 보기', nsub:'장소 확인 후 길찾기',
+        k:'카카오맵에서 장소 보기', ksub:'장소 확인 후 길찾기', close:'닫기' };
+
+  const row = (bg, fg, sub_fg, icon, title, sub, onclick) =>
+    '<a href="#" onclick="' + onclick + '" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:' + bg + ';border-radius:12px;text-decoration:none;margin-bottom:10px">' +
+      '<span style="font-size:22px">' + icon + '</span>' +
+      '<div><div style="font-size:14px;font-weight:700;color:' + fg + '">' + title + '</div>' +
+      '<div style="font-size:11px;color:' + sub_fg + ';margin-top:2px">' + sub + '</div></div></a>';
+
   const sheet = document.createElement('div');
   sheet.id = 'navSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
   sheet.innerHTML =
-    '<div onclick="document.getElementById(\'navSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.5)"></div>' +
-    '<div style="background:var(--bg);border-radius:18px 18px 0 0;padding:16px 16px calc(24px + env(safe-area-inset-bottom))">' +
-      '<div style="width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>' +
-      '<div style="font-size:15px;font-weight:800;margin-bottom:4px">🧭 ' + t('nav') + '</div>' +
-      '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">' + escNav(p.name) + '</div>' +
-      (isEn()
-        ? (navBtn('🔵 Google Maps', googleWeb, googleWeb) + navBtn('🟢 Naver Map', naverApp, naverWeb) + navBtn('🟡 Kakao Map', kakaoWeb, kakaoWeb))
-        : (navBtn('🟢 네이버지도', naverApp, naverWeb) + navBtn('🟡 카카오맵', kakaoWeb, kakaoWeb) + navBtn('🔵 구글맵', googleWeb, googleWeb))
-      ) +
-      '<button onclick="document.getElementById(\'navSheet\').remove()" style="width:100%;margin-top:8px;padding:12px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer">닫기</button>' +
+    '<div onclick="document.getElementById(\'navSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:20px 16px calc(32px + env(safe-area-inset-bottom))">' +
+      '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>' +
+      '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:2px">' + L.title + '</div>' +
+      '<div style="font-size:12px;color:var(--text3);margin-bottom:4px">' + L.sub + '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:14px">📍 ' + escNav(destName) + '</div>' +
+      row('#4285F4','#fff','rgba(255,255,255,0.85)','🔵', L.g, L.gsub, "navGo(event,'"+googleUrl.replace(/'/g,"\\'")+"',null)") +
+      row('#03C75A','#fff','rgba(255,255,255,0.85)','🟢', L.n, L.nsub, "navGo(event,'"+naverApp.replace(/'/g,"\\'")+"','"+naverWeb.replace(/'/g,"\\'")+"')") +
+      row('#FEE500','#3C1E1E','rgba(60,30,30,0.7)','🟡', L.k, L.ksub, "navGo(event,'"+kakaoWeb.replace(/'/g,"\\'")+"',null)") +
+      '<button onclick="document.getElementById(\'navSheet\').remove()" style="width:100%;margin-top:6px;padding:13px;background:none;border:1.5px solid var(--border2);border-radius:12px;font-size:14px;font-weight:600;color:var(--text3);cursor:pointer">' + L.close + '</button>' +
     '</div>';
   document.body.appendChild(sheet);
-};
-function escNav(s){return (s||'').replace(/</g,'&lt;');}
-function navBtn(label, appUrl, webUrl) {
-  return '<button onclick="tryOpenNav(\'' + appUrl.replace(/'/g,"\\'") + '\',\'' + webUrl.replace(/'/g,"\\'") + '\')" style="width:100%;padding:14px;margin-bottom:8px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;text-align:left">' + label + '</button>';
 }
-window.tryOpenNav = function(appUrl, webUrl) {
-  // 앱 스킴 시도 후 실패하면 웹으로
-  const now = Date.now();
-  window.location.href = appUrl;
-  setTimeout(() => {
-    if (Date.now() - now < 1600) window.open(webUrl, '_blank');
-  }, 1000);
+
+// 앱 스킴 우선 시도 후 실패 시 웹 폴백. webFallback 없으면 그냥 새 탭.
+window.navGo = function(elOrEvent, primaryUrl, webFallback) {
+  try { if (elOrEvent && elOrEvent.preventDefault) elOrEvent.preventDefault(); } catch(e){}
   const s = document.getElementById('navSheet');
+  if (webFallback) {
+    // 네이버 앱 스킴 → 실패 시 웹
+    const now = Date.now();
+    window.location.href = primaryUrl;
+    setTimeout(() => { if (Date.now() - now < 1600) window.open(webFallback, '_blank'); }, 900);
+  } else {
+    window.open(primaryUrl, '_blank');
+  }
   if (s) s.remove();
+  return false;
 };
 
 // ── 인증 피드 (index.html 검증 방식 이식) ──
 window._feedData = window._feedData || {};
+
+// 작성자(uid)별 총 하트(받은 좋아요 합) 캐시. 1번 방식: 표시용 즉석 합산.
+window._authorHearts = window._authorHearts || {};
+async function fetchAuthorHearts(uid) {
+  if (!uid) return 0;
+  if (window._authorHearts[uid] !== undefined) return window._authorHearts[uid];
+  try {
+    const { db, collection, getDocs, query, where } = window._mapDB;
+    const snap = await getDocs(query(collection(db, 'certifications'), where('uid', '==', uid)));
+    let total = 0;
+    snap.forEach(d => {
+      const c = d.data();
+      total += (typeof c.likeCount === 'number') ? c.likeCount : (Array.isArray(c.likedBy) ? c.likedBy.length : 0);
+    });
+    window._authorHearts[uid] = total;
+    return total;
+  } catch(e) {
+    window._authorHearts[uid] = 0;
+    return 0;
+  }
+}
+// 피드에 보이는 작성자들의 총 하트를 병렬 조회 후, 카드 뱃지를 채워넣음
+async function hydrateAuthorHearts(certs) {
+  const uids = [...new Set(certs.map(c => c.uid).filter(Boolean))];
+  await Promise.all(uids.map(fetchAuthorHearts));
+  uids.forEach(uid => {
+    const total = window._authorHearts[uid] || 0;
+    document.querySelectorAll('.author-hearts[data-uid="' + uid + '"]').forEach(el => {
+      el.textContent = '❤️ ' + total;
+      el.style.visibility = total > 0 ? 'visible' : 'hidden';
+    });
+  });
+}
 
 function timeAgo(ts) {
   if (!ts || !ts.toMillis) return '';
@@ -1460,7 +2309,8 @@ function feedCardHTML(c) {
   const deleteBtn = ownerBtns;
   return '<div class="feed-card" data-id="' + c.id + '" style="background:var(--bg);border-radius:14px;margin:10px 12px;overflow:hidden;border:1px solid var(--border)">' +
     '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px">' + avatar +
-      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + uname + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px">' + uname +
+        '<span class="author-hearts" data-uid="' + (c.uid||'') + '" style="visibility:hidden;font-size:11px;font-weight:700;color:#D4537E;background:rgba(212,83,126,0.1);padding:1px 7px;border-radius:9px;flex-shrink:0"></span></div>' +
       '<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="goFeedPlace(' + (c.lat||0) + ',' + (c.lng||0) + ')">📍 ' + place + (work?' · '+work:'') + '</div></div>' +
       '<span style="background:' + typeColor + ';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0">' + typeLabel + '</span>' + deleteBtn + '</div>' +
     '<div class="feed-photo-wrap" ondblclick="dblLikeFeed(\'' + c.id + '\',this)" style="position:relative"><div class="feed-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' + counter + arrows + '<div class="feed-big-heart" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease"><svg viewBox="0 0 24 24" width="96" height="96" fill="#D4537E" stroke="#fff" stroke-width="1.2" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))"><path d="M12 21s-7.5-4.9-10-9.2C.3 8.6 1.6 5 5 5c2 0 3.2 1.2 4 2.3C9.8 6.2 11 5 13 5c3.4 0 4.7 3.6 3 6.8C19.5 16.1 12 21 12 21z"/></svg></div></div>' + dots +
@@ -1481,6 +2331,11 @@ window.toggleFeedLike = async function(certId) {
   if (wasLiked) { c.likedBy = likedBy.filter(u => u !== cu.uid); c.likeCount = Math.max(0, (c.likeCount||likedBy.length)-1); }
   else { c.likedBy = [...likedBy, cu.uid]; c.likeCount = (c.likeCount||likedBy.length)+1; }
   updateFeedHeartUI(certId);
+  // 작성자 총 하트 캐시 ±1 후 뱃지 갱신 (낙관적)
+  if (c.uid && window._authorHearts[c.uid] !== undefined) {
+    window._authorHearts[c.uid] = Math.max(0, window._authorHearts[c.uid] + (wasLiked ? -1 : 1));
+    updateAuthorHeartBadge(c.uid);
+  }
   try {
     await updateDoc(doc(db, 'certifications', certId), {
       likedBy: wasLiked ? arrayRemove(cu.uid) : arrayUnion(cu.uid),
@@ -1489,8 +2344,20 @@ window.toggleFeedLike = async function(certId) {
   } catch(e) {
     c.likedBy = likedBy; c.likeCount = (c.likeCount||likedBy.length);
     updateFeedHeartUI(certId); showToast('실패: ' + (e.message||e));
+    // 롤백
+    if (c.uid && window._authorHearts[c.uid] !== undefined) {
+      window._authorHearts[c.uid] = Math.max(0, window._authorHearts[c.uid] + (wasLiked ? 1 : -1));
+      updateAuthorHeartBadge(c.uid);
+    }
   }
 };
+function updateAuthorHeartBadge(uid) {
+  const total = window._authorHearts[uid] || 0;
+  document.querySelectorAll('.author-hearts[data-uid="' + uid + '"]').forEach(el => {
+    el.textContent = '❤️ ' + total;
+    el.style.visibility = total > 0 ? 'visible' : 'hidden';
+  });
+}
 
 window.dblLikeFeed = function(certId, wrap) {
   if (!window.currentUser) { toggleFeedLike(certId); return; }
@@ -1546,6 +2413,8 @@ async function renderPublicFeed(force) {
       }, {passive:true});
     });
     _feedLoaded = true;
+    // 작성자별 총 하트 뱃지 채우기 (비동기, 화면 그린 뒤)
+    hydrateAuthorHearts(certs);
   } catch(e) {
     body.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px">불러오기 실패<br><small style="opacity:0.6">' + (e.message||'') + '</small></div>';
   }
@@ -1685,18 +2554,29 @@ window.toggleFilter = function(type) {
   chip.classList.toggle('off', !_filters[type]);
   if (type === 'pilgrim') renderPilgrimPinsInView();
   if (type === 'rest') renderRestPinsInView();
-  if (type === 'search' && !_filters.search) clearMarkers(_searchMarkers);
+  if (type === 'search') {
+    if (!_filters.search) {
+      clearMarkers(_searchMarkers);      // 끄면 검색 핀 숨김
+    } else if (_lastSearchPick) {
+      clearMarkers(_searchMarkers);
+      placeSearchPin(_lastSearchPick);   // 다시 켜면 마지막 검색 핀 복원
+    }
+  }
 };
 
 // ── 하단 탭 (지도 외는 다음 단계) ──
+let _currentView = 'map';
 function showView(view) {
+  _currentView = view;
   document.getElementById('mapWrap').style.display = (view === 'map') ? 'flex' : 'none';
   document.getElementById('feedView').style.display = (view === 'feed') ? 'block' : 'none';
   document.getElementById('savedView').style.display = (view === 'saved') ? 'block' : 'none';
+  document.getElementById('courseView').style.display = (view === 'course') ? 'block' : 'none';
   document.getElementById('myView').style.display = (view === 'my') ? 'block' : 'none';
   if (view === 'map' && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 60);
   if (view === 'feed') renderPublicFeed();
   if (view === 'saved') renderSavedList();
+  if (view === 'course') renderCourseList();
   if (view === 'my') renderMyPage();
 }
 function setActiveTab(idx) {
@@ -1705,11 +2585,23 @@ function setActiveTab(idx) {
   if (tabs[idx]) tabs[idx].classList.add('active');
 }
 window.switchTabTo = function(view) {
-  const m = { map:0, feed:1, saved:2, my:3 };
+  const m = { map:0, feed:1, course:2, saved:2, my:4 };
+  // 탭 순서: 지도(0) 피드(1) 코스(2) 언어(3) 내공간(4)
   setActiveTab(m[view] ?? 0);
   showView(view);
 };
 window.switchTab = function(tab) {
+  // 지도 탭을 누를 때: 열린 시트만 닫고, 지도 위치는 그대로 유지
+  // (마지막 검색 지역을 유지 — 내 위치는 📍 버튼으로 언제든 이동)
+  if (tab === 'map') {
+    const wasMap = _currentView === 'map';
+    if (window.closePlaceSheet) closePlaceSheet();
+    hideSearchResults();
+    switchTabTo('map');
+    // 이미 지도에 있었으면 relayout 한 번 더 (먹통 방지)
+    if (wasMap && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 40);
+    return;
+  }
   switchTabTo(tab);
 };
 
@@ -1747,7 +2639,495 @@ function boot() {
 }
 boot();
 applyLangToUI();
+// 첫 방문 환영 팝업 (지도 뜨고 잠깐 뒤)
+setTimeout(showWelcomePopup, 900);
 console.log(VERSION);
+(function showVersion(){ const el = document.getElementById('appVersion'); if (el) el.textContent = VERSION; })();
+
+/* ═══════════════ 코스 (추천 코스 / 최애 코스) ═══════════════ */
+let _courses = [];
+let _courseFilter = 'all';
+let _courseQuery  = '';
+let _openCourseId = null;
+
+window.renderCourseList = async function(force) {
+  const body = document.getElementById('courseBody');
+  if (!body) return;
+
+  if (!_courses.length || force) {
+    body.innerHTML = '<div style="padding:70px 20px;text-align:center;color:var(--text3)">' +
+      '<div style="font-size:30px;margin-bottom:10px">🧭</div>' +
+      '<div style="font-size:13px">코스를 불러오는 중...</div></div>';
+    try {
+      const { db, collection, getDocs } = window._mapDB;
+      const snap = await getDocs(collection(db, 'courses'));
+      _courses = [];
+      snap.forEach(d => _courses.push({ id: d.id, ...d.data() }));
+      _courses.sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0));
+    } catch (e) {
+      body.innerHTML = '<div style="padding:70px 20px;text-align:center;font-size:13px;color:var(--text3)">코스를 불러오지 못했어요</div>';
+      return;
+    }
+  }
+
+  renderCourseFilters();
+
+  let list = _courses;
+  if (_courseFilter === 'K-POP') list = list.filter(c => c.type === 'K-POP');
+  if (_courseFilter === 'drama') list = list.filter(c => c.type !== 'K-POP');
+  if (_courseFilter === 'half')  list = list.filter(c => c.duration === 'half');
+  if (_courseFilter === 'full')  list = list.filter(c => c.duration === 'full');
+
+  const q = _courseQuery.replace(/\s/g, '').toLowerCase();
+  if (q) {
+    list = list.filter(c => {
+      const hay = ((c.title || '') + (c.region || '') + (c.name || '') +
+        (Array.isArray(c.stops) ? c.stops.map(s => s.name).join('') : ''))
+        .replace(/\s/g, '').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  if (!list.length) {
+    body.innerHTML = '<div style="padding:70px 20px;text-align:center;color:var(--text3)">' +
+      '<div style="font-size:30px;margin-bottom:10px">🔍</div>' +
+      '<div style="font-size:13px">' + (q ? '"' + esc0(_courseQuery) + '" 코스를 찾지 못했어요' : '해당하는 코스가 없어요') + '</div></div>';
+    return;
+  }
+
+  body.innerHTML =
+    '<div class="cs-count" style="padding:2px 16px 6px;font-size:12px;color:var(--text3)">' +
+      list.length + '개 코스' +
+    '</div>' +
+    '<div class="cs-grid" style="padding:0 14px 34px">' + list.map(courseCardHTML).join('') + '</div>';
+};
+
+function esc0(s) {
+  return String(s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/'/g, '&#39;');
+}
+
+function renderCourseFilters() {
+  const el = document.getElementById('courseFilters');
+  if (!el) return;
+  const F = [
+    ['all',   '전체'],
+    ['K-POP', '⭐ K-POP'],
+    ['drama', '🎬 드라마'],
+    ['half',  '☀️ 반나절'],
+    ['full',  '🌙 하루'],
+  ];
+  el.innerHTML = F.map(([k, label]) => {
+    const on = _courseFilter === k;
+    return '<button onclick="setCourseFilter(\'' + k + '\')" ' +
+      'style="flex:0 0 auto;padding:8px 15px;font-size:13px;font-weight:' + (on ? '800' : '600') +
+      ';border:1.5px solid ' + (on ? 'var(--gold)' : 'var(--border)') +
+      ';background:' + (on ? 'var(--gold)' : 'var(--bg)') +
+      ';color:' + (on ? '#fff' : 'var(--text2)') +
+      ';border-radius:22px;cursor:pointer;white-space:nowrap;transition:all .15s">' +
+      label + '</button>';
+  }).join('');
+}
+
+window.setCourseFilter = function(k) {
+  // 토글: 같은 걸 다시 누르면 전체로
+  _courseFilter = (_courseFilter === k && k !== 'all') ? 'all' : k;
+  renderCourseList();
+};
+
+window.onCourseSearch = function(v) {
+  _courseQuery = v || '';
+  const x = document.getElementById('courseClearBtn');
+  if (x) x.style.display = _courseQuery ? 'block' : 'none';
+  renderCourseList();
+};
+
+window.clearCourseSearch = function() {
+  const inp = document.getElementById('courseSearchInput');
+  if (inp) inp.value = '';
+  onCourseSearch('');
+};
+
+function fmtMin(m) {
+  const h = Math.floor(m / 60), mm = m % 60;
+  return h ? (h + 'h' + (mm ? ' ' + mm + 'm' : '')) : (mm + 'm');
+}
+
+function courseCardHTML(c) {
+  const open  = _openCourseId === c.id;
+  const cover = (c.coverPhoto || '').replace(/^http:\/\//, 'https://');
+  const isK   = c.type === 'K-POP';
+  const accent = isK ? '#B5790F' : '#7C3AED';
+  const durTx  = c.duration === 'half' ? '반나절' : '하루';
+
+  let h = '<div class="cs-card' + (open ? ' cs-open' : '') + '" style="background:var(--bg);border-radius:16px;margin-bottom:14px;overflow:hidden;' +
+    'box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);' +
+    (open ? 'outline:2px solid ' + accent + ';outline-offset:-2px' : '') + '">';
+
+  // ── 커버 ──
+  h += '<div onclick="toggleCourse(\'' + c.id + '\')" style="cursor:pointer;position:relative">';
+
+  if (cover) {
+    h += '<div class="cs-cover" style="position:relative;height:158px;overflow:hidden;background:var(--bg2)">' +
+      '<img src="' + esc0(cover) + '" style="width:100%;height:100%;object-fit:cover" loading="lazy" ' +
+        'onerror="this.parentElement.style.height=\'0\'">' +
+      '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 32%,transparent 42%,rgba(0,0,0,.78) 100%)"></div>' +
+      // 상단 배지
+      '<div style="position:absolute;top:11px;left:12px;display:flex;gap:5px">' +
+        '<span style="background:rgba(255,255,255,.93);color:' + accent + ';font-size:10px;font-weight:800;padding:4px 9px;border-radius:20px;backdrop-filter:blur(6px)">' +
+          (isK ? '⭐ K-POP' : '🎬 드라마') + '</span>' +
+        '<span style="background:rgba(0,0,0,.42);color:#fff;font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;backdrop-filter:blur(6px)">' +
+          durTx + '</span>' +
+      '</div>' +
+      // 하단 타이틀
+      '<div style="position:absolute;bottom:11px;left:14px;right:14px;color:#fff">' +
+        '<div style="font-size:11px;font-weight:600;opacity:.85;letter-spacing:.3px;margin-bottom:2px">' +
+          esc0(c.region) + '</div>' +
+        '<div class="cs-name" style="font-size:19px;font-weight:800;line-height:1.25;text-shadow:0 2px 8px rgba(0,0,0,.4)">' +
+          esc0(c.name) + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // ── 메타 바 ──
+  h += '<div style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between">';
+  if (!cover) {
+    h += '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:10px;font-weight:800;color:' + accent + ';margin-bottom:2px">' +
+        (isK ? '⭐ K-POP' : '🎬 드라마') + ' · ' + durTx + '</div>' +
+      '<div style="font-size:17px;font-weight:800;color:var(--text)">' + esc0(c.name) + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:1px">📍 ' + esc0(c.region) + '</div>' +
+      '</div>';
+  } else {
+    h += '<div style="display:flex;gap:14px;font-size:12px;color:var(--text2);font-weight:600">' +
+      '<span>🧭 ' + c.stopCount + '곳</span>' +
+      '<span>⏱ ' + fmtMin(c.totalMin || 0) + '</span>' +
+      '<span style="color:var(--text3)">📏 ' + (c.spanKm || 0) + 'km</span>' +
+      '</div>';
+  }
+  h += '<span style="font-size:12px;font-weight:800;color:' + accent + ';white-space:nowrap;margin-left:10px">' +
+    (open ? '접기 ▲' : '코스 보기 ▼') + '</span>';
+  h += '</div></div>';
+
+  // ── 타임라인 (펼침) ──
+  if (open && Array.isArray(c.stops)) {
+    // 데스크톱 2열 세로 채우기용 행 수 (1,2,3 / 4,5 순서가 되도록)
+    // 모바일에서는 CSS가 grid를 쓰지 않으므로 이 변수는 무시됨
+    const rows = Math.ceil(c.stops.length / 2);
+    h += '<div class="cs-timeline" style="--cs-rows:' + rows + ';border-top:1px solid var(--border);background:var(--bg2);padding:16px 14px 14px">';
+
+    c.stops.forEach((s, i) => {
+      const ph   = (s.photo || '').replace(/^http:\/\//, 'https://');
+      const last = i === c.stops.length - 1;
+      // 데스크톱 2열에서 좌열 맨 아래에 오는 스톱 → 아래로 이어질 대상이 없으므로 연결선 숨김
+      const colEnd = (i === rows - 1);
+
+      h += '<div class="cs-stop' + (colEnd ? ' cs-colend' : '') + '" style="display:flex;gap:12px">';
+
+      // 좌측 스텝 라인
+      h += '<div style="flex:0 0 26px;display:flex;flex-direction:column;align-items:center">' +
+        '<div style="width:26px;height:26px;border-radius:50%;background:' + accent +
+          ';color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 26px">' +
+          (i + 1) + '</div>' +
+        (!last ? '<div class="cs-line" style="width:2px;flex:1;background:linear-gradient(180deg,' + accent + '33,var(--border));min-height:52px"></div>' : '') +
+        '</div>';
+
+      // 우측 내용
+      h += '<div style="flex:1;min-width:0;padding-bottom:' + (last ? '0' : '14px') + '">';
+
+      h += '<div style="display:flex;gap:10px;align-items:flex-start">';
+      if (ph) {
+        h += '<img src="' + esc0(ph) + '" style="flex:0 0 62px;width:62px;height:62px;object-fit:cover;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.1)" loading="lazy" onerror="this.style.display=\'none\'">';
+      }
+      h += '<div style="flex:1;min-width:0;padding-top:1px">' +
+        '<div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.3">' + esc0(s.name) + '</div>' +
+        (s.story ? '<div style="font-size:11.5px;color:var(--text3);line-height:1.45;margin-top:3px">' +
+          esc0(String(s.story).slice(0, 55)) + (String(s.story).length > 55 ? '…' : '') + '</div>' : '') +
+        '<div style="font-size:11px;color:var(--text3);margin-top:4px;font-weight:600">⏱ ' + (s.stay || 50) + '분 머무르기</div>' +
+        '</div>';
+      h += '</div>';
+
+      // 액션
+      h += '<button onclick="event.stopPropagation();goCourseStop(\'' + c.id + '\',' + i + ')" ' +
+        'style="margin-top:8px;padding:7px 14px;font-size:11.5px;font-weight:700;border:1px solid var(--border);' +
+        'border-radius:8px;background:var(--bg);color:var(--text2);cursor:pointer">🗺️ 지도에서 보기</button>';
+
+      // 이동 구간
+      if (s.nextMin) {
+        h += '<div style="margin-top:12px;display:flex;align-items:center;gap:9px;padding:8px 11px;' +
+          'background:var(--bg);border-radius:9px;border:1px dashed var(--border)">' +
+          '<span style="font-size:13px">🚌</span>' +
+          '<span style="flex:1;font-size:11.5px;color:var(--text2);font-weight:600">' +
+            s.nextKm + 'km · 약 ' + s.nextMin + '분</span>' +
+          '<button onclick="event.stopPropagation();courseRoute(\'' + c.id + '\',' + i + ')" ' +
+            'style="padding:5px 12px;font-size:11px;font-weight:800;border:none;border-radius:6px;' +
+            'background:' + accent + ';color:#fff;cursor:pointer">길찾기</button>' +
+          '</div>';
+      }
+
+      h += '</div></div>';
+    });
+
+    h += '<div class="cs-note" style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.6;padding-top:12px;border-top:1px solid var(--border)">' +
+      '이동 시간은 예상치예요<br>정확한 경로는 <b>[길찾기]</b>에서 확인하세요</div>';
+    h += '</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+window.toggleCourse = function(id) {
+  _openCourseId = (_openCourseId === id) ? null : id;
+  renderCourseList();
+  if (_openCourseId) {
+    setTimeout(() => {
+      const v = document.getElementById('courseView');
+      if (v) {
+        const cards = v.querySelectorAll('[onclick^="toggleCourse"]');
+        for (const el of cards) {
+          if (el.getAttribute('onclick').includes(id)) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            break;
+          }
+        }
+      }
+    }, 60);
+  }
+};
+
+// 코스의 성지 → 지도에서 열기
+window.goCourseStop = function(cid, idx) {
+  const c = _courses.find(x => x.id === cid);
+  if (!c || !c.stops || !c.stops[idx]) return;
+  const s = c.stops[idx];
+  const pg = (window._pilgrimData || []).find(p => p._id === s.placeId);
+  switchTab('map');
+  setTimeout(() => {
+    if (window.map) {
+      map.setCenter(new kakao.maps.LatLng(s.lat, s.lng));
+      map.setLevel(4);
+    }
+    if (pg && window.openPlaceSheet) {
+      openPlaceSheet({
+        name: pg.placeName || pg.name, sub: pg.title || '',
+        lat: pg.lat, lng: pg.lng, color: 'var(--blue)',
+        type: 'pilgrim', raw: pg
+      });
+    }
+  }, 240);
+};
+
+// 구간 길찾기 → 카카오맵
+window.courseRoute = function(cid, idx) {
+  const c = _courses.find(x => x.id === cid);
+  if (!c || !c.stops) return;
+  const a = c.stops[idx], b = c.stops[idx + 1];
+  if (!a || !b) return;
+
+  const km   = Number(a.nextKm) || 0;
+  const walk = km < 1.2;
+  const enc  = s => encodeURIComponent(String(s || '').replace(/[\/,]/g, ' '));
+
+  // 모바일 판정: userAgentData 우선 (DevTools 에뮬레이션은 여기서 false)
+  // → 없으면 UA + 터치 지원 병행 확인
+  const uaMobile  = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const hasTouch  = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  const isMobile  = (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean')
+    ? navigator.userAgentData.mobile
+    : (uaMobile && hasTouch);
+
+  if (isMobile) {
+    // 모바일: 카카오맵 앱 딥링크
+    // ※ 공식 문서 기준 이동수단은 소문자: car | publictransit | foot | bicycle
+    //   (대문자 PUBLICTRANSIT 등은 인식 실패 → 지도앱 열기로 폴백되어 현재위치만 뜸)
+    const by = walk ? 'foot' : 'publictransit';
+    const q  = 'sp=' + a.lat + ',' + a.lng +
+               '&ep=' + b.lat + ',' + b.lng +
+               '&by=' + by;
+
+    // 앱 없을 때 폴백: 카카오맵 모바일웹 스킴 (동일 파라미터)
+    const web = 'https://m.map.kakao.com/scheme/route?' + q;
+
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    if (isAndroid) {
+      // Android: intent:// 로 호출해야 파라미터가 앱에 전달됨
+      // (iframe + kakaomap:// 은 최신 Chrome이 차단)
+      location.href =
+        'intent://route?' + q +
+        '#Intent;scheme=kakaomap;package=net.daum.android.map;' +
+        'S.browser_fallback_url=' + encodeURIComponent(web) + ';end';
+      return;
+    }
+
+    // iOS: 커스텀 스킴 직접 호출 (iframe 금지 — 파라미터 유실)
+    let left = false;
+    const bye = () => { left = true; };
+    window.addEventListener('pagehide', bye, { once: true });
+    document.addEventListener('visibilitychange', bye, { once: true });
+
+    location.href = 'kakaomap://route?' + q;
+
+    // 앱이 안 열리면 모바일웹으로 폴백
+    setTimeout(() => {
+      if (!left && !document.hidden) location.href = web;
+    }, 1500);
+    return;
+  }
+
+  // PC: 카카오맵 웹 길찾기
+  const mode = walk ? 'walk' : 'traffic';
+  const url = 'https://map.kakao.com/link/by/' + mode + '/' +
+    enc(a.name) + ',' + a.lat + ',' + a.lng + '/' +
+    enc(b.name) + ',' + b.lat + ',' + b.lng;
+  window.open(url, '_blank');
+};
+
+/* ═══════════════ 관리자: 성지 사진 편집 ═══════════════ */
+const ADMIN_UIDS = ['cFssXopeh2aWJwghO9DaJXhsZx82'];
+window.isAdmin = () => !!window.currentUser && ADMIN_UIDS.includes(window.currentUser.uid);
+
+// 성지의 모든 사진 후보 (tourImages 배열 + tourImage 단수 통합)
+window.allTourImgs = (raw) => {
+  let all = Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean) : [];
+  if (raw.tourImage && !all.includes(raw.tourImage)) all = [raw.tourImage, ...all];
+  return all;
+};
+
+// 일반 사용자에게 보일 사진 (숨김 제외 + 대표 우선)
+window.visibleTourImgs = (raw) => {
+  const all = window.allTourImgs(raw);
+  const hidden = Array.isArray(raw.hiddenImages) ? raw.hiddenImages : [];
+  const primary = raw.primaryImage || '';
+  let list = all.filter(u => !hidden.includes(u));
+  if (primary && list.includes(primary)) list = [primary, ...list.filter(u => u !== primary)];
+  return list.map(u => String(u).replace(/^http:\/\//, 'https://'));
+};
+
+window.renderAdminPanel = (raw) => {
+  if (!window.isAdmin() || !raw._id) return '';
+  const all = window.allTourImgs(raw);
+  const hidden = Array.isArray(raw.hiddenImages) ? raw.hiddenImages : [];
+  const primary = raw.primaryImage || '';
+  const tourTitle = raw.tourTitle || '';
+  const esc = s => (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+  const thumbs = all.map((u, i) => {
+    const isHidden = hidden.includes(u);
+    const isPrimary = primary === u;
+    const safe = esc(String(u).replace(/^http:\/\//,'https://'));
+    return '<div style="position:relative;flex:0 0 84px">' +
+      '<img src="' + safe + '" style="width:84px;height:64px;object-fit:cover;border-radius:6px;opacity:' + (isHidden?'0.28':'1') + ';border:2px solid ' + (isPrimary?'#B5790F':'transparent') + '">' +
+      (isHidden ? '<span style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,.7);color:#fff;font-size:9px;padding:1px 4px;border-radius:3px">숨김</span>' : '') +
+      (isPrimary ? '<span style="position:absolute;top:2px;left:2px;background:#B5790F;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px">대표</span>' : '') +
+      '<div style="display:flex;gap:2px;margin-top:3px">' +
+        '<button onclick="adminToggleHide(\'' + raw._id + '\',' + i + ')" style="flex:1;padding:3px 0;font-size:10px;border:0;border-radius:4px;cursor:pointer;background:' + (isHidden?'#3B82F6':'#EF4444') + ';color:#fff">' + (isHidden?'복구':'숨김') + '</button>' +
+        '<button onclick="adminSetPrimary(\'' + raw._id + '\',' + i + ')" style="flex:1;padding:3px 0;font-size:10px;border:0;border-radius:4px;cursor:pointer;background:' + (isPrimary?'#9CA3AF':'#B5790F') + ';color:#fff">⭐</button>' +
+      '</div></div>';
+  }).join('');
+
+  return '<div id="adminPanel" style="margin-top:14px;padding:12px;background:rgba(181,121,15,0.08);border:1px dashed #B5790F;border-radius:8px">' +
+    '<div style="font-size:12px;font-weight:800;color:#B5790F;margin-bottom:8px">🔧 관리자 · 사진 (' + all.length + '장, 숨김 ' + hidden.length + ')</div>' +
+    (tourTitle ? '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">🏷️ 관광공사 매칭: <b>' + esc(tourTitle) + '</b></div>' : '') +
+    (all.length ? '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">' + thumbs + '</div>' : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">사진 없음</div>') +
+    '<div style="margin-top:10px;display:flex;gap:6px">' +
+      '<input id="adminImgUrl" type="text" placeholder="이미지 URL 붙여넣기" style="flex:1;padding:7px 9px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)">' +
+      '<button onclick="adminAddImage(\'' + raw._id + '\')" style="padding:7px 14px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#B5790F;color:#fff;cursor:pointer">추가</button>' +
+    '</div>' +
+    '<div style="margin-top:6px"><label style="font-size:11px;color:var(--text3);cursor:pointer">📁 파일 업로드 <input type="file" accept="image/*" multiple onchange="adminUploadImages(\'' + raw._id + '\', this.files)" style="font-size:11px"></label></div>' +
+  '</div>';
+};
+
+async function adminRefresh(pid) {
+  const { db, doc, getDoc } = window._mapDB;
+  const snap = await getDoc(doc(db, 'pilgrimages', pid));
+  if (!snap.exists()) return;
+  const fresh = { ...snap.data(), _id: pid };
+  if (window._pilgrimData) {
+    const idx = window._pilgrimData.findIndex(p => p._id === pid);
+    if (idx >= 0) window._pilgrimData[idx] = fresh;
+  }
+  if (window._selectedPlaceRef) {
+    window._selectedPlaceRef.raw = fresh;
+    openPlaceSheet(window._selectedPlaceRef);
+  }
+}
+
+window.adminToggleHide = async (pid, idx) => {
+  if (!window.isAdmin()) return;
+  const { db, doc, getDoc, updateDoc, arrayUnion, arrayRemove } = window._mapDB;
+  const snap = await getDoc(doc(db, 'pilgrimages', pid));
+  const raw = snap.data() || {};
+  const url = window.allTourImgs(raw)[idx];
+  if (!url) return;
+  const isHidden = (raw.hiddenImages || []).includes(url);
+  await updateDoc(doc(db, 'pilgrimages', pid), {
+    hiddenImages: isHidden ? arrayRemove(url) : arrayUnion(url)
+  });
+  showToast(isHidden ? '✅ 복구했어요' : '🙈 숨겼어요');
+  await adminRefresh(pid);
+};
+
+window.adminSetPrimary = async (pid, idx) => {
+  if (!window.isAdmin()) return;
+  const { db, doc, getDoc, updateDoc } = window._mapDB;
+  const snap = await getDoc(doc(db, 'pilgrimages', pid));
+  const raw = snap.data() || {};
+  const url = window.allTourImgs(raw)[idx];
+  if (!url) return;
+  const same = raw.primaryImage === url;
+  await updateDoc(doc(db, 'pilgrimages', pid), { primaryImage: same ? '' : url });
+  showToast(same ? '대표 해제' : '⭐ 대표로 지정');
+  await adminRefresh(pid);
+};
+
+window.adminAddImage = async (pid) => {
+  if (!window.isAdmin()) return;
+  const el = document.getElementById('adminImgUrl');
+  const url = (el?.value || '').trim();
+  if (!/^https?:\/\//.test(url)) { showToast('URL을 확인해주세요'); return; }
+  const { db, doc, updateDoc, arrayUnion } = window._mapDB;
+  await updateDoc(doc(db, 'pilgrimages', pid), { tourImages: arrayUnion(url) });
+  showToast('✅ 추가했어요');
+  await adminRefresh(pid);
+};
+
+window.adminUploadImages = async (pid, files) => {
+  if (!window.isAdmin() || !files?.length) return;
+  showToast('업로드 중...');
+  const { db, doc, updateDoc, arrayUnion } = window._mapDB;
+  const S = window._mapStorage;
+  if (!S) { showToast('Storage 미연결 (URL 추가만 가능)'); return; }
+  for (let i = 0; i < files.length; i++) {
+    const path = 'places/' + pid + '/' + Date.now() + '_' + i + '.jpg';
+    const r = S.ref(S.storage, path);
+    await S.uploadBytes(r, files[i]);
+    const url = await S.getDownloadURL(r);
+    await updateDoc(doc(db, 'pilgrimages', pid), { tourImages: arrayUnion(url) });
+  }
+  showToast('✅ ' + files.length + '장 업로드 완료');
+  await adminRefresh(pid);
+};
 </script>
+<!-- 구글 번역 위젯 (숨김 컨테이너 — 우리 언어 버튼으로 제어) -->
+<div id="google_translate_element" style="display:none"></div>
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'ko',
+    includedLanguages: 'en,ja,zh-CN,zh-TW,es,th,vi,id,fr,de',
+    autoDisplay: false
+  }, 'google_translate_element');
+}
+</script>
+<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<style>
+  /* 구글 번역 기본 바/배너 숨김 (디자인 유지) */
+  .goog-te-banner-frame, .skiptranslate { display: none !important; }
+  body { top: 0 !important; position: static !important; }
+  #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+  .goog-text-highlight { background: none !important; box-shadow: none !important; }
+</style>
+
 </body>
 </html>
