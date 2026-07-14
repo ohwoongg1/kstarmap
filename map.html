@@ -119,17 +119,10 @@
   .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
 
   /* 장소 시트 */
-  /* 시트는 '높이'만 담당한다. 스크롤은 안 한다. (overflow:hidden)
-     스크롤은 안쪽 #sheetScroll이 담당한다.
-     한 요소가 스크롤+높이변경을 같이 하면, 높이를 줄이는 순간 브라우저가
-     scrollTop을 강제로 되감아 본문이 위로 튕긴다. → 그래서 분리. (Starspoon 구조) */
-  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:62vh;display:flex;flex-direction:column;overflow:hidden}
+  #placeSheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;box-shadow:0 -3px 16px rgba(0,0,0,0.14);transform:translateY(100%);transition:transform .3s ease,height .3s ease;z-index:25;padding:0 16px calc(16px + env(safe-area-inset-bottom));height:auto;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;will-change:scroll-position}
   #placeSheet.show{transform:translateY(0)}
-  /* 실제 스크롤 컨테이너 */
-  #sheetScroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;will-change:scroll-position}
   #sheetExtra{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
-  /* 상단바는 고정(스크롤 밖). sticky 제거 — 더 이상 손가락 밑으로 따라 내려오지 않는다 */
-  #sheetTopBar{position:relative;flex-shrink:0;background:var(--bg);z-index:12;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
+  #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:12;padding-top:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
   .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
   /* 장소명도 상단에 고정 → 스크롤해도 어느 곳인지 항상 보임 */
   .place-head{position:sticky;top:44px;background:var(--bg);z-index:11;display:flex;align-items:center;gap:11px;margin:0 -16px;padding:0 16px 4px}
@@ -189,33 +182,28 @@
     <div id="searchResults"></div>
 
     <div id="placeSheet">
-      <!-- 고정 영역: 스크롤 안 함. 손잡이·닫기가 절대 안 움직임 -->
       <div id="sheetTopBar">
         <div id="sheetHandle" style="padding:10px 0 14px;cursor:grab;text-align:center;flex-shrink:0">
           <div class="sheet-handle" style="margin:0 auto"></div>
         </div>
         <button class="place-close" onclick="closePlaceSheet()">✕</button>
       </div>
-      <!-- 스크롤 영역: 높이가 바뀌는 건 시트, 스크롤하는 건 여기.
-           둘을 분리해야 높이 변경 시 scrollTop이 되감기지 않는다. (Starspoon 구조) -->
-      <div id="sheetScroll">
-        <div class="place-head">
-          <div class="place-pin" id="sheetPin" style="background:var(--red)"></div>
-          <div style="flex:1;min-width:0">
-            <div class="place-name" id="sheetName">장소명</div>
-            <div class="place-sub" id="sheetSub">주소 · 정보</div>
-          </div>
+      <div class="place-head">
+        <div class="place-pin" id="sheetPin" style="background:var(--red)"></div>
+        <div style="flex:1;min-width:0">
+          <div class="place-name" id="sheetName">장소명</div>
+          <div class="place-sub" id="sheetSub">주소 · 정보</div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
-          <button id="saveBtn" onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px" title="저장"><span id="saveBtnIcon" style="font-size:18px">🔖</span><span id="saveBtnLabel" style="font-size:10px;font-weight:700">저장</span></button>
-          <button onclick="openNavigation()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px"><span style="font-size:18px">🧭</span><span id="navLabel" style="font-size:10px;font-weight:700">길찾기</span></button>
-        </div>
-        <div id="sheetExtra">
-          <div id="sheetInfo"></div>
-          <div id="thisCertTitle" style="font-size:14px;font-weight:800;margin:16px 0 10px">📸 이곳의 인증</div>
-          <div id="sheetCerts" style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>
-        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
+        <button id="saveBtn" onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px" title="저장"><span id="saveBtnIcon" style="font-size:18px">🔖</span><span id="saveBtnLabel" style="font-size:10px;font-weight:700">저장</span></button>
+        <button onclick="openNavigation()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px"><span style="font-size:18px">🧭</span><span id="navLabel" style="font-size:10px;font-weight:700">길찾기</span></button>
+      </div>
+      <div id="sheetExtra">
+        <div id="sheetInfo"></div>
+        <div id="thisCertTitle" style="font-size:14px;font-weight:800;margin:16px 0 10px">📸 이곳의 인증</div>
+        <div id="sheetCerts" style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>
       </div>
     </div>
   </div>
@@ -344,7 +332,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.8.3';
+const VERSION = 'map v1.8.2';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -1437,15 +1425,12 @@ function openPlaceSheet(place) {
   sheet.classList.add('show');
   // 상단(핸들·✕·장소명)이 항상 보이도록 스크롤 최상단 고정
   // 사진 등 콘텐츠가 뒤늦게 로드되며 레이아웃이 밀리는 경우까지 커버
-  // ※ 스크롤은 이제 시트가 아니라 #sheetScroll이 한다
-  const sc = document.getElementById('sheetScroll');
-  const toTop = () => { if (sc) sc.scrollTop = 0; };
-  toTop();
-  requestAnimationFrame(toTop);
-  setTimeout(toTop, 60);
-  setTimeout(toTop, 250);
+  sheet.scrollTop = 0;
+  requestAnimationFrame(() => { sheet.scrollTop = 0; });
+  setTimeout(() => { sheet.scrollTop = 0; }, 60);
+  setTimeout(() => { sheet.scrollTop = 0; }, 250);
   const imgs = sheet.querySelectorAll('img');
-  imgs.forEach(im => { if (!im.complete) im.addEventListener('load', () => { if (sheet.dataset.expanded === '0') toTop(); }, { once:true }); });
+  imgs.forEach(im => { if (!im.complete) im.addEventListener('load', () => { if (sheet.dataset.expanded === '0') sheet.scrollTop = 0; }, { once:true }); });
   // 관광공사 사진 갤러리(여러 장) 슬라이드 시 카운터·점 갱신
   const gal = sheet.querySelector('.tour-gallery');
   if (gal) {
@@ -1560,40 +1545,36 @@ function toggleSheetExpand() {
     _sheetCertsLoaded = false;   // 펼치면 인증 그리드를 다시 그림(접힘 안내 → 썸네일)
     loadPlaceCerts();
   }
-  const _sc = document.getElementById('sheetScroll');
-  if (_sc) {
-    _sc.scrollTop = 0;
-    setTimeout(() => { _sc.scrollTop = 0; }, 50);
-    setTimeout(() => { _sc.scrollTop = 0; }, 350);
-  }
+  sheet.scrollTop = 0;
+  setTimeout(() => { sheet.scrollTop = 0; }, 50);
+  setTimeout(() => { sheet.scrollTop = 0; }, 350);
 }
 function collapseSheet() {
   const sheet = document.getElementById('placeSheet');
   sheet.style.height = 'auto';
   sheet.dataset.expanded = '0';
-  const sc = document.getElementById('sheetScroll');
-  if (sc) sc.scrollTop = 0;
+  sheet.scrollTop = 0;
 }
 
-// 시트 스와이프
+// 시트 스와이프 — Starspoon(index.html)에서 검증된 방식 그대로.
 //
-// 구조를 분리했다 (Starspoon과 동일):
-//   #placeSheet  = 높이만 담당 (스크롤 안 함)
-//   #sheetScroll = 스크롤만 담당 (높이 안 바뀜)
-// 한 요소가 둘 다 하면, 높이를 줄이는 순간 브라우저가 scrollTop을 되감아
-// 본문이 위로 튕긴다. 이건 브라우저 명세대로의 동작이라 JS 가드로는 못 막는다.
-//
-// 이제 상단바(#sheetTopBar)는 스크롤 영역 '밖'의 고정 요소라
-// 손가락 밑으로 따라 내려오지 않는다 → 여기에 드래그를 걸면 안전하다.
+// ① CSS의 touch-action:pan-y → 브라우저가 세로 터치를 '스크롤 전용'으로 처리.
+//    이게 없으면 JS가 height를 바꾸는 순간 scrollTop이 되감겨 본문이 위로 튕긴다. (진짜 원인)
+// ② 드래그 판정을 '요소'가 아니라 '위치'로 한다.
+//    #sheetTopBar는 position:sticky라 스크롤하면 손가락 밑으로 따라 내려온다.
+//    거기에 리스너를 걸면 스크롤이 드래그로 오인된다.
+//    → 시트 최상단 44px 안에서 시작한 터치만 드래그로 본다.
+// ③ 시트가 스크롤된 상태(scrollTop>0)면 드래그를 아예 시작하지 않는다.
 (function setupSheetDrag() {
-  const sheet  = document.getElementById('placeSheet');
-  const scroll = document.getElementById('sheetScroll');
-  const bar    = document.getElementById('sheetTopBar');
-  if (!sheet || !bar) return;
+  const sheet = document.getElementById('placeSheet');
+  if (!sheet) return;
+
+  const HANDLE_ZONE = 44;   // 시트 상단 이 픽셀 안에서만 드래그 시작 (Starspoon: 40)
 
   let startY = 0, lastY = 0, startH = 0, dragging = false, velocity = 0, moved = false;
   const MIN_H = 92;                                   // 접힘 최소 높이(px) — 핸들+장소명 보임
   // 시트는 mapWrap(지도 영역) 안에 있으므로, 그 높이를 넘으면 위로 삐져나가 상단바를 가림.
+  // 따라서 최대 높이를 mapWrap 높이 기준으로 계산 → ✕·핸들이 절대 안 잘림.
   const wrapH = () => {
     const mw = document.getElementById('mapWrap');
     return mw ? mw.clientHeight : window.innerHeight;
@@ -1617,13 +1598,18 @@ function collapseSheet() {
     sheet.dataset.expanded = '0';
   }
 
-  // 드래그는 '고정' 상단바에서만. 이 바는 스크롤 영역 밖이라 절대 안 움직인다.
-  // → 본문을 아무리 스크롤해도 이 바를 만지지 않는 한 드래그가 걸리지 않는다.
-  bar.addEventListener('touchstart', e => {
+  // 드래그는 시트에 직접 건다 (sticky 바가 아니라 — 그게 따라 내려오는 게 문제였음)
+  sheet.addEventListener('touchstart', e => {
     // ✕ 버튼에서 시작한 터치는 드래그 아님(닫기 전용)
     if (e.target && e.target.closest && e.target.closest('.place-close')) return;
+    // 본문이 스크롤돼 있으면 드래그 금지 (높이 변경 → scrollTop 되감김 방지)
+    if (sheet.scrollTop > 0) return;
+    // 시트 최상단 영역에서 시작한 터치만 드래그 (Starspoon과 동일한 판정)
+    const rect = sheet.getBoundingClientRect();
+    if (e.touches[0].clientY - rect.top > HANDLE_ZONE) return;
+
     startY = lastY = e.touches[0].clientY;
-    startH = sheet.getBoundingClientRect().height;
+    startH = rect.height;
     dragging = true; velocity = 0; moved = false;
     sheet.style.transition = 'none';
     sheet.style.maxHeight = 'none';   // 드래그 중엔 62vh 상한 해제(크게 열 수 있게)
@@ -1673,11 +1659,13 @@ function collapseSheet() {
     handle.addEventListener('click', e => {
       if (e.target && e.target.closest && e.target.closest('.place-close')) return;
       if ('ontouchstart' in window) return;
+      if (sheet.scrollTop > 0) return;   // 스크롤 중이면 토글 금지 (본문 튕김 방지)
       toggleSheetExpand();
     });
   }
 
-  // 본문 스크롤이 지도로 새는 건 #sheetScroll의 overscroll-behavior:contain 이 막는다.
+  // 본문 스크롤이 지도로 새는 건 CSS의 overscroll-behavior:contain 이 막는다.
+  // (기존의 수동 stopPropagation 가드는 브라우저 기본 스크롤과 충돌해 제거)
 })();
 
 // ── 인증 (다음 단계에서 연결) ──
