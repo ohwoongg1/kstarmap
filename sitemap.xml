@@ -1501,7 +1501,15 @@
   <url><loc>https://kstarmap.com/en/place/pilgrim_4598/</loc><priority>0.6</priority></url>
   <url><loc>https://kstarmap.com/en/place/pilgrim_4600/</loc><priority>0.6</priority></url>
   <url><loc>https://kstarmap.com/en/place/pilgrim_4601/</loc><priority>0.6</priority></url>
+  <url><loc>https://kstarmap.com/en/place/pilgrim_4603/</loc><priority>0.6</priority></url>
+  <url><loc>https://kstarmap.com/en/place/pilgrim_4605/</loc><priority>0.6</priority></url>
+  <url><loc>https://kstarmap.com/en/place/pilgrim_4607/</loc><priority>0.6</priority></url>
+  <url><loc>https://kstarmap.com/en/place/pilgrim_4608/</loc><priority>0.6</priority></url>
+  <url><loc>https://kstarmap.com/en/place/pilgrim_4609/</loc><priority>0.6</priority></url>
   <url><loc>https://kstarmap.com/en/place/pilgrim_461/</loc><priority>0.6</priority></url>
+  <url><loc>https://kstarmap.com/en/place/pilgrim_4610/</loc><priority>0.6</priority></url>
+  <url><loc>https://kstarmap.com/en/place/pilgrim_4612/</loc><priority>0.6</priority></url>
+  <url><loc>https://kstarmap.com/en/place/pilgrim_4613/</loc><priority>0.6</priority></url>
   <url><loc>https://kstarmap.com/en/place/pilgrim_4616/</loc><priority>0.6</priority></url>
   <url><loc>https://kstarmap.com/en/place/pilgrim_4617/</loc><priority>0.6</priority></url>
   <url><loc>https://kstarmap.com/en/place/pilgrim_462/</loc><priority>0.6</priority></url>
@@ -2073,197 +2081,198 @@
   <url><loc>https://kstarmap.com/en/artist/bts/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/blackpink/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/super-junior/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/her-private-life/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/boyfriend/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/encounter/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/seventeen/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/vincenzo/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/cases-of-the-heart/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/boy-over-flowers/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/more-than-friends/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/the-most-beautiful-moment-in-life/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/twice/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/hotel-del-luna/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/whats-wrong-with-secretary-kim/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/true-beauty/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/itaewon-class/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/romance-is-a-bonus-book/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-king-eternal-monarch/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/guardian-the-lonely-and-great-god/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/melancholia/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/nerve-wracking-cohabitation/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/my-roommate-is-a-gumiho/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/boys-over-flowers/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/that-year-we/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/our-beloved-summer/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/tvxq/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/www-search/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/monthly-house/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/search-www/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/monthly-magazine-home/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/btob/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/sincerity/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/first-love-is-a-first/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/touch-your-heart/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/my-first-first-love/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/run-on/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/girls-generation/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/exo/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/romance-is-a-bonus-book/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/about-time/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/her-memory/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/office-blind-date/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/find-me-in-your-memory/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/business-proposal/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/private-lives/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/youth-record/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/record-of-youth/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-beauty-inside/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/lawless-lawyer/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/this-is-my-first-life/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/because-this-is-my-first-life/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-legend-of-the-blue-sea/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/nct/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/my-mister/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/red-velvet/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/if-you-wish-upon-me/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/while-you-were-sleeping/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/one-spring-night/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/twelve-nights/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/declaration-of-intent/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/strong-woman-do-bong-soon/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/love-alarm/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/memorials/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/strong-girl-bong-soon/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/her-private-life/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/thirty-but-seventeen/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/startup/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-day-destruction-came-to-our-front-door/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/apink/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/priest/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/the-fiery-priest/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/oh-my-girl/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/why-osujae/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/why-her/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/infinite/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/are-you-human/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/suspicious-partner/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/are-you-human-too/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/dazzling/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/something-in-the-rain/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/oh-master/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/love-is-beautiful-life-is-wonderful/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/shinee/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/temperature-of-love/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/dali-and-gamjatang/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/dali-and-the-cocky-prince/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/do-do-sol-sol-la-la-sol/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/mamamoo/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/half-of-half/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/you-who-came-from-the-stars/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/gentleman-and-young-lady/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/i-know-but/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/a-piece-of-your-mind/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/my-love-from-the-star/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/young-lady-and-gentleman/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/nevertheless/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/weightlifting-fairy-kim-bok-joo/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/dear-my-friends/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/that-rascal/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/he-is-psychometric/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/greasy-melo/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/the-joy-of-enchantment/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/iu/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/love-at-first-sight/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/bride-of-the-water-god-2017/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/black-knight/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/sky-castle/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/lovestruck-in-the-city/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/18-again/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/would-we-have-loved/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/strongest-delivery-man/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/the-devil-judge/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/was-it-love/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/strongest-deliveryman/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/perfume/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/hwayugi/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/a-korean-odyssey/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/txt/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/vip/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/how-to-love-in-the-city/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/mine/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/yumis-cells/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/my-fellow-citizens/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/flawed-humans/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/hospital-playlist/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/sisyphus-the-myth/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/my-wifes-having-an-affair-this-week/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/familiar-wife/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/beautiful-days/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/we-are-family/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/my-unfamiliar-family/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/discovery-of-romance/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/one-the-woman/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/clean-with-passion-for-now/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-third-charm/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/gugyeong-i/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/she-was-beautiful/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/inspector-koo/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/she-was-pretty/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/so-i-married-an-anti-fan/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/melt-me/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/melting-me-softly/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/secret-boutique/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/crazy-love/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/gyeongnyong-fairy-tale/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/mama-fairy-and-the-woodcutter/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/tale-of-the-nine-tailed/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/my-golden-life/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/shooting-star/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/sh-ting-stars/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-world-of-the-married/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/victon/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/crash-landing-on-you/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/my-lovely-daughter/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/my-prettiest-daughter-in-the-world/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/only-one-person/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/tell-me-your-song/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/tell-me-what-you-saw/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/dae-jang-geum-is-watching/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/addicted-to-love/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/when-the-camellia-blooms/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/fall-in-love-with-soonjung/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/secret-garden/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/reply-1988/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/g-dragon/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/goong/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/meteorological-agency-people-office-romance-cruelty-edition/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/nabilera/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/oh-my-mistake-2/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/leverage-the-con-artists/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/princess-hours/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/forecasting-love-and-weather/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/navillera/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/another-miss-oh/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/leverage/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/im-not-a-robot/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/senior-dont-wear-that-lipstick/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/she-would-never-know/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/twenty-five-twenty-one/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/jealousy-incarnate/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/partners-for-justice/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/dont-dare-to-dream/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/penthouse-3/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/we-were-beautiful/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/love-all-play/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/to-jenny/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/flower-of-evil/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/love-like-the-cosmos/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/the-great-seducer/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/waikiki/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/fated-to-love-you/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/welcome-to-waikiki/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/chungha/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/gugudan/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-greatest-love/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/kiss-sixth-sense/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/fromis-9/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/got7/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/493km-the-speed-to-you/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/melo-is-my-nature/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/be-melodramatic/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/do-you-like-brahms/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/artist/blockbee/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/breath-exchange/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/artist/block-b/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/hide-and-seek/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/girls-day/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/fight-for-my-way/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/squid-game/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/great-seducer/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/jugglers/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/convenience-store-saetbyeol/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/backstreet-rookie/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/bubblegum/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/highlight/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/now-its-beautiful/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/the-empresss-dignity/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/its-beautiful-now/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/the-last-empress/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/my-id-is-gangnam-beauty/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/when-i-was-the-most-beautiful/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/tomorrow/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/the-snow-queen/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/snow-queen/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/nuest/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-second-husband/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/revenge-of-the-wealthy/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/avengers-social-club/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/rain/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/psycho-but-its-okay/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-heirs/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/thirty-nine/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/kang-daniel/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/signal/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/gentlemans-dignity/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/hello-its-me/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/a-gentlemans-dignity/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/hello-me/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/g-i-dle/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/girlfriend/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/eighteen/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/elegant-house/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/at-eighteen/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/graceful-family/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/wjsn/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/imitation/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/taeyang/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/descendants-of-the-sun/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/penthouse/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/ill-be-your-night/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/be-my-dream-family/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/moon-lovers-scarlet-heart-ryeo/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/radio-romance/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/lovelyz/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/lawless-lawyer-season-2/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/its-okay-to-not-be-okay/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/partners-for-justice-2/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/astro/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/again-my-life/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/winner/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/the-man-of-inhyeon-queen/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/thousand-won-lawyer/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/queen-in-hyuns-man/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/one-dollar-lawyer/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/2pm/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/exid/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/my-liberation-notes/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/davichi/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/camellia/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/mr-sunshine/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/vixx/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/suits/</loc><priority>0.9</priority></url>
@@ -2347,6 +2356,7 @@
   <url><loc>https://kstarmap.com/en/drama/dae-jang-geum/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/money-flower/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/rich-man/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/live-up-to-your-name/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/momoland/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/miracle/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/loves-revolution/</loc><priority>0.9</priority></url>
@@ -2381,6 +2391,7 @@
   <url><loc>https://kstarmap.com/en/drama/your-house-helper/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-k2/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/twenty-again/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/romance-is-a-bonus-book-2/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/welcome-to-witchs-diner/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/my-princess/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/manhole/</loc><priority>0.9</priority></url>
@@ -2410,11 +2421,13 @@
   <url><loc>https://kstarmap.com/en/drama/romance/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/meloholic/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/monsta-x/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/lawless-lawyer/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/every-night/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/voice-2/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/psychometry/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/shark/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-most-ordinary-romance/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/suspicious-partner/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/winter-sonata/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/still-not-thirty/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/reader-of-the-hearts-of-evil/</loc><priority>0.9</priority></url>
@@ -2563,7 +2576,6 @@
   <url><loc>https://kstarmap.com/en/drama/the-chief-of-staff/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/red-heart/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/big-mouth/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/when-the-camellia-blooms/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/prosecutor-princess/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/five-children/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/mr-go/</loc><priority>0.9</priority></url>
@@ -2716,12 +2728,12 @@
   <url><loc>https://kstarmap.com/en/artist/kim-jae-hwan/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/day-and-night/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/police-class/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/dazzling/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/a-sweet-life/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/you-are-closer-than-you-think/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/jackpot/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/dukgo-rewind/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/dream-high/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/dear-my-friends/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/life/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/lovely-horribly/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/romance-is-a-bonus-book-2/</loc><priority>0.9</priority></url>
@@ -2868,6 +2880,7 @@
   <url><loc>https://kstarmap.com/en/drama/destiny/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/wanna-one/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/wanted/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/the-great-seducer/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/cheer-up-my-life/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/eun-joos-room/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/farewell-has-left/</loc><priority>0.9</priority></url>
@@ -2892,7 +2905,6 @@
   <url><loc>https://kstarmap.com/en/drama/first-love/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/chonggakne-vegetable-store/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-best-marriage/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/more-than-friends/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/color-rush/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/artist/k-will/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/chun-hyang-a-brave-new-world/</loc><priority>0.9</priority></url>
@@ -2933,6 +2945,7 @@
   <url><loc>https://kstarmap.com/en/drama/clear-tomorrow/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/im-going-to-touch-you/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/dr-champ/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/if-you-wish-upon-me/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-great-king-sejong/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-kings-dream/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-package/</loc><priority>0.9</priority></url>
@@ -2946,7 +2959,6 @@
   <url><loc>https://kstarmap.com/en/drama/terroir/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/conditions-of-17/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/lingerie-girls-generation/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/love-all-play/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/romance-talking/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/the-lobbyist/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/royal-family/</loc><priority>0.9</priority></url>
@@ -2981,7 +2993,6 @@
   <url><loc>https://kstarmap.com/en/drama/deep-rooted-tree/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/closer-than-sadang-farther-than-uijeongbu-season-3/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/love-and-ambition/</loc><priority>0.9</priority></url>
-  <url><loc>https://kstarmap.com/en/drama/lovestruck-in-the-city/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/i-believe-in-love/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/three-siblings-bravely/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/level-7-civil-servant/</loc><priority>0.9</priority></url>
@@ -3008,6 +3019,7 @@
   <url><loc>https://kstarmap.com/en/drama/bride-lesson/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/heart-signal/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/singer-songwriter/</loc><priority>0.9</priority></url>
+  <url><loc>https://kstarmap.com/en/drama/psycho-but-its-okay/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/drama/summer-guys/</loc><priority>0.9</priority></url>
   <url><loc>https://kstarmap.com/en/</loc><priority>1.0</priority></url>
   <url><loc>https://kstarmap.com/</loc><priority>1.0</priority></url>

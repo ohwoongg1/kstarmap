@@ -340,7 +340,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.8.8';
+const VERSION = 'map v1.8.9';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -1002,8 +1002,11 @@ function doHallyuSearch(q) {
   // (title_en 이 데이터에 있는데 그동안 검색에 안 써서 'BTS','Blackpink'로 검색이 안 됐다)
   const norm = s => String(s || '').replace(/\s/g,'').toLowerCase();
   const blobOf = d => {
-    const actors = Array.isArray(d.actors) ? d.actors.join('') : (d.actors || '');
-    return norm(d.title) + '|' + norm(d.title_en) + '|' +
+    const actors  = Array.isArray(d.actors) ? d.actors.join('') : (d.actors || '');
+    // aliases_en = 팬들이 실제로 쓰는 이름 (예: 도깨비 → Goblin)
+    // 정식 영문명(title_en)은 'Guardian: The Lonely and Great God'이라 아무도 못 찾는다.
+    const alias = Array.isArray(d.aliases_en) ? d.aliases_en.join('') : (d.aliases_en || '');
+    return norm(d.title) + '|' + norm(d.title_en) + '|' + norm(alias) + '|' +
            norm(d.placeName) + '|' + norm(actors) + '|' + norm(d.addr_en);
   };
   const matched = _pilgrimData.filter(d => blobOf(d).includes(lq));
