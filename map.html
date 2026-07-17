@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <!-- Google Analytics -->
@@ -340,7 +340,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.7';
+const VERSION = 'map v1.9.8';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -1406,7 +1406,7 @@ function openPlaceSheet(place) {
       const _isEnDisp = _dispLang !== 'ko';
       const _mt = (_isEnDisp && raw.title_en) ? raw.title_en : (raw.title || '');
       if (_mt) {
-        const _LOC_KW = {ko:'촬영지', ja:'ロケ地', zh:'取景地', 'zh-TW':'拍攝地', id:'lokasi syuting', th:'สถานที่ถ่ายทำ', vi:'địa điểm quay phim'};
+        const _LOC_KW = {ko:'촬영지', ja:'ロケ地', 'zh-CN':'取景地', 'zh-TW':'拍攝地', id:'lokasi syuting', th:'สถานที่ถ่ายทำ', vi:'địa điểm quay phim'};
         const _kw = _LOC_KW[_dispLang] || 'filming location';
         const _q = '"' + _mt + '" ' + _kw;
         const _eq = encodeURIComponent(_q);
