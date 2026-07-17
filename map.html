@@ -1405,10 +1405,13 @@ function openPlaceSheet(place) {
       const _dispLang = (window.localStorage && localStorage.getItem('kstar_display_lang')) || 'ko';
       const _isEnDisp = _dispLang !== 'ko';
       const _mt = (_isEnDisp && raw.title_en) ? raw.title_en : (raw.title || '');
+        const _pn = place.name || '';
       if (_mt) {
         const _LOC_KW = {ko:'촬영지', ja:'ロケ地', 'zh-CN':'取景地', 'zh-TW':'拍攝地', id:'lokasi syuting', th:'สถานที่ถ่ายทำ', vi:'địa điểm quay phim'};
         const _kw = _LOC_KW[_dispLang] || 'filming location';
-        const _q = '"' + _mt + '" ' + _kw;
+        const _qprecise = _pn ? ('"' + _pn + '" "' + _mt + '" ' + _kw) : ('"' + _mt + '" ' + _kw);
+        const _q = _qprecise;
+        const _qbroad = '"' + _mt + '" ' + _kw;
         const _eq = encodeURIComponent(_q);
         const _yt = 'https://www.youtube.com/results?search_query=' + _eq;
         const _gg = 'https://www.google.com/search?q=' + _eq;
