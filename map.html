@@ -143,6 +143,26 @@
   .sr-item:active{background:var(--bg2)}
   .sr-name{font-size:14px;font-weight:700;color:var(--text)}
   .sr-addr{font-size:12px;color:var(--text3);margin-top:3px}
+
+  /* ═══ PC(≥900px): 장소 시트를 하단 바텀시트 대신 오른쪽 사이드 패널로 ═══
+     모바일 레이아웃(#placeSheet 기본 스타일)은 절대 건드리지 않고,
+     900px 이상에서만 위치/방향만 오버라이드한다. */
+  @media (min-width:900px){
+    #placeSheet{
+      left:auto;
+      right:0;
+      top:0;
+      bottom:0;
+      width:400px;
+      max-width:400px;
+      height:100%;
+      max-height:100%;
+      border-radius:0;
+      box-shadow:-3px 0 16px rgba(0,0,0,0.14);
+      transform:translateX(100%);
+    }
+    #placeSheet.show{transform:translateX(0)}
+  }
   .sr-cat{font-size:11px;color:var(--gold);margin-top:2px}
 
   /* 하단 탭 */
@@ -340,7 +360,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.9';
+const VERSION = 'map v1.9.10';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
