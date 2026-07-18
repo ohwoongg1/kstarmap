@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.14';
+const VERSION = 'map v1.9.15';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -506,8 +506,12 @@ window.openBoard = async function() {
   if (old) old.remove();
   const sheet = document.createElement('div');
   sheet.id = 'boardSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column';
-  sheet.innerHTML =
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
+  const inner = document.createElement('div');
+  inner.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
+  sheet.appendChild(inner);
+  const sheetContent = inner;
+  sheetContent.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
       '<button onclick="document.getElementById(\'boardSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
       '<div style="font-size:16px;font-weight:800;flex:1">📝 자유게시판</div>' +
@@ -528,13 +532,25 @@ async function loadBoardList() {
       list.innerHTML = '<div style="padding:60px 24px;text-align:center;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">📝</div>아직 글이 없어요.<br>첫 글을 남겨보세요!</div>';
       return;
     }
-    list.innerHTML = posts.map(p =>
-      '<div style="padding:15px 18px;border-bottom:1px solid var(--border)">' +
+    list.innerHTML = posts.map(p => {
+      const preview = (p.body||'').length > 100 ? escB((p.body||'').slice(0,100)) + '...' : escB(p.body||'');
+      const full = escB(p.body||'');
+      const isAdmin = window.isAdmin && window.isAdmin();
+      const isOwner = window.currentUser && window.currentUser.uid === p.uid;
+      const canDel = isAdmin || isOwner;
+      return '<div style="padding:15px 18px;border-bottom:1px solid var(--border)">' +
         '<div style="font-size:15px;font-weight:700;margin-bottom:5px">' + escB(p.title||'') + '</div>' +
-        '<div style="font-size:13px;color:var(--text2);line-height:1.5;white-space:pre-wrap;margin-bottom:8px">' + escB(p.body||'') + '</div>' +
-        '<div style="font-size:11px;color:var(--text3)">' + escB(p.userName||'익명') + ' · ' + timeAgoB(p.createdAt) + '</div>' +
-      '</div>'
-    ).join('');
+        '<div class="board-preview" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">' + preview + '</div>' +
+        '<div class="board-full" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">' + full + '</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between">' +
+          '<div style="font-size:11px;color:var(--text3)">' + escB(p.userName||'익명') + ' · ' + timeAgoB(p.createdAt) + '</div>' +
+          '<div style="display:flex;gap:6px;align-items:center">' +
+            ((p.body||'').length > 100 ? '<button onclick="boardToggle(this)" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">더 보기</button>' : '') +
+            (canDel ? '<button onclick="deleteBoardPost(\''+p.id+'\')" style="font-size:11px;color:#ef4444;border:none;background:none;cursor:pointer;padding:0">삭제</button>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
   } catch(e) {
     list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
   }
@@ -545,8 +561,12 @@ window.openBoardWrite = function() {
   if (old) old.remove();
   const w = document.createElement('div');
   w.id = 'boardWrite';
-  w.style.cssText = 'position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;flex-direction:column';
-  w.innerHTML =
+  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
+  const wi = document.createElement('div');
+  wi.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
+  w.appendChild(wi);
+  const writeContent = wi;
+  writeContent.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
       '<button onclick="document.getElementById(\'boardWrite\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
       '<div style="font-size:16px;font-weight:800;flex:1">글쓰기</div>' +
@@ -573,6 +593,25 @@ window.submitBoardPost = async function() {
     showToast('✅ 글이 등록됐어요');
     loadBoardList();
   } catch(e) { showToast('등록 실패: ' + (e.message||e)); }
+};
+window.boardToggle = function(btn) {
+  const card = btn.closest ? btn.closest('[style*="border-bottom:1px"]') : btn.parentElement.parentElement.parentElement;
+  const pre = card ? card.querySelector('.board-preview') : null;
+  const full = card ? card.querySelector('.board-full') : null;
+  if (!pre || !full) return;
+  const isOpen = full.style.display !== 'none';
+  pre.style.display = isOpen ? '' : 'none';
+  full.style.display = isOpen ? 'none' : '';
+  btn.textContent = isOpen ? '더 보기' : '접기';
+};
+window.deleteBoardPost = async function(pid) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  try {
+    const { db, doc, deleteDoc } = window._mapDB;
+    await deleteDoc(doc(db, 'board', pid));
+    showToast('삭제되었어요');
+    loadBoardList();
+  } catch(e) { showToast('삭제 실패: ' + (e.message||e)); }
 };
 function escB(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function timeAgoB(ts){
