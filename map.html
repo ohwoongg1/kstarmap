@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.18';
+const VERSION = 'map v1.9.19';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -674,6 +674,12 @@ window.funPlayVideo = function(el) {
   const card = el.closest ? el.closest('[data-post]') : null;
   window._funPlayerSeq = (window._funPlayerSeq || 0) + 1;
   const playerId = 'fun-yt-' + window._funPlayerSeq;
+  // 이전에 재생 중이던(또는 백그라운드에서 계속 돌아가던) 영상은 여기서 멈춘다.
+  // 안 그러면 그 영상이 나중에 끝났을 때 "그 영상 기준 다음"으로 화면이 튐.
+  if (window._funActivePlayer) {
+    try { window._funActivePlayer.pauseVideo(); } catch(e) {}
+  }
+  window._funActivePlayerId = playerId;
   el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><div id="'+playerId+'" style="position:absolute;top:0;left:0;width:100%;height:100%"></div></div>';
   if (card) {
     const pre = card.querySelector('.fun-preview');
@@ -688,11 +694,17 @@ window.funPlayVideo = function(el) {
   ensureYTApi(function() {
     const holder = document.getElementById(playerId);
     if (!holder) return;
-    new YT.Player(playerId, {
+    const player = new YT.Player(playerId, {
       videoId: id,
       playerVars: { autoplay: 1, playsinline: 1 },
       events: {
+        onReady: function() {
+          // 이 사이 다른 영상으로 또 넘어갔으면 이 플레이어를 활성 플레이어로 삼지 않는다.
+          if (window._funActivePlayerId === playerId) window._funActivePlayer = player;
+        },
         onStateChange: function(ev) {
+          // 더 이상 활성 플레이어가 아니면(사용자가 다른 걸로 넘어간 경우) 무시 — 뒤늦게 끝나도 순서 이동 안 함.
+          if (window._funActivePlayerId !== playerId) return;
           if (ev.data === YT.PlayerState.ENDED && card) funAdvanceNext(card);
         }
       }
