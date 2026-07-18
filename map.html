@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.17';
+const VERSION = 'map v1.9.18';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -653,6 +653,12 @@ function ensureYTApi(cb) {
   };
 }
 function funAdvanceNext(card) {
+  const remainingThumb = card && card.querySelector && card.querySelector('.yt-thumb');
+  if (remainingThumb) {
+    remainingThumb.scrollIntoView({ behavior:'smooth', block:'center' });
+    funPlayVideo(remainingThumb);
+    return;
+  }
   const next = card && card.nextElementSibling;
   if (!next) { showToast('마지막 영상이에요'); return; }
   const thumb = next.querySelector && next.querySelector('.yt-thumb');
@@ -666,7 +672,8 @@ function funAdvanceNext(card) {
 window.funPlayVideo = function(el) {
   const id = el.getAttribute('data-yt');
   const card = el.closest ? el.closest('[data-post]') : null;
-  const playerId = 'fun-yt-' + (card ? card.getAttribute('data-post') : Date.now());
+  window._funPlayerSeq = (window._funPlayerSeq || 0) + 1;
+  const playerId = 'fun-yt-' + window._funPlayerSeq;
   el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><div id="'+playerId+'" style="position:absolute;top:0;left:0;width:100%;height:100%"></div></div>';
   if (card) {
     const pre = card.querySelector('.fun-preview');
