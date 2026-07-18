@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.13';
+const VERSION = 'map v1.9.14';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -450,10 +450,10 @@ window.openMoreMenu = function() {
     '</button>';
   const sheet = document.createElement('div');
   sheet.id = 'moreSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;align-items:center';
   sheet.innerHTML =
     '<div onclick="document.getElementById(\'moreSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
       '<div style="font-size:16px;font-weight:800;color:var(--text);padding:4px 16px 10px">☰ 더보기</div>' +
       item('📖', '사용 설명서', "location.href='guide.html'") +
@@ -471,10 +471,10 @@ window.openDevFeedback = function() {
   if (old) old.remove();
   const sheet = document.createElement('div');
   sheet.id = 'devSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;align-items:center';
   sheet.innerHTML =
     '<div onclick="document.getElementById(\'devSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:0 18px calc(20px + env(safe-area-inset-bottom))">' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;padding:0 18px calc(20px + env(safe-area-inset-bottom))">' +
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 8px"></div>' +
       '<div style="font-size:16px;font-weight:800;padding:4px 0 4px">✉️ 개발자에게 의견</div>' +
       '<div style="font-size:12.5px;color:var(--text3);margin-bottom:12px">버그·건의·성지 추가 요청 등 자유롭게 남겨주세요.</div>' +
@@ -596,10 +596,10 @@ window.openLangPicker = function() {
   ).join('');
   const sheet = document.createElement('div');
   sheet.id = 'langSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;align-items:center';
   sheet.innerHTML =
     '<div onclick="document.getElementById(\'langSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
       '<div style="font-size:16px;font-weight:800;color:var(--text);padding:4px 16px 10px">🌐 ' + (isEn()?'Language':'언어 선택') + '</div>' +
       rows +
@@ -2105,10 +2105,10 @@ window.startCert = function() {
   if (old) old.remove();
   const sheet = document.createElement('div');
   sheet.id = 'certSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end;align-items:center';
   sheet.innerHTML =
     '<div onclick="document.getElementById(\'certSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.45)"></div>' +
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:16px 16px calc(28px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto">' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(28px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto">' +
       '<div style="position:relative;height:22px;margin-bottom:10px"><div style="width:40px;height:4px;background:var(--border2);border-radius:2px;position:absolute;left:50%;transform:translateX(-50%);top:4px"></div><button onclick="document.getElementById(\'certSheet\').remove()" style="position:absolute;right:0;top:-4px;width:30px;height:30px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:16px;cursor:pointer">✕</button></div>' +
       '<div style="font-size:16px;font-weight:800;color:var(--text)">' + t('certTitle') + '</div>' +
       '<div style="font-size:12px;color:var(--text3);margin:3px 0 14px">' + escCert(p.name) + '</div>' +
@@ -2256,10 +2256,10 @@ function showNavSheet(destName, googleUrl, naverApp, naverWeb, kakaoWeb) {
 
   const sheet = document.createElement('div');
   sheet.id = 'navSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;align-items:center';
   sheet.innerHTML =
     '<div onclick="document.getElementById(\'navSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:20px 16px calc(32px + env(safe-area-inset-bottom))">' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;padding:20px 16px calc(32px + env(safe-area-inset-bottom))">' +
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>' +
       '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:2px">' + L.title + '</div>' +
       '<div style="font-size:12px;color:var(--text3);margin-bottom:4px">' + L.sub + '</div>' +
@@ -2524,10 +2524,10 @@ window.editMyCert = function(certId) {
   if (old) old.remove();
   const sheet = document.createElement('div');
   sheet.id = 'editSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end;align-items:center';
   sheet.innerHTML =
     '<div onclick="document.getElementById(\'editSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.45)"></div>' +
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;padding:16px 16px calc(28px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto">' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(28px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto">' +
       '<div style="position:relative;height:22px;margin-bottom:10px"><div style="width:40px;height:4px;background:var(--border2);border-radius:2px;position:absolute;left:50%;transform:translateX(-50%);top:4px"></div><button onclick="document.getElementById(\'editSheet\').remove()" style="position:absolute;right:0;top:-4px;width:30px;height:30px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:16px;cursor:pointer">✕</button></div>' +
       '<div style="font-size:16px;font-weight:800;color:var(--text)">✏️ 인증 수정</div>' +
       '<div style="font-size:12px;color:var(--text3);margin:3px 0 14px">' + (c.placeName||'').replace(/</g,'&lt;') + '</div>' +
