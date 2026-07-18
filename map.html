@@ -636,19 +636,61 @@ window.funToggle = function(btn) {
   full.style.display = isOpen?'none':'';
   btn.textContent = isOpen?'더 보기':'접기';
 };
+function ensureYTApi(cb) {
+  if (window.YT && window.YT.Player) { cb(); return; }
+  window._ytApiCallbacks = window._ytApiCallbacks || [];
+  window._ytApiCallbacks.push(cb);
+  if (window._ytApiLoading) return;
+  window._ytApiLoading = true;
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+  const prevReady = window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady = function() {
+    if (prevReady) try { prevReady(); } catch(e) {}
+    (window._ytApiCallbacks || []).forEach(fn => { try { fn(); } catch(e) {} });
+    window._ytApiCallbacks = [];
+  };
+}
+function funAdvanceNext(card) {
+  const next = card && card.nextElementSibling;
+  if (!next) { showToast('마지막 영상이에요'); return; }
+  const thumb = next.querySelector && next.querySelector('.yt-thumb');
+  if (thumb) {
+    next.scrollIntoView({ behavior:'smooth', block:'center' });
+    funPlayVideo(thumb);
+  } else {
+    funAdvanceNext(next);
+  }
+}
 window.funPlayVideo = function(el) {
   const id = el.getAttribute('data-yt');
   const card = el.closest ? el.closest('[data-post]') : null;
-  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>';
-  if (!card) return;
-  const pre = card.querySelector('.fun-preview');
-  const full = card.querySelector('.fun-full');
-  const moreBtn = card.querySelector('.fun-more-btn');
-  if (pre && full && full.style.display === 'none') {
-    pre.style.display = 'none';
-    full.style.display = '';
-    if (moreBtn) moreBtn.textContent = '접기';
+  const playerId = 'fun-yt-' + (card ? card.getAttribute('data-post') : Date.now());
+  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><div id="'+playerId+'" style="position:absolute;top:0;left:0;width:100%;height:100%"></div></div>';
+  if (card) {
+    const pre = card.querySelector('.fun-preview');
+    const full = card.querySelector('.fun-full');
+    const moreBtn = card.querySelector('.fun-more-btn');
+    if (pre && full && full.style.display === 'none') {
+      pre.style.display = 'none';
+      full.style.display = '';
+      if (moreBtn) moreBtn.textContent = '접기';
+    }
   }
+  ensureYTApi(function() {
+    const holder = document.getElementById(playerId);
+    if (!holder) return;
+    new YT.Player(playerId, {
+      videoId: id,
+      playerVars: { autoplay: 1, playsinline: 1 },
+      events: {
+        onStateChange: function(ev) {
+          if (ev.data === YT.PlayerState.ENDED && card) funAdvanceNext(card);
+        }
+      }
+    });
+  });
 };
 window.deleteFunPost = async function(pid) {
   if (!confirm('삭제하시겠습니까?')) return;
