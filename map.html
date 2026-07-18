@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.11';
+const VERSION = 'map v1.9.12';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -388,7 +388,7 @@ const I18N = {
     mapView:'지도에서 보기', close:'닫기',
     statCert:'인증', statPlace:'다녀온 곳', statWork:'작품',
     needPhoto:'사진이 최소 1장 필요해요', needLogin:'🔒 로그인이 필요해요',
-    hallyuHint:'이 배우가 나온 모든 작품', allSpots:'성지 전체',
+    hallyuHint:'이 인물이 등장하는 성지', allSpots:'성지 전체',
   },
   en: {
     searchPlace: 'Search place or address',
@@ -412,7 +412,7 @@ const I18N = {
     mapView:'View on map', close:'Close',
     statCert:'Check-ins', statPlace:'Places', statWork:'Titles',
     needPhoto:'At least 1 photo needed', needLogin:'🔒 Sign in required',
-    hallyuHint:'All titles with this actor', allSpots:'all spots',
+    hallyuHint:'Spots featuring this person', allSpots:'all spots',
   }
 };
 function t(key) { return (I18N[LANG] && I18N[LANG][key]) || I18N.ko[key] || key; }
@@ -1067,7 +1067,7 @@ function doHallyuSearch(q) {
   html += groups.map(([title, list]) => {
     const d0 = list[0];
     const icon = d0.mediaType === 'artist' ? '⭐' : d0.mediaType === 'movie' ? '🎬' : '📺';
-    const actors = Array.isArray(d0.actors) ? d0.actors.slice(0,3).join(', ') : (d0.actors||'');
+    const actors = (d0.mediaType === 'artist') ? '' : (Array.isArray(d0.actors) ? d0.actors.slice(0,3).join(', ') : (d0.actors||''));
     // 영어 모드면 영문 제목을 보여준다 (필터 값은 한글 title 그대로 — 데이터 키이므로)
     const shown = (isEn() && d0.title_en) ? d0.title_en : title;
     return '<div onclick="applyTitleFilter(\'' + title.replace(/'/g,"\\'") + '\')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer">' +
