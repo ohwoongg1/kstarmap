@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.15';
+const VERSION = 'map v1.9.16';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -457,7 +457,7 @@ window.openMoreMenu = function() {
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
       '<div style="font-size:16px;font-weight:800;color:var(--text);padding:4px 16px 10px">☰ 더보기</div>' +
       item('📖', '사용 설명서', "location.href='guide.html'") +
-      item('📝', '자유게시판', "document.getElementById('moreSheet').remove();openBoard()") +
+      item('📚', '한류정보창고', "document.getElementById('moreSheet').remove();openBoard()") +
       item('✉️', '개발자에게 의견', "document.getElementById('moreSheet').remove();openDevFeedback()") +
       item('🌐', '언어 선택', "document.getElementById('moreSheet').remove();openLangPicker()") +
       '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 성지 지도</div>' +
@@ -532,20 +532,36 @@ async function loadBoardList() {
       list.innerHTML = '<div style="padding:60px 24px;text-align:center;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">📝</div>아직 글이 없어요.<br>첫 글을 남겨보세요!</div>';
       return;
     }
+    // pinned 먼저, 나머지는 최신순
+    posts.sort((a,b) => (b.pinned?1:0)-(a.pinned?1:0));
     list.innerHTML = posts.map(p => {
-      const preview = (p.body||'').length > 100 ? escB((p.body||'').slice(0,100)) + '...' : escB(p.body||'');
-      const full = escB(p.body||'');
       const isAdmin = window.isAdmin && window.isAdmin();
       const isOwner = window.currentUser && window.currentUser.uid === p.uid;
       const canDel = isAdmin || isOwner;
-      return '<div style="padding:15px 18px;border-bottom:1px solid var(--border)">' +
-        '<div style="font-size:15px;font-weight:700;margin-bottom:5px">' + escB(p.title||'') + '</div>' +
+      const bodyRaw = p.body||'';
+      // 유튜브 링크 감지 → 임베드로 교체
+      const ytRe = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})[^\s]*/g;
+      const ytIds = [];
+      let bodyNoYt = bodyRaw.replace(ytRe, (m,id) => { ytIds.push(id); return ''; }).trim();
+      const preview = bodyNoYt.length > 100 ? escB(bodyNoYt.slice(0,100)) + '...' : escB(bodyNoYt);
+      const full = escB(bodyNoYt);
+      const ytHtml = ytIds.map(id =>
+        '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px">' +
+        '<iframe src="https://www.youtube.com/embed/'+id+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>'
+      ).join('');
+      const pinnedBadge = p.pinned ? '<span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:6px">📌 공지</span>' : '';
+      const pinBtn = isAdmin ? '<button onclick="toggleBoardPin(\''+p.id+'\','+!!p.pinned+')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">'+(p.pinned?'언피닝':'📌 고정')+'</button>' : '';
+      const cardBg = p.pinned ? 'background:var(--gold-bg);' : '';
+      return '<div style="padding:15px 18px;border-bottom:1px solid var(--border);'+cardBg+'">' +
+        '<div style="font-size:15px;font-weight:700;margin-bottom:5px">' + pinnedBadge + escB(p.title||'') + '</div>' +
         '<div class="board-preview" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">' + preview + '</div>' +
         '<div class="board-full" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">' + full + '</div>' +
-        '<div style="display:flex;align-items:center;justify-content:space-between">' +
+        ytHtml +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">' +
           '<div style="font-size:11px;color:var(--text3)">' + escB(p.userName||'익명') + ' · ' + timeAgoB(p.createdAt) + '</div>' +
           '<div style="display:flex;gap:6px;align-items:center">' +
-            ((p.body||'').length > 100 ? '<button onclick="boardToggle(this)" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">더 보기</button>' : '') +
+            (bodyNoYt.length > 100 ? '<button onclick="boardToggle(this)" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">더 보기</button>' : '') +
+            pinBtn +
             (canDel ? '<button onclick="deleteBoardPost(\''+p.id+'\')" style="font-size:11px;color:#ef4444;border:none;background:none;cursor:pointer;padding:0">삭제</button>' : '') +
           '</div>' +
         '</div>' +
@@ -574,7 +590,9 @@ window.openBoardWrite = function() {
     '</div>' +
     '<div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:10px">' +
       '<input id="boardTitle" placeholder="제목" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
-      '<textarea id="boardBody" placeholder="내용을 입력하세요..." style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+      '<textarea id="boardBody" placeholder="한류 정보를 오지고 으세요...
+
+★ 유튜브 링크를 붙여넣으면 영상이 자동으로 보여집니다!" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
   document.body.appendChild(w);
 };
@@ -587,6 +605,7 @@ window.submitBoardPost = async function() {
     await addDoc(collection(db, 'board'), {
       title, body,
       uid: window.currentUser.uid, userName: window.currentUser.displayName || '익명',
+      pinned: false,
       createdAt: serverTimestamp()
     });
     document.getElementById('boardWrite').remove();
@@ -603,6 +622,14 @@ window.boardToggle = function(btn) {
   pre.style.display = isOpen ? '' : 'none';
   full.style.display = isOpen ? 'none' : '';
   btn.textContent = isOpen ? '더 보기' : '접기';
+};
+window.toggleBoardPin = async function(pid, curPinned) {
+  if (!window.isAdmin || !window.isAdmin()) return;
+  try {
+    const { db, doc, updateDoc } = window._mapDB;
+    await updateDoc(doc(db, 'board', pid), { pinned: !curPinned });
+    loadBoardList();
+  } catch(e) { showToast('폴 실패: ' + (e.message||e)); }
 };
 window.deleteBoardPost = async function(pid) {
   if (!confirm('삭제하시겠습니까?')) return;
