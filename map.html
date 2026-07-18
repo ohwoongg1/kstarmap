@@ -533,16 +533,29 @@ async function loadBoardList() {
       return;
     }
     posts.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+    window._boardCache = {};
+    posts.forEach(p=>{ window._boardCache[p.id] = p; });
+    const ytRe=/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
     list.innerHTML = posts.map(p => {
-      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canDel=isAdmin||isOwner;
-      const bodyRaw=p.body||'', ytRe=/https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})[^\s]*/g, ytIds=[];
+      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canDel=isAdmin||isOwner, canEdit=isOwner||isAdmin;
+      const bodyRaw=p.body||'', ytIds=[];
       let bodyTxt=bodyRaw.replace(ytRe,(m,id)=>{ytIds.push(id);return '';}).trim();
       const preview=bodyTxt.length>100?escB(bodyTxt.slice(0,100))+'...':escB(bodyTxt), full=escB(bodyTxt);
-      const ytHtml=ytIds.map(id=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>').join('');
+      const ytHtml=ytIds.map(id=>
+        '<div class="yt-thumb" data-yt="'+id+'" onclick="boardPlayVideo(this)" style="position:relative;border-radius:10px;overflow:hidden;margin-top:8px;cursor:pointer;background:#000">'+
+          '<img src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover;opacity:0.85" loading="lazy">'+
+          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'+
+            '<div style="width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center">'+
+              '<div style="width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:16px solid #fff;margin-left:4px"></div>'+
+            '</div>'+
+          '</div>'+
+        '</div>'
+      ).join('');
       const badge=p.pinned?'<span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">📌 공지</span>':'';
       const pinBtn=isAdmin?'<button onclick="toggleBoardPin(\''+p.id+'\','+!!p.pinned+')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">'+(p.pinned?'언피닝':'📌 고정')+'</button>':'';
+      const editBtn=canEdit?'<button onclick="editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:0">수정</button>':'';
       const bg=p.pinned?'background:var(--gold-bg);':'';
-      return '<div style="padding:15px 18px;border-bottom:1px solid var(--border);'+bg+'">'+
+      return '<div data-post="'+p.id+'" style="padding:15px 18px;border-bottom:1px solid var(--border);'+bg+'">'+
         '<div style="font-size:15px;font-weight:700;margin-bottom:5px">'+badge+escB(p.title||'')+'</div>'+
         '<div class="board-preview" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">'+preview+'</div>'+
         '<div class="board-full" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">'+full+'</div>'+
@@ -550,8 +563,9 @@ async function loadBoardList() {
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'+
           '<div style="font-size:11px;color:var(--text3)">'+escB(p.userName||'익명')+' · '+timeAgoB(p.createdAt)+'</div>'+
           '<div style="display:flex;gap:6px;align-items:center">'+
-            (bodyTxt.length>100?'<button onclick="boardToggle(this)" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">더 보기</button>':'')+
+            (bodyTxt.length>100?'<button class="board-more-btn" onclick="boardToggle(this)" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">더 보기</button>':'')+
             pinBtn+
+            editBtn+
             (canDel?'<button onclick="deleteBoardPost(\''+p.id+'\')" style="font-size:11px;color:#ef4444;border:none;background:none;cursor:pointer;padding:0">삭제</button>':'')+
           '</div>'+
         '</div>'+
@@ -561,48 +575,66 @@ async function loadBoardList() {
     list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
   }
 }
-window.openBoardWrite = function() {
+window.openBoardWrite = function(editPost) {
   if (!window.currentUser) { showToast('로그인이 필요해요'); if (window.loginWithGoogle) loginWithGoogle(); return; }
   const old = document.getElementById('boardWrite');
   if (old) old.remove();
   const w = document.createElement('div');
   w.id = 'boardWrite';
+  w.dataset.editId = editPost ? editPost.id : '';
   w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
   const wi = document.createElement('div');
   wi.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   w.appendChild(wi);
   const writeContent = wi;
+  const headerLabel = editPost ? '글 수정' : '글쓰기';
+  const submitLabel = editPost ? '수정 완료' : '등록';
   writeContent.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
       '<button onclick="document.getElementById(\'boardWrite\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
-      '<div style="font-size:16px;font-weight:800;flex:1">글쓰기</div>' +
-      '<button onclick="submitBoardPost()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">등록</button>' +
+      '<div style="font-size:16px;font-weight:800;flex:1">'+headerLabel+'</div>' +
+      '<button onclick="submitBoardPost()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">'+submitLabel+'</button>' +
     '</div>' +
     '<div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:10px">' +
       '<input id="boardTitle" placeholder="제목" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
       '<textarea id="boardBody" placeholder="한류 정보를 오지고 오세요. ★ 유튜브 링크를 넣으면 영상이 자동 임베드됩니다!" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
   document.body.appendChild(w);
+  if (editPost) {
+    document.getElementById('boardTitle').value = editPost.title || '';
+    document.getElementById('boardBody').value = editPost.body || '';
+  }
+};
+window.editBoardPost = function(pid) {
+  const p = window._boardCache && window._boardCache[pid];
+  if (!p) { showToast('글 정보를 찾을 수 없어요'); return; }
+  openBoardWrite(p);
 };
 window.submitBoardPost = async function() {
   const title = document.getElementById('boardTitle').value.trim();
   const body = document.getElementById('boardBody').value.trim();
   if (!title || !body) { showToast('제목과 내용을 입력해주세요'); return; }
+  const editId = document.getElementById('boardWrite').dataset.editId;
   try {
-    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
-    await addDoc(collection(db, 'board'), {
-      title, body,
-      uid: window.currentUser.uid, userName: window.currentUser.displayName || '익명',
-      pinned: false,
-      createdAt: serverTimestamp()
-    });
+    const { db, collection, addDoc, doc, updateDoc, serverTimestamp } = window._mapDB;
+    if (editId) {
+      await updateDoc(doc(db, 'board', editId), { title, body, updatedAt: serverTimestamp() });
+      showToast('✅ 글이 수정됐어요');
+    } else {
+      await addDoc(collection(db, 'board'), {
+        title, body,
+        uid: window.currentUser.uid, userName: window.currentUser.displayName || '익명',
+        pinned: false,
+        createdAt: serverTimestamp()
+      });
+      showToast('✅ 글이 등록됐어요');
+    }
     document.getElementById('boardWrite').remove();
-    showToast('✅ 글이 등록됐어요');
     loadBoardList();
-  } catch(e) { showToast('등록 실패: ' + (e.message||e)); }
+  } catch(e) { showToast((editId?'수정':'등록')+' 실패: ' + (e.message||e)); }
 };
 window.boardToggle = function(btn) {
-  const card = btn.closest ? btn.closest('[style*="border-bottom:1px"]') : btn.parentElement.parentElement.parentElement;
+  const card = btn.closest ? btn.closest('[data-post]') : null;
   const pre = card ? card.querySelector('.board-preview') : null;
   const full = card ? card.querySelector('.board-full') : null;
   if (!pre || !full) return;
@@ -610,6 +642,20 @@ window.boardToggle = function(btn) {
   pre.style.display = isOpen ? '' : 'none';
   full.style.display = isOpen ? 'none' : '';
   btn.textContent = isOpen ? '더 보기' : '접기';
+};
+window.boardPlayVideo = function(el) {
+  const id = el.getAttribute('data-yt');
+  const card = el.closest ? el.closest('[data-post]') : null;
+  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>';
+  if (!card) return;
+  const pre = card.querySelector('.board-preview');
+  const full = card.querySelector('.board-full');
+  const moreBtn = card.querySelector('.board-more-btn');
+  if (pre && full && full.style.display === 'none') {
+    pre.style.display = 'none';
+    full.style.display = '';
+    if (moreBtn) moreBtn.textContent = '접기';
+  }
 };
 window.deleteBoardPost = async function(pid) {
   if (!confirm('삭제하시겠습니까?')) return;
