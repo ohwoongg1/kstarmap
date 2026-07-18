@@ -536,10 +536,12 @@ async function loadFunBoardList() {
     const snap = await getDocs(query(collection(db,'funboard'), orderBy('createdAt','desc'), limit(50)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     if (!posts.length) { list.innerHTML = '<div style="padding:60px;text-align:center;color:var(--text3);font-size:13px">한류 웃긴 영상을 공유해 주세요!<br>유튜브 숏츠 링크를 넣으면 자동으로 보여집니다</div>'; return; }
+    window._funCache = {};
+    posts.forEach(p=>{ window._funCache[p.id] = p; });
     const escF = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const ytReF = /https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
     list.innerHTML = posts.map(p => {
-      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canDel=isAdmin||isOwner;
+      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canDel=isAdmin||isOwner, canEdit=isOwner||isAdmin;
       const bodyRaw=p.body||'', ytIds=[];
       let bodyTxt=bodyRaw.replace(ytReF,(m,id)=>{ytIds.push(id);return '';}).trim();
       const ytHtml=ytIds.map(id=>
@@ -562,6 +564,7 @@ async function loadFunBoardList() {
           '<div style="font-size:11px;color:var(--text3)">'+escF(p.userName||'익명')+'</div>'+
           '<div style="display:flex;gap:6px">'+
             (bodyTxt.length>80?'<button class="fun-more-btn" onclick="funToggle(this)" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">더 보기</button>':'')+
+            (canEdit?'<button onclick="editFunPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:0">수정</button>':'')+
             (canDel?'<button onclick="deleteFunPost(\''+p.id+'\')" style="font-size:11px;color:#ef4444;border:none;background:none;cursor:pointer;padding:0">삭제</button>':'')+
           '</div>'+
         '</div>'+
@@ -569,41 +572,59 @@ async function loadFunBoardList() {
     }).join('');
   } catch(e) { console.error(e); }
 }
-window.openFunBoardWrite = function() {
+window.openFunBoardWrite = function(editPost) {
   if (!window.currentUser) { showToast('🔒 로그인이 필요해요'); if (window.loginWithGoogle) loginWithGoogle(); return; }
   const old = document.getElementById('funBoardWrite');
   if (old) old.remove();
   const w = document.createElement('div');
   w.id = 'funBoardWrite';
+  w.dataset.editId = editPost ? editPost.id : '';
   w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
   const wi = document.createElement('div');
   wi.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   w.appendChild(wi);
   document.body.appendChild(w);
+  const headerLabel = editPost ? '영상 수정' : '웃긴 영상 공유';
+  const submitLabel = editPost ? '수정 완료' : '등록';
   wi.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
       '<button onclick="document.getElementById(\'funBoardWrite\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
-      '<div style="font-size:16px;font-weight:800;flex:1">웃긴 영상 공유</div>' +
-      '<button onclick="submitFunPost()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">등록</button>' +
+      '<div style="font-size:16px;font-weight:800;flex:1">'+headerLabel+'</div>' +
+      '<button onclick="submitFunPost()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">'+submitLabel+'</button>' +
     '</div>' +
     '<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">' +
       '<input id="funTitle" placeholder="제목 (선택사항)" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
       '<textarea id="funBody" placeholder="유튜브 숏츠 링크를 넣으면 자동으로 영상이 보여집니다!" style="width:100%;flex:1;min-height:200px;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
+  if (editPost) {
+    document.getElementById('funTitle').value = editPost.title || '';
+    document.getElementById('funBody').value = editPost.body || '';
+  }
+};
+window.editFunPost = function(pid) {
+  const p = window._funCache && window._funCache[pid];
+  if (!p) { showToast('글 정보를 찾을 수 없어요'); return; }
+  openFunBoardWrite(p);
 };
 window.submitFunPost = async function() {
   const body = document.getElementById('funBody').value.trim();
   const title = document.getElementById('funTitle').value.trim();
   if (!body) { showToast('링크를 입력해주세요'); return; }
+  const editId = document.getElementById('funBoardWrite').dataset.editId;
   try {
-    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
-    await addDoc(collection(db,'funboard'), { title, body,
-      uid: window.currentUser.uid, userName: window.currentUser.displayName||'익명',
-      createdAt: serverTimestamp() });
+    const { db, collection, addDoc, doc, updateDoc, serverTimestamp } = window._mapDB;
+    if (editId) {
+      await updateDoc(doc(db, 'funboard', editId), { title, body, updatedAt: serverTimestamp() });
+      showToast('✅ 수정됐어요');
+    } else {
+      await addDoc(collection(db,'funboard'), { title, body,
+        uid: window.currentUser.uid, userName: window.currentUser.displayName||'익명',
+        createdAt: serverTimestamp() });
+      showToast('✅ 등록됐어요');
+    }
     document.getElementById('funBoardWrite').remove();
-    showToast('✅ 등록됐어요');
     loadFunBoardList();
-  } catch(e) { showToast('실패:'+(e.message||e)); }
+  } catch(e) { showToast((editId?'수정':'등록')+' 실패:'+(e.message||e)); }
 };
 window.funToggle = function(btn) {
   const card = btn.closest ? btn.closest('[data-post]') : null;
