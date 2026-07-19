@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <!-- Google Analytics -->
@@ -646,7 +646,7 @@ window.funToggle = function(btn) {
 window.funPlayVideo = function(el) {
   const id = el.getAttribute('data-yt');
   const card = el.closest ? el.closest('[data-post]') : null;
-  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1'+_ytCC()+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>';
+  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>';
   if (!card) return;
   const pre = card.querySelector('.fun-preview');
   const full = card.querySelector('.fun-full');
@@ -811,7 +811,7 @@ window.boardToggle = function(btn) {
 window.boardPlayVideo = function(el) {
   const id = el.getAttribute('data-yt');
   const card = el.closest ? el.closest('[data-post]') : null;
-  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1'+_ytCC()+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>';
+  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>';
   if (!card) return;
   const pre = card.querySelector('.board-preview');
   const full = card.querySelector('.board-full');
