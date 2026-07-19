@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.20';
+const VERSION = 'map v1.9.21';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -482,7 +482,7 @@ window.openDevFeedback = function() {
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 8px"></div>' +
       '<div style="display:flex;align-items:center">' +
         '<div style="font-size:16px;font-weight:800;padding:4px 0 4px;flex:1">✉️ 개발자에게 의견</div>' +
-        '<button onclick="document.getElementById(\'devSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
+        '<button onclick="document.getElementById(\'devSheet\').remove();openMoreMenu()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
       '<div style="font-size:12.5px;color:var(--text3);margin-bottom:12px">버그·건의·성지 추가 요청 등 자유롭게 남겨주세요.</div>' +
       '<textarea id="devMsg" placeholder="의견을 입력하세요..." style="width:100%;height:120px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
@@ -521,7 +521,7 @@ window.openFunBoard = async function() {
   document.body.appendChild(sheet);
   inner.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
-      '<button onclick="document.getElementById(\'funBoardSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<button onclick="document.getElementById(\'funBoardSheet\').remove();openMoreMenu()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
       '<div style="font-size:16px;font-weight:800;flex:1">😂 한류 웃음창고</div>' +
       '<button onclick="openFunBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
@@ -636,87 +636,19 @@ window.funToggle = function(btn) {
   full.style.display = isOpen?'none':'';
   btn.textContent = isOpen?'더 보기':'접기';
 };
-function ensureYTApi(cb) {
-  if (window.YT && window.YT.Player) { cb(); return; }
-  window._ytApiCallbacks = window._ytApiCallbacks || [];
-  window._ytApiCallbacks.push(cb);
-  if (window._ytApiLoading) return;
-  window._ytApiLoading = true;
-  const tag = document.createElement('script');
-  tag.src = 'https://www.youtube.com/iframe_api';
-  document.head.appendChild(tag);
-  const prevReady = window.onYouTubeIframeAPIReady;
-  window.onYouTubeIframeAPIReady = function() {
-    if (prevReady) try { prevReady(); } catch(e) {}
-    (window._ytApiCallbacks || []).forEach(fn => { try { fn(); } catch(e) {} });
-    window._ytApiCallbacks = [];
-  };
-}
-function funAdvanceNext(card) {
-  const remainingThumb = card && card.querySelector && card.querySelector('.yt-thumb');
-  if (remainingThumb) {
-    remainingThumb.scrollIntoView({ behavior:'smooth', block:'center' });
-    funPlayVideo(remainingThumb);
-    return;
-  }
-  const next = card && card.nextElementSibling;
-  if (!next) { showToast('마지막 영상이에요'); return; }
-  const thumb = next.querySelector && next.querySelector('.yt-thumb');
-  if (thumb) {
-    next.scrollIntoView({ behavior:'smooth', block:'center' });
-    funPlayVideo(thumb);
-  } else {
-    funAdvanceNext(next);
-  }
-}
 window.funPlayVideo = function(el) {
   const id = el.getAttribute('data-yt');
   const card = el.closest ? el.closest('[data-post]') : null;
-  window._funPlayerSeq = (window._funPlayerSeq || 0) + 1;
-  const playerId = 'fun-yt-' + window._funPlayerSeq;
-  // 이전 영상은 postMessage로 "멈춰라" 요청하지 않고 아예 iframe 자체를 파괴한다.
-  // (postMessage 방식은 도메인 문제로 조용히 실패할 수 있어서, 확실하게 하려면 물리적으로 없애야 함)
-  if (window._funActivePlayer) {
-    try { window._funActivePlayer.destroy(); } catch(e) {}
+  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>';
+  if (!card) return;
+  const pre = card.querySelector('.fun-preview');
+  const full = card.querySelector('.fun-full');
+  const moreBtn = card.querySelector('.fun-more-btn');
+  if (pre && full && full.style.display === 'none') {
+    pre.style.display = 'none';
+    full.style.display = '';
+    if (moreBtn) moreBtn.textContent = '접기';
   }
-  if (window._funActivePlayerBox) {
-    try { window._funActivePlayerBox.style.display = 'none'; } catch(e) {}
-  }
-  window._funActivePlayerId = playerId;
-  window._funActivePlayer = null;
-  el.outerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><div id="'+playerId+'" style="position:absolute;top:0;left:0;width:100%;height:100%"></div></div>';
-  const boxEl = document.getElementById(playerId);
-  window._funActivePlayerBox = boxEl ? boxEl.parentElement : null;
-  if (card) {
-    const pre = card.querySelector('.fun-preview');
-    const full = card.querySelector('.fun-full');
-    const moreBtn = card.querySelector('.fun-more-btn');
-    if (pre && full && full.style.display === 'none') {
-      pre.style.display = 'none';
-      full.style.display = '';
-      if (moreBtn) moreBtn.textContent = '접기';
-    }
-  }
-  ensureYTApi(function() {
-    const holder = document.getElementById(playerId);
-    if (!holder) return;
-    const player = new YT.Player(playerId, {
-      videoId: id,
-      playerVars: { autoplay: 1, playsinline: 1 },
-      events: {
-        onReady: function() {
-          // 이 사이 다른 영상으로 또 넘어갔으면 이 플레이어를 활성 플레이어로 삼지 않는다.
-          if (window._funActivePlayerId === playerId) window._funActivePlayer = player;
-          else { try { player.destroy(); } catch(e) {} }
-        },
-        onStateChange: function(ev) {
-          // 더 이상 활성 플레이어가 아니면(사용자가 다른 걸로 넘어간 경우) 무시 — 뒤늦게 끝나도 순서 이동 안 함.
-          if (window._funActivePlayerId !== playerId) return;
-          if (ev.data === YT.PlayerState.ENDED && card) funAdvanceNext(card);
-        }
-      }
-    });
-  });
 };
 window.deleteFunPost = async function(pid) {
   if (!confirm('삭제하시겠습니까?')) return;
@@ -739,7 +671,7 @@ window.openBoard = async function() {
   const sheetContent = inner;
   sheetContent.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
-      '<button onclick="document.getElementById(\'boardSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<button onclick="document.getElementById(\'boardSheet\').remove();openMoreMenu()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
       '<div style="font-size:16px;font-weight:800;flex:1">📚 한류정보창고</div>' +
       '<button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
@@ -921,7 +853,7 @@ window.openLangPicker = function() {
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
       '<div style="display:flex;align-items:center;padding:4px 8px 10px 16px">' +
         '<div style="font-size:16px;font-weight:800;color:var(--text);flex:1">🌐 ' + (isEn()?'Language':'언어 선택') + '</div>' +
-        '<button onclick="document.getElementById(\'langSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
+        '<button onclick="document.getElementById(\'langSheet\').remove();openMoreMenu()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
       rows +
       '<div style="font-size:11px;color:var(--text3);text-align:center;padding:14px 16px 4px">' +
