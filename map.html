@@ -808,6 +808,11 @@ window.boardMapLink = function(title) {
   if (sh) sh.remove();
   applyTitleFilter(title);
 };
+window.toggleBoardPin = async function(pid,cur) {
+  if (!window.isAdmin||!window.isAdmin()) return;
+  try { const {db,doc,updateDoc}=window._mapDB; await updateDoc(doc(db,'board',pid),{pinned:!cur}); loadBoardList(); }
+  catch(e){showToast('pin:'+e.message);}
+};
 window.boardToggle = function(btn) {
   const card = btn.closest ? btn.closest('[data-post]') : null;
   const pre = card ? card.querySelector('.board-preview') : null;
