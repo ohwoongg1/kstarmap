@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.23';
+const VERSION = 'map v1.9.24';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -705,6 +705,7 @@ async function loadBoardList() {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canDel=isAdmin||isOwner, canEdit=isOwner||isAdmin;
       const bodyRaw=p.body||'', ytIds=[];
       let bodyTxt=bodyRaw.replace(ytRe,(m,id)=>{ytIds.push(id);return '';}).trim();
+      const mapTitles=[]; bodyTxt=bodyTxt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';}).trim();
       const preview=bodyTxt.length>100?escB(bodyTxt.slice(0,100))+'...':escB(bodyTxt), full=escB(bodyTxt);
       const ytHtml=ytIds.map(id=>
         '<div class="yt-thumb" data-yt="'+id+'" onclick="boardPlayVideo(this)" style="position:relative;border-radius:10px;overflow:hidden;margin-top:8px;cursor:pointer;background:#000">'+
@@ -716,6 +717,7 @@ async function loadBoardList() {
           '</div>'+
         '</div>'
       ).join('');
+      const mapHtml=mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escB(t)+' 지도에서 보기</button>').join('');
       const badge=p.pinned?'<span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">📌 공지</span>':'';
       const pinBtn=isAdmin?'<button onclick="toggleBoardPin(\''+p.id+'\','+!!p.pinned+')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">'+(p.pinned?'언피닝':'📌 고정')+'</button>':'';
       const editBtn=canEdit?'<button onclick="editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:0">수정</button>':'';
@@ -724,7 +726,7 @@ async function loadBoardList() {
         '<div style="font-size:15px;font-weight:700;margin-bottom:5px">'+badge+escB(p.title||'')+'</div>'+
         '<div class="board-preview" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">'+preview+'</div>'+
         '<div class="board-full" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">'+full+'</div>'+
-        ytHtml+
+        ytHtml+mapHtml+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'+
           '<div style="font-size:11px;color:var(--text3)">'+escB(p.userName||'익명')+' · '+timeAgoB(p.createdAt)+'</div>'+
           '<div style="display:flex;gap:6px;align-items:center">'+
@@ -762,7 +764,7 @@ window.openBoardWrite = function(editPost) {
     '</div>' +
     '<div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:10px">' +
       '<input id="boardTitle" placeholder="제목" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
-      '<textarea id="boardBody" placeholder="한류 정보를 오지고 오세요. ★ 유튜브 링크를 넣으면 영상이 자동 임베드됩니다!" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+      '<textarea id="boardBody" placeholder="한류 정보를 공유해 주세요. ★ 유튜브 링크 = 영상 자동 임베드 / [지도:작품명] = 지도 버튼 생성" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
   document.body.appendChild(w);
   if (editPost) {
@@ -797,6 +799,11 @@ window.submitBoardPost = async function() {
     document.getElementById('boardWrite').remove();
     loadBoardList();
   } catch(e) { showToast((editId?'수정':'등록')+' 실패: ' + (e.message||e)); }
+};
+window.boardMapLink = function(title) {
+  const sh = document.getElementById('boardSheet');
+  if (sh) sh.remove();
+  applyTitleFilter(title);
 };
 window.boardToggle = function(btn) {
   const card = btn.closest ? btn.closest('[data-post]') : null;
