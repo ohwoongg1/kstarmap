@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.21';
+const VERSION = 'map v1.9.22';
 
 // ── 언어 (index.html과 통일: starspoon_lang) ──
 let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글 번역이 담당.
@@ -482,7 +482,7 @@ window.openDevFeedback = function() {
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 8px"></div>' +
       '<div style="display:flex;align-items:center">' +
         '<div style="font-size:16px;font-weight:800;padding:4px 0 4px;flex:1">✉️ 개발자에게 의견</div>' +
-        '<button onclick="document.getElementById(\'devSheet\').remove();openMoreMenu()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
+        '<button onclick="document.getElementById(\'devSheet\').remove();setTimeout(openMoreMenu,0)" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
       '<div style="font-size:12.5px;color:var(--text3);margin-bottom:12px">버그·건의·성지 추가 요청 등 자유롭게 남겨주세요.</div>' +
       '<textarea id="devMsg" placeholder="의견을 입력하세요..." style="width:100%;height:120px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
@@ -521,7 +521,7 @@ window.openFunBoard = async function() {
   document.body.appendChild(sheet);
   inner.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
-      '<button onclick="document.getElementById(\'funBoardSheet\').remove();openMoreMenu()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<button onclick="document.getElementById(\'funBoardSheet\').remove();setTimeout(openMoreMenu,0)" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
       '<div style="font-size:16px;font-weight:800;flex:1">😂 한류 웃음창고</div>' +
       '<button onclick="openFunBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
@@ -671,7 +671,7 @@ window.openBoard = async function() {
   const sheetContent = inner;
   sheetContent.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
-      '<button onclick="document.getElementById(\'boardSheet\').remove();openMoreMenu()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<button onclick="document.getElementById(\'boardSheet\').remove();setTimeout(openMoreMenu,0)" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
       '<div style="font-size:16px;font-weight:800;flex:1">📚 한류정보창고</div>' +
       '<button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
@@ -853,7 +853,7 @@ window.openLangPicker = function() {
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
       '<div style="display:flex;align-items:center;padding:4px 8px 10px 16px">' +
         '<div style="font-size:16px;font-weight:800;color:var(--text);flex:1">🌐 ' + (isEn()?'Language':'언어 선택') + '</div>' +
-        '<button onclick="document.getElementById(\'langSheet\').remove();openMoreMenu()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
+        '<button onclick="document.getElementById(\'langSheet\').remove();setTimeout(openMoreMenu,0)" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
       rows +
       '<div style="font-size:11px;color:var(--text3);text-align:center;padding:14px 16px 4px">' +
