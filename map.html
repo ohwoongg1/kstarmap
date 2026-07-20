@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.25';
+const VERSION = 'map v1.9.26';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -527,13 +527,42 @@ window.openFunBoard = async function() {
   sheet.appendChild(inner);
   document.body.appendChild(sheet);
   inner.innerHTML =
-    '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)">' +
-      '<button onclick="document.getElementById(\'funBoardSheet\').remove();setTimeout(openMoreMenu,0)" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
-      '<div style="font-size:16px;font-weight:800;flex:1">😂 한류 웃음창고</div>' +
-      '<button onclick="openFunBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
+    '<div style="position:relative;display:flex;align-items:center;gap:10px;padding:10px 16px;z-index:2">' +
+      '<button onclick="document.getElementById(\'funBoardSheet\').remove();setTimeout(openMoreMenu,0)" style="background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
+      '<div style="font-size:15px;font-weight:800;flex:1;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.5)">😂 한류 웃음창고</div>' +
+      '<button onclick="openFunBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
-    '<div id="funBoardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
-  loadFunBoardList();
+    '<div id="funSwipeWrap" style="flex:1;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
+  inner.style.cssText += 'background:#000;';
+  _loadFunSwipe();
+};
+async function _loadFunSwipe() {
+  const wrap = document.getElementById('funSwipeWrap');
+  if (!wrap) return;
+  try {
+    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
+    const snap = await getDocs(query(collection(db,'funboard'), orderBy('createdAt','desc'), limit(50)));
+    const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    if (!posts.length) { wrap.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:14px">아직 영상이 없어요.<br>글쓰기로 웃긴 숫츠를 공유해 주세요!</div>'; return; }
+    const ytReS = /https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
+    const allVids = [];
+    posts.forEach(p => { const body=p.body||''; let m; ytReS.lastIndex=0; while((m=ytReS.exec(body))!==null) allVids.push({id:m[1],title:p.title||''}); });
+    if (!allVids.length) { wrap.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888">영상이 없어요</div>'; return; }
+    wrap.innerHTML = allVids.map((v,i) =>
+      '<div style="height:100%;min-height:100%;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center">'+
+        '<div data-yt="'+v.id+'" onclick="funSwipePlay(this)" style="position:relative;width:100%;max-height:80vh;aspect-ratio:9/16;margin:0 auto;cursor:pointer;background:#000;border-radius:12px;overflow:hidden">'+
+          '<img src="https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg" style="width:100%;height:100%;object-fit:cover;opacity:0.85" loading="lazy">'+
+          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div style="width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;border-left:20px solid #fff;margin-left:4px"></div></div></div>'+
+        '</div>'+
+        (v.title?'<div style="text-align:center;color:#ddd;font-size:12px;margin-top:8px;padding:0 20px">'+v.title.replace(/</g,'&lt;')+'</div>':'')+
+        '<div style="text-align:center;color:#666;font-size:11px;margin-top:4px">'+(i+1)+'/'+allVids.length+'</div>'+
+      '</div>'
+    ).join('');
+  } catch(e) { console.error(e); }
+}
+window.funSwipePlay = function(el) {
+  const id = el.getAttribute('data-yt');
+  el.outerHTML = '<div style="width:100%;max-height:80vh;aspect-ratio:9/16;margin:0 auto;border-radius:12px;overflow:hidden"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media"></iframe></div>';
 };
 async function loadFunBoardList() {
   const list = document.getElementById('funBoardList');
