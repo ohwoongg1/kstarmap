@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.26';
+const VERSION = 'map v1.9.27';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -527,14 +527,29 @@ window.openFunBoard = async function() {
   sheet.appendChild(inner);
   document.body.appendChild(sheet);
   inner.innerHTML =
-    '<div style="position:relative;display:flex;align-items:center;gap:10px;padding:10px 16px;z-index:2">' +
+    '<div style="position:relative;display:flex;align-items:center;gap:8px;padding:10px 16px;z-index:2">' +
       '<button onclick="document.getElementById(\'funBoardSheet\').remove();setTimeout(openMoreMenu,0)" style="background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
       '<div style="font-size:15px;font-weight:800;flex:1;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.5)">😂 한류 웃음창고</div>' +
+      '<button onclick="funToggleView()" title="목록/재생 전환" style="background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:9px;padding:7px 10px;font-size:14px;cursor:pointer">📋</button>' +
       '<button onclick="openFunBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
     '<div id="funSwipeWrap" style="flex:1;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
   inner.style.cssText += 'background:#000;';
   _loadFunSwipe();
+};
+window.funToggleView = function() {
+  const sheetInner = document.querySelector('#funBoardSheet > div');
+  const swipeWrap = document.getElementById('funSwipeWrap');
+  const listWrap = document.getElementById('funBoardList');
+  if (swipeWrap) {
+    swipeWrap.outerHTML = '<div id="funBoardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
+    if (sheetInner) sheetInner.style.background = 'var(--bg)';
+    loadFunBoardList();
+  } else if (listWrap) {
+    listWrap.outerHTML = '<div id="funSwipeWrap" style="flex:1;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
+    if (sheetInner) sheetInner.style.background = '#000';
+    _loadFunSwipe();
+  }
 };
 async function _loadFunSwipe() {
   const wrap = document.getElementById('funSwipeWrap');
