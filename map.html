@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.42';
+const VERSION = 'map v1.9.43';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -876,7 +876,11 @@ window.submitBoardPost = async function() {
   try {
     const { db, collection, addDoc, doc, updateDoc, serverTimestamp } = window._mapDB;
     if (editId) {
-      await updateDoc(doc(db, 'board', editId), { title, body, updatedAt: serverTimestamp() });
+      await updateDoc(doc(db, 'board', editId), {
+        title, body,
+        placeTags: (body.match(/\[성지:([^\]]+)\]/g)||[]).map(m=>m.slice(4,-1).trim()),
+        updatedAt: serverTimestamp()
+      });
       showToast('✅ 글이 수정됐어요');
     } else {
       await addDoc(collection(db, 'board'), {
@@ -894,7 +898,7 @@ window.submitBoardPost = async function() {
 };
 window.openBoardStory = function(postId) {
   const ps = document.getElementById('placeSheet');
-  if (ps) { ps.classList.remove('show'); ps.style.transform='translateY(100%)'; }
+  if (ps) { ps.classList.remove('show'); ps.style.transform=''; }
   openBoard();
   setTimeout(async ()=>{
     try {
