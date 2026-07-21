@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.32';
+const VERSION = 'map v1.9.33';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -849,6 +849,32 @@ window.submitBoardPost = async function() {
     document.getElementById('boardWrite').remove();
     loadBoardList();
   } catch(e) { showToast((editId?'수정':'등록')+' 실패: ' + (e.message||e)); }
+};
+window.openBoardStory = function(postId) {
+  const ps = document.getElementById('placeSheet');
+  if (ps) { ps.classList.remove('show'); ps.style.transform='translateY(100%)'; }
+  openBoard();
+  setTimeout(async ()=>{
+    try {
+      const { db, doc, getDoc } = window._mapDB;
+      const snap = await getDoc(doc(db,'board',postId));
+      if (!snap.exists()) return;
+      const p = snap.data();
+      const list = document.getElementById('boardList');
+      if (!list) return;
+      const escS = v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const ytRe=/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
+      const body=p.body||''; const ytIds=[];
+      let txt=body.replace(ytRe,(m,id)=>{ytIds.push(id);return '';});
+      txt=txt.replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').trim();
+      const ytHtml=ytIds.map(id=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
+      list.innerHTML='<div style="padding:18px">'+
+        '<button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer;margin-bottom:14px">← 목록</button>'+
+        '<div style="font-size:16px;font-weight:800;margin-bottom:10px">'+escS(p.title||'')+'</div>'+
+        '<div style="font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap">'+escS(txt)+'</div>'+
+        ytHtml+'</div>';
+    } catch(e){ console.error(e); }
+  }, 400);
 };
 window.boardMapLink = function(title) {
   const sh = document.getElementById('boardSheet');
