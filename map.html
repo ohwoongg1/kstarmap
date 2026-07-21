@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.29';
+const VERSION = 'map v1.9.30';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1925,18 +1925,28 @@ function toggleSheetExpand() {
     sheet.style.height = 'auto';
     sheet.style.maxHeight = '';   // CSS 62vh 상한 복구
     sheet.dataset.expanded = '0';
+    sheet.scrollTop = 0;
+    setTimeout(() => { sheet.scrollTop = 0; }, 50);
+    setTimeout(() => { sheet.scrollTop = 0; }, 350);
   } else {
-    const mw = document.getElementById('mapWrap');
-    const wh = mw ? mw.clientHeight : window.innerHeight;
-    sheet.style.maxHeight = 'none';   // 상한 해제 후 크게
-    sheet.style.height = Math.round(wh * 0.60) + 'px';
+    // 높이 측정을 한 프레임 늦춰서(rAF) 레이아웃이 안정된 값을 읽는다.
+    // 모바일에서 주소창이 움직이는 도중 clientHeight를 읽으면 잘못된 값으로 한 번
+    // 튀었다가 다시 보정되는 "출렁임"이 생겨서, 이를 피하기 위함.
     sheet.dataset.expanded = '1';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const mw = document.getElementById('mapWrap');
+        const wh = mw ? mw.clientHeight : (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+        sheet.style.maxHeight = 'none';   // 상한 해제 후 크게
+        sheet.style.height = Math.round(wh * 0.60) + 'px';
+        sheet.scrollTop = 0;
+        setTimeout(() => { sheet.scrollTop = 0; }, 50);
+        setTimeout(() => { sheet.scrollTop = 0; }, 350);
+      });
+    });
     _sheetCertsLoaded = false;   // 펼치면 인증 그리드를 다시 그림(접힘 안내 → 썸네일)
     loadPlaceCerts();
   }
-  sheet.scrollTop = 0;
-  setTimeout(() => { sheet.scrollTop = 0; }, 50);
-  setTimeout(() => { sheet.scrollTop = 0; }, 350);
 }
 function collapseSheet() {
   const sheet = document.getElementById('placeSheet');
