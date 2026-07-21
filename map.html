@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.40';
+const VERSION = 'map v1.9.41';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -937,10 +937,15 @@ window.boardPlaceLink = function(placeName) {
   const pos = new kakao.maps.LatLng(d.lat, d.lng);
   const icon = d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺';
   const el = makePinEl('#378ADD', icon, () => {
-    openPlaceSheet({
-      name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
-      lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
-    });
+    try {
+      openPlaceSheet({
+        name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
+        lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
+      });
+    } catch(e) {
+      console.error('boardPlaceLink pin click error:', e);
+      showToast('열기 실패: ' + (e.message||e));
+    }
   }, true, 42);
   const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 20 });
   ov.setMap(map);
