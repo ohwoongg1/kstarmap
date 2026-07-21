@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.30';
+const VERSION = 'map v1.9.31';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2535,18 +2535,15 @@ window.submitCert = async function() {
     // 방금 올린 인증이 '이곳의 인증'에 바로 보이도록 재로드
     _sheetCertsLoaded = false;
     if (_selectedPlace) {
-      // 시트가 접혀있으면 펼쳐서 인증 그리드를 보여줌
+      // 시트 크기(접힘/펼침)는 절대 바꾸지 않고, 인증 그리드 내용만 갱신한다.
+      // 올리기 전/후 화면이 완전히 동일하게 보이도록, 기존 스크롤 위치도 그대로 복원.
       const sheet = document.getElementById('placeSheet');
-      if (sheet && sheet.dataset.expanded !== '1') {
-        toggleSheetExpand();
-      } else {
-        loadPlaceCerts();
-        // 이미 펼쳐져 있던 경우엔 위 toggleSheetExpand()의 스크롤 리셋을 안 타므로 여기서 직접 처리
-        if (sheet) {
-          sheet.scrollTop = 0;
-          setTimeout(() => { sheet.scrollTop = 0; }, 50);
-          setTimeout(() => { sheet.scrollTop = 0; }, 350);
-        }
+      const prevScrollTop = sheet ? sheet.scrollTop : 0;
+      loadPlaceCerts();
+      if (sheet) {
+        sheet.scrollTop = prevScrollTop;
+        setTimeout(() => { sheet.scrollTop = prevScrollTop; }, 50);
+        setTimeout(() => { sheet.scrollTop = prevScrollTop; }, 350);
       }
     }
   } catch(e) {
