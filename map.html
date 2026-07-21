@@ -750,6 +750,7 @@ async function loadBoardList() {
       const bodyRaw=p.body||'', ytIds=[];
       let bodyTxt=bodyRaw.replace(ytRe,(m,id)=>{ytIds.push(id);return '';}).trim();
       const mapTitles=[]; bodyTxt=bodyTxt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';}).trim();
+      const placeTags=[]; bodyTxt=bodyTxt.replace(/\[성지:([^\]]+)\]/g,(m,t)=>{placeTags.push(t.trim());return '';}).trim();
       const preview=bodyTxt.length>100?escB(bodyTxt.slice(0,100))+'...':escB(bodyTxt), full=escB(bodyTxt);
       const mkThumb=id=>
         '<div class="yt-thumb" data-yt="'+id+'" onclick="boardPlayVideo(this)" style="position:relative;border-radius:10px;overflow:hidden;margin-top:8px;cursor:pointer;background:#000">'+
@@ -840,6 +841,7 @@ window.submitBoardPost = async function() {
         title, body,
         uid: window.currentUser.uid, userName: window.currentUser.displayName || '익명',
         pinned: false,
+        placeTags: (body.match(/\[성지:([^\]]+)\]/g)||[]).map(m=>m.slice(4,-1).trim()),
         createdAt: serverTimestamp()
       });
       showToast('✅ 글이 등록됐어요');
@@ -1760,6 +1762,27 @@ function openPlaceSheet(place) {
         const _eq = encodeURIComponent(_q);
         const _yt = 'https://www.youtube.com/results?search_query=' + _eq;
         const _gg = 'https://www.google.com/search?q=' + _eq;
+        // 명장면 블로그 연결
+        const _pnClean = (raw.placeName||'').replace(/\s/g,'');
+        if (_pnClean) {
+          const storyBtnId = 'storyBtn_' + Date.now();
+          html += '<div id="'+storyBtnId+'" style="display:none;margin-top:10px"></div>';
+          (async()=>{
+            try {
+              const {db,collection,getDocs,query,where}=window._mapDB;
+              const snap=await getDocs(query(collection(db,'board'),where('placeTags','array-contains',raw.placeName||'')));
+              if(snap.empty) return;
+              const post=snap.docs[0]; const pd=post.data();
+              const btn=document.getElementById(storyBtnId);
+              if(!btn) return;
+              btn.style.display='';
+              btn.innerHTML='<button onclick="openBoardStory(\''+post.id+'\')" style="display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;border:1px solid var(--gold);border-radius:10px;padding:11px 13px;background:var(--gold-bg);cursor:pointer">'+
+                '<span style="font-size:16px">📖</span>'+
+                '<span style="flex:1;font-size:13px;color:var(--gold);font-weight:700;text-align:left">'+(pd.title||'명장면 보기')+'</span>'+
+                '<span style="font-size:11px;color:var(--text3)">→</span></button>';
+            }catch(e){}
+          })();
+        }
         const _secLabel = '📌 팬들이 찾는 이곳의 이야기';
         const _ytLabel = '유튜브 영상 보기';
         const _ggLabel = '구글에서 검색';
