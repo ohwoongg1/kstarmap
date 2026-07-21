@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.39';
+const VERSION = 'map v1.9.40';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -932,17 +932,22 @@ window.boardPlaceLink = function(placeName) {
   if (sh) sh.remove();
   const d = _pilgrimData.find(p => (p.placeName||'') === placeName);
   if (!d || !d.lat || !d.lng) { showToast('장소를 찾을 수 없어요'); return; }
-  // 게시판은 지도 위에 뜨는 팝업이라, 지도 탭을 실제로 벗어난 적이 없다.
-  // 그런데도 switchTab('map')을 부르면 불필요한 relayout이 setCenter 도중에 끼어들어
-  // 좌표 계산이 꼬이는 문제가 있었음 — 이미 지도 탭이면 relayout 없이 그냥 이동만 한다.
-  if (typeof _currentView !== 'undefined' && _currentView !== 'map') {
-    switchTab('map');
-  } else if (window.closePlaceSheet) {
-    closePlaceSheet();
-  }
-  map.setCenter(new kakao.maps.LatLng(d.lat, d.lng));
-  map.setLevel(3);
-  showToast('📍 ' + (d.placeName||'') + ' — 핀을 눌러 확인하세요');
+  // 검색 결과 클릭과 똑같은 방식: 여기서 바로 전용 핀을 만들어서 지도에 찍는다.
+  // (기존 성지 핀이 다시 그려지길 기다리는 방식은 타이밍 문제가 있어서 이 방식으로 대체)
+  const pos = new kakao.maps.LatLng(d.lat, d.lng);
+  const icon = d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺';
+  const el = makePinEl('#378ADD', icon, () => {
+    openPlaceSheet({
+      name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
+      lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
+    });
+  }, true, 42);
+  const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 20 });
+  ov.setMap(map);
+  _searchMarkers.push(ov);
+  map.setCenter(pos);
+  map.setLevel(4);
+  showToast('📍 핀을 누르면 상세정보가 열려요');
 };
 window.toggleBoardPin = async function(pid,cur) {
   if (!window.isAdmin||!window.isAdmin()) return;
