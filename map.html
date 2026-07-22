@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.46';
+const VERSION = 'map v1.9.48';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1340,10 +1340,24 @@ function renderPilgrimPinsInView() {
     const icon = d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺';
     // 필터/작품칩이 걸려있으면 그 핀을 강조
     const highlight = !!(_hallyuFilter || _contentFilter || _hallyuFocus);
-    const el = makePinEl('#378ADD', icon, () => openPlaceSheet({
-      name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
-      lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
-    }), highlight);
+    const el = makePinEl('#378ADD', icon, () => {
+      // 같은 좌표에 여러 작품이 있으면 선택 팝업
+      const sameSpot = _pilgrimData.filter(p => p.lat === d.lat && p.lng === d.lng && p.placeName === d.placeName);
+      if (sameSpot.length > 1) {
+        const opts = sameSpot.map(s => '<button onclick="openPlaceSheet({name:\'' + (s.placeName||s.title||'').replace(/'/g,"\\'") + '\',sub:\'' + (s.title||'').replace(/'/g,"\\'") + '\',lat:' + s.lat + ',lng:' + s.lng + ',color:\'var(--blue)\',type:\'pilgrim\',raw:_pilgrimData.find(x=>x===window._spotPick_' + sameSpot.indexOf(s) + ')});document.getElementById(\'spotPickOverlay\')?.remove()" style="display:block;width:100%;padding:12px;border:none;border-bottom:1px solid var(--border);background:var(--bg);font-size:14px;cursor:pointer;text-align:left">' + (s.mediaType==='artist'?'⭐':s.mediaType==='movie'?'🎬':'📺') + ' ' + (s.title||'').replace(/</g,'&lt;') + '</button>').join('');
+        sameSpot.forEach((s,i) => { window['_spotPick_'+i] = s; });
+        const ov = document.createElement('div'); ov.id='spotPickOverlay';
+        ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:end;justify-content:center;background:rgba(0,0,0,0.4)';
+        ov.innerHTML='<div style="width:100%;max-width:440px;background:var(--bg);border-radius:16px 16px 0 0;padding:16px;padding-bottom:env(safe-area-inset-bottom,16px)"><div style="font-size:15px;font-weight:800;margin-bottom:10px">📍 ' + (d.placeName||'').replace(/</g,'&lt;') + ' — 작품 선택</div>' + opts + '<button onclick="document.getElementById(\'spotPickOverlay\')?.remove()" style="display:block;width:100%;padding:12px;margin-top:8px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);font-size:13px;cursor:pointer">닫기</button></div>';
+        ov.addEventListener('click', e => { if(e.target===ov) ov.remove(); });
+        document.body.appendChild(ov);
+      } else {
+        openPlaceSheet({
+          name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
+          lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
+        });
+      }
+    }, highlight);
     const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: highlight ? 10 : 3 });
     ov.setMap(map);
     _pilgrimMarkers.push(ov);
@@ -1461,7 +1475,7 @@ function doHallyuSearch(q) {
     // 정식 영문명(title_en)은 'Guardian: The Lonely and Great God'이라 아무도 못 찾는다.
     const alias = Array.isArray(d.aliases_en) ? d.aliases_en.join('') : (d.aliases_en || '');
     return norm(d.title) + '|' + norm(d.title_en) + '|' + norm(alias) + '|' +
-           norm(d.placeName) + '|' + norm(actors) + '|' + norm(d.addr_en);
+           norm(d.placeName) + '|' + norm(actors) + '|' + norm(d.addr) + '|' + norm(d.addr_en);
   };
   const matched = _pilgrimData.filter(d => blobOf(d).includes(lq));
   if (!matched.length) {
