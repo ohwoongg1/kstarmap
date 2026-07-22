@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.45';
+const VERSION = 'map v1.9.46';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -765,7 +765,7 @@ async function loadBoardList() {
       const ytRest = ytIds.slice(1).map(mkThumb).join('');
       const ytMore = ytIds.length>1 ? '<div style="font-size:11px;color:var(--text3);margin-top:4px">🎬 영상 '+ytIds.length+'개 — 더 보기를 누르면 전체 표시</div>' : '';
       const mapHtml=placeTags.length
-        ? placeTags.map(pt=>'<button onclick="boardPlaceLink(\''+pt.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escB(pt)+' 지도에서 보기</button>').join('')
+        ? placeTags.map(pt=>{const parts=pt.split(':');const pn=parts[0].trim();const tt=parts[1]?parts[1].trim():'';return '<button onclick="boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\''+')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escB(pn)+' 지도에서 보기</button>';}).join('')
         : mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escB(t)+' 촬영지 전체보기</button>').join('');
       const badge=p.pinned?'<span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">📌 공지</span>':'';
       const pinBtn=isAdmin?'<button onclick="toggleBoardPin(\''+p.id+'\','+!!p.pinned+')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">'+(p.pinned?'언피닝':'📌 고정')+'</button>':'';
@@ -915,7 +915,7 @@ window.openBoardStory = function(postId) {
       const mapTitles=[]; txt=txt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';});
       const placeTags=[]; txt=txt.replace(/\[성지:([^\]]+)\]/g,(m,t)=>{placeTags.push(t.trim());return '';}).trim();
       const mapHtml=placeTags.length
-        ? placeTags.map(pt=>'<button onclick="boardPlaceLink(\''+pt.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escS(pt)+' 지도에서 보기</button>').join('')
+        ? placeTags.map(pt=>{const parts=pt.split(':');const pn=parts[0].trim();const tt=parts[1]?parts[1].trim():'';return '<button onclick="boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\''+')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escS(pn)+' 지도에서 보기</button>';}).join('')
         : mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escS(t)+' 촬영지 전체보기</button>').join('');
       const ytHtml=ytIds.map(id=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
       list.innerHTML='<div style="padding:18px">'+
@@ -931,10 +931,16 @@ window.boardMapLink = function(title) {
   if (sh) sh.remove();
   applyTitleFilter(title);
 };
-window.boardPlaceLink = function(placeName) {
+window.boardPlaceLink = function(placeName, titleHint) {
   const sh = document.getElementById('boardSheet');
   if (sh) sh.remove();
-  const d = _pilgrimData.find(p => (p.placeName||'') === placeName);
+  let d;
+  if (titleHint) {
+    d = _pilgrimData.find(p => (p.placeName||'') === placeName && (p.title||'') === titleHint);
+  }
+  if (!d) {
+    d = _pilgrimData.find(p => (p.placeName||'') === placeName);
+  }
   if (!d || !d.lat || !d.lng) { showToast('장소를 찾을 수 없어요'); return; }
   // 검색 결과 클릭과 똑같은 방식: 여기서 바로 전용 핀을 만들어서 지도에 찍는다.
   // (기존 성지 핀이 다시 그려지길 기다리는 방식은 타이밍 문제가 있어서 이 방식으로 대체)
