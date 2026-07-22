@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.51';
+const VERSION = 'map v1.9.52';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -767,11 +767,12 @@ async function loadBoardList() {
       const mapHtml=placeTags.length
         ? placeTags.map(pt=>{const parts=pt.split(':');const pn=parts[0].trim();const tt=parts[1]?parts[1].trim():'';return '<button onclick="boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\''+')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escB(pn)+' 지도에서 보기</button>';}).join('')
         : mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escB(t)+' 촬영지 전체보기</button>').join('');
-      const badge=p.pinned?'<span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">📌 공지</span>':'';
+      const badge=p.pinned?'<span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>':'';
       const pinBtn=isAdmin?'<button onclick="toggleBoardPin(\''+p.id+'\','+!!p.pinned+')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">'+(p.pinned?'언피닝':'📌 고정')+'</button>':'';
       const editBtn=canEdit?'<button onclick="editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:0">수정</button>':'';
       const bg=p.pinned?'background:var(--gold-bg);':'';
-      return '<div data-post="'+p.id+'" style="padding:15px 18px;border-bottom:1px solid var(--border);'+bg+'">'+
+      return '<div data-post="'+p.id+'" style="padding:15px 18px;border-bottom:1px solid var(--border);'+bg+(p.pinned?'display:flex;align-items:flex-start;gap:10px':'')+'">'+
+        (p.pinned?'<span style="font-size:20px;flex-shrink:0">📌</span><div style="flex:1">':'')+ 
         '<div style="font-size:15px;font-weight:700;margin-bottom:5px">'+badge+escB(p.title||'')+'</div>'+
         '<div class="board-preview" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">'+preview+'</div>'+
         '<div class="board-full" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">'+full+'</div>'+
@@ -787,11 +788,12 @@ async function loadBoardList() {
             (canDel?'<button onclick="deleteBoardPost(\''+p.id+'\')" style="font-size:11px;color:#ef4444;border:none;background:none;cursor:pointer;padding:0">삭제</button>':'')+
           '</div>'+
         '</div>'+
+      (p.pinned?'</div>':'')+
       '</div>';
     }).join('');
     const sceneEntry = '<div onclick="openSceneCollection()" style="padding:15px 18px;border-bottom:2px solid var(--gold);background:var(--gold-bg);cursor:pointer;display:flex;align-items:center;gap:10px">' +
       '<span style="font-size:20px">🎬</span>' +
-      '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:var(--gold)"><span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">📌 공지</span>명장면 모음</div>' +
+      '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:var(--gold)"><span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>명장면 모음</div>' +
       '<div style="font-size:11.5px;color:var(--text2);margin-top:2px">드라마·영화 속 그 장면, 촬영지와 함께 보기</div></div>' +
       '<span style="font-size:14px;color:var(--gold)">→</span></div>';
     list.innerHTML = sceneEntry + list.innerHTML;
