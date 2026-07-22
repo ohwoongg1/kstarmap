@@ -29,9 +29,9 @@
   .bottomnav-fixed{flex-shrink:0}
 
   /* 상단바 */
-  .topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);flex-shrink:0;z-index:30}
+  .topbar{display:flex;align-items:center;gap:6px;padding:10px 14px 10px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);flex-shrink:0;z-index:30}
   .logo{display:flex;align-items:center;gap:5px;font-size:17px;font-weight:800;color:var(--gold);flex-shrink:0}
-  .searchbar{flex:1;display:flex;align-items:center;gap:7px;background:var(--bg2);border-radius:22px;padding:9px 14px;border:1px solid transparent}
+  .searchbar{flex:1;min-width:0;display:flex;align-items:center;gap:7px;background:var(--bg2);border-radius:22px;padding:9px 12px;border:1px solid transparent}
   .searchbar:focus-within{border-color:var(--gold);background:var(--white)}
   .searchbar input{flex:1;border:none;outline:none;background:none;font-size:14px;color:var(--text)}
   .searchbar input::placeholder{color:var(--text3)}
@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.50';
+const VERSION = 'map v1.9.51';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
