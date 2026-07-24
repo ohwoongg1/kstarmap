@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.58';
+const VERSION = 'map v1.9.59';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -777,9 +777,10 @@ async function loadBoardList() {
         '<div style="font-size:15px;font-weight:700;margin-bottom:5px">'+badge+escB(p.title||'')+'</div>'+
         '<div class="board-preview" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">'+preview+'</div>'+
         '<div class="board-full" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">'+full+'</div>'+
-        ytFirst+ytMore+
-        '<div class="board-extra" style="display:none">'+ytRest+'</div>'+
-        mapHtml+
+        (p.pinned?'':'<div class="board-yt-first">'+ytFirst+'</div>')+
+        ytMore+
+        '<div class="board-extra" style="display:none">'+(p.pinned?ytFirst:'')+ytRest+'</div>'+
+        '<div class="board-extra-map" style="'+(p.pinned?'display:none':'')+'">'+mapHtml+'</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'+
           '<div style="font-size:11px;color:var(--text3)">'+escB(p.userName||'익명')+' · '+timeAgoB(p.createdAt)+'</div>'+
           '<div style="display:flex;gap:6px;align-items:center">'+
@@ -1026,11 +1027,13 @@ window.boardToggle = function(btn) {
   const pre = card ? card.querySelector('.board-preview') : null;
   const full = card ? card.querySelector('.board-full') : null;
   const extra = card ? card.querySelector('.board-extra') : null;
+  const extraMap = card ? card.querySelector('.board-extra-map') : null;
   if (!pre || !full) return;
   const isOpen = full.style.display !== 'none';
   pre.style.display = isOpen ? '' : 'none';
   full.style.display = isOpen ? 'none' : '';
   if (extra) extra.style.display = isOpen ? 'none' : '';
+  if (extraMap) extraMap.style.display = isOpen ? 'none' : '';
   btn.textContent = isOpen ? '더 보기' : '접기';
 };
 window.boardPlayVideo = function(el) {
