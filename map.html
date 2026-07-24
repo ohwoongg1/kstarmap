@@ -361,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.56';
+const VERSION = 'map v1.9.57';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -833,10 +833,12 @@ window.openSceneCollection = async function() {
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
       const preview = bodyClean.length>70 ? escC(bodyClean.slice(0,70))+'...' : escC(bodyClean);
       const place = (p.placeTags||[])[0] || '';
-      return '<div onclick="openBoardStory(\''+p.id+'\')" style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
+      return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
+        '<div onclick="openBoardStory(\''+p.id+'\')">' +
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escC(p.title||'')+'</div>' +
         (place?'<div style="font-size:11.5px;color:var(--gold);font-weight:700;margin-bottom:4px">📍 '+escC(place)+'</div>':'') +
-        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div>' +
+        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
+        '<button onclick="sharePost(\''+p.id+'\',\''+escC(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
       '</div>';
     }).join('');
     list.innerHTML = header + rows;
@@ -868,10 +870,12 @@ window.openFoodCollection = async function() {
       const preview = bodyClean.length>70 ? escF(bodyClean.slice(0,70))+'...' : escF(bodyClean);
       const placeTags = (p.body||'').match(/\[성지:([^\]]+)\]/g);
       const place = placeTags ? placeTags[0].slice(4,-1).split(':')[0].trim() : '';
-      return '<div onclick="openBoardStory(\''+p.id+'\')" style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
+      return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
+        '<div onclick="openBoardStory(\''+p.id+'\')">' +
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escF(p.title||'')+'</div>' +
         (place?'<div style="font-size:11.5px;color:#e67e22;font-weight:700;margin-bottom:4px">📍 '+escF(place)+'</div>':'') +
-        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div>' +
+        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
+        '<button onclick="sharePost(\''+p.id+'\',\''+escF(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
       '</div>';
     }).join('');
     list.innerHTML = header + rows;
@@ -966,7 +970,8 @@ window.openBoardStory = function(postId) {
         : mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escS(t)+' 촬영지 전체보기</button>').join('');
       const ytHtml=ytIds.map(id=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
       list.innerHTML='<div style="padding:18px">'+
-        '<button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer;margin-bottom:14px">← 목록</button>'+
+        '<div style="display:flex;gap:8px;margin-bottom:14px"><button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>'+
+        '<button onclick="sharePost(\''+postId+'\',\''+escS(p.title||'').replace(/'/g,"\\'")+'\')" style="background:#3b82f6;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">📤 공유</button></div>'+
         '<div style="font-size:16px;font-weight:800;margin-bottom:10px">'+escS(p.title||'')+'</div>'+
         '<div style="font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap">'+escS(txt)+'</div>'+
         ytHtml+mapHtml+'</div>';
