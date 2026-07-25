@@ -381,7 +381,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.2.0';
+const VERSION = 'map v2.2.1';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -469,9 +469,15 @@ const LANG_LIST = [
 window.openMoreMenu = function() {
   const old = document.getElementById('moreSheet');
   if (old) old.remove();
+  if (!document.getElementById('moreSheetAnim')) {
+    const st = document.createElement('style');
+    st.id = 'moreSheetAnim';
+    st.textContent = '@keyframes moreSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes moreDimIn{from{opacity:0}to{opacity:1}}';
+    document.head.appendChild(st);
+  }
   const item = (icon, label, onclick) =>
-    '<button onclick="' + onclick + '" style="display:flex;align-items:center;gap:14px;width:100%;padding:16px;background:none;border:none;border-bottom:0.5px solid var(--border);font-size:15px;color:var(--text);cursor:pointer;text-align:left">' +
-      '<span style="font-size:22px;width:26px;text-align:center">' + icon + '</span>' +
+    '<button onclick="' + onclick + '" style="display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:none;border:none;border-bottom:0.5px solid var(--border);font-size:15px;color:var(--text);cursor:pointer;text-align:left">' +
+      '<span style="font-size:21px;width:26px;text-align:center;flex-shrink:0">' + icon + '</span>' +
       '<span style="flex:1;font-weight:600">' + label + '</span>' +
       '<span style="color:var(--text3);font-size:18px">›</span>' +
     '</button>';
@@ -479,11 +485,11 @@ window.openMoreMenu = function() {
   sheet.id = 'moreSheet';
   sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;align-items:center';
   sheet.innerHTML =
-    '<div onclick="document.getElementById(\'moreSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
-    '<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
+    '<div onclick="document.getElementById(\'moreSheet\').remove()" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);animation:moreDimIn .2s ease"></div>' +
+    '<div style="position:relative;background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;max-height:75vh;overflow-y:auto;padding-bottom:calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,0.12);animation:moreSheetUp .26s cubic-bezier(.25,.46,.45,.94)">' +
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
-      '<div style="display:flex;align-items:center;padding:4px 8px 10px 16px">' +
-        '<div style="font-size:16px;font-weight:800;color:var(--text);flex:1">☰ 더보기</div>' +
+      '<div style="display:flex;align-items:center;padding:2px 12px 12px 18px">' +
+        '<div style="font-size:16px;font-weight:800;color:var(--text);flex:1">더보기</div>' +
         '<button onclick="document.getElementById(\'moreSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
       item('📖', '사용 설명서', "location.href='guide.html'") +
