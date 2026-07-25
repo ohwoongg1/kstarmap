@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <!-- Google Analytics -->
@@ -16,12 +16,18 @@
 <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services&autoload=false"></script>
 <style>
   :root{
-    --bg:#ffffff; --bg2:#f5f4ef; --white:#ffffff;
-    --text:#1a1a1a; --text2:#4a4a48; --text3:#8a8a85;
-    --border:#e6e4dc; --border2:#cfcdc4;
-    --gold:#B5790F; --gold-bg:rgba(181,121,15,0.1);
-    --red:#E24B4A; --blue:#378ADD; --amber:#EF9F27;
-    --shadow:0 2px 10px rgba(0,0,0,0.12);
+    /* ?? oklch color system ?? */
+    --bg:oklch(1.00 0 0); --bg2:oklch(0.965 0.006 85); --white:oklch(1.00 0 0);
+    --text:oklch(0.16 0.01 250); --text2:oklch(0.38 0.01 250); --text3:oklch(0.58 0.008 250);
+    --border:oklch(0.905 0.006 85); --border2:oklch(0.835 0.008 85);
+    --gold:oklch(0.62 0.155 65); --gold-bg:oklch(0.62 0.155 65 / 0.1);
+    --gold-soft:oklch(0.62 0.155 65 / 0.08);
+    --red:oklch(0.60 0.19 25); --blue:oklch(0.60 0.14 250); --amber:oklch(0.74 0.155 75);
+    --shadow:0 2px 12px oklch(0.16 0.01 250 / 0.10);
+    /* nav */
+    --nav-inactive:oklch(0.55 0.01 250);
+    --nav-active:oklch(0.62 0.155 65);
+    --nav-bg:oklch(1.00 0 0 / 0.85);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg2);color:var(--text)}
@@ -361,7 +367,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v1.9.59';
+const VERSION = 'map v2.0.0';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
