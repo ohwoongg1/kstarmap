@@ -381,7 +381,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.2.1';
+const VERSION = 'map v2.2.2';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -798,11 +798,13 @@ async function loadBoardList() {
       const pinBtn=isAdmin?'<button onclick="toggleBoardPin(\''+p.id+'\','+!!p.pinned+')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">'+(p.pinned?'언피닝':'📌 고정')+'</button>':'';
       const editBtn=canEdit?'<button onclick="editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:0">수정</button>':'';
       const bg=p.pinned?'background:var(--gold-bg);':'';
+      const expandable = (bodyTxt.length>100||ytIds.length>1||mapTitles.length);
+      const clickAttr = expandable ? ' onclick="boardToggle(this)" style="cursor:pointer;' : ' style="';
       return '<div data-post="'+p.id+'" style="padding:15px 18px;border-bottom:1px solid var(--border);'+bg+(p.pinned?'display:flex;align-items:flex-start;gap:10px':'')+'">'+
         (p.pinned?'<span style="font-size:20px;flex-shrink:0">📌</span><div style="flex:1">':'')+ 
-        '<div style="font-size:15px;font-weight:700;margin-bottom:5px">'+badge+escB(p.title||'')+'</div>'+
-        '<div class="board-preview" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">'+preview+'</div>'+
-        '<div class="board-full" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">'+full+'</div>'+
+        '<div'+clickAttr+'font-size:15px;font-weight:700;margin-bottom:5px">'+badge+escB(p.title||'')+'</div>'+
+        '<div class="board-preview"'+clickAttr+'font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">'+preview+'</div>'+
+        '<div class="board-full"'+clickAttr+'font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">'+full+'</div>'+
         (p.pinned?'':'<div class="board-yt-first">'+ytFirst+'</div>')+
         ytMore+
         '<div class="board-extra" style="display:none">'+(p.pinned?ytFirst:'')+ytRest+'</div>'+
@@ -1060,7 +1062,9 @@ window.boardToggle = function(btn) {
   full.style.display = isOpen ? 'none' : '';
   if (extra) extra.style.display = isOpen ? 'none' : '';
   if (extraMap) extraMap.style.display = isOpen ? 'none' : '';
-  btn.textContent = isOpen ? '더 보기' : '접기';
+  // "더 보기/접기" 라벨은 항상 실제 더보기 버튼에만 반영 (제목/본문 클릭으로 들어와도 안전)
+  const moreBtn = card ? card.querySelector('.board-more-btn') : null;
+  if (moreBtn) moreBtn.textContent = isOpen ? '더 보기' : '접기';
 };
 window.boardPlayVideo = function(el) {
   const id = el.getAttribute('data-yt');
