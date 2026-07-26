@@ -435,7 +435,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.3.2';
+const VERSION = 'map v2.3.3';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -793,6 +793,8 @@ window.deleteFunPost = async function(pid) {
 window.openBoard = async function() {
   // PC(넓은 화면): 가운데 모달 대신 왼쪽 사이드 패널로 처리
   if (window.innerWidth >= 900) {
+    // 사이드 패널은 지도 영역 안에 있으므로, 다른 탭(피드/코스/내공간)이면 지도 탭으로 먼저 전환
+    if (_currentView !== 'map') railSwitch('map');
     const panel = document.getElementById('sidePanel');
     const openBtn = document.getElementById('sidePanelOpen');
     if (panel) {
