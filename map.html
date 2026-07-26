@@ -13,6 +13,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>KStarMap · 통합지도</title>
 <meta name="description" content="한류 성지·맛집을 한 지도에서. 어디든 검색하고, 가본 곳을 사진으로 인증하세요.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="KStarMap">
+<meta property="og:title" content="KStarMap · 통합지도">
+<meta property="og:description" content="좋아하는 드라마·배우가 다녀간 실제 성지를 지도에서 찾아보세요. 전 세계 한류 팬을 위한 K-드라마 성지 순례 지도.">
+<meta property="og:url" content="https://kstarmap.com/map.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="KStarMap · 통합지도">
+<meta name="twitter:description" content="좋아하는 드라마·배우가 다녀간 실제 성지를 지도에서 찾아보세요.">
 <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services&autoload=false"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap');
@@ -435,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.1';
+const VERSION = 'map v2.4.2';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1173,7 +1181,7 @@ window.sharePost = async function(pid, title) {
   if (!title && window._boardCache && window._boardCache[pid]) {
     title = window._boardCache[pid].title || '';
   }
-  const url = 'https://kstarmap.com/?post=' + pid;
+  const url = 'https://kstarmap.com/map.html?post=' + pid;
   const text = '⭐ KStarMap — ' + (title || '한류 성지 이야기');
   if (navigator.share) {
     try {
