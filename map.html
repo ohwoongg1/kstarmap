@@ -601,7 +601,7 @@ window.openFunBoard = async function() {
   if (old) old.remove();
   const sheet = document.createElement('div');
   sheet.id = 'funBoardSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3);overscroll-behavior:none';
   const inner = document.createElement('div');
   inner.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   sheet.appendChild(inner);
@@ -710,7 +710,7 @@ window.openFunBoardWrite = function(editPost) {
   const w = document.createElement('div');
   w.id = 'funBoardWrite';
   w.dataset.editId = editPost ? editPost.id : '';
-  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
+  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3);overscroll-behavior:none';
   const wi = document.createElement('div');
   wi.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   w.appendChild(wi);
@@ -810,7 +810,7 @@ window.openBoard = async function() {
   if (old) old.remove();
   const sheet = document.createElement('div');
   sheet.id = 'boardSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3);overscroll-behavior:none';
   const inner = document.createElement('div');
   inner.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   sheet.appendChild(inner);
@@ -821,7 +821,7 @@ window.openBoard = async function() {
       '<div style="font-size:16px;font-weight:800;flex:1">📚 한류정보창고</div>' +
       '<button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
-    '<div id="boardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
+    '<div id="boardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
   document.body.appendChild(sheet);
   loadBoardList();
 };
@@ -991,7 +991,7 @@ window.openBoardWrite = function(editPost) {
   const w = document.createElement('div');
   w.id = 'boardWrite';
   w.dataset.editId = editPost ? editPost.id : '';
-  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
+  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3);overscroll-behavior:none';
   const wi = document.createElement('div');
   wi.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   w.appendChild(wi);
