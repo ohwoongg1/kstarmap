@@ -145,7 +145,7 @@
   #sidePanelOpen{display:none}
   @media (min-width:900px){
     #mapWrap{display:flex}
-    #sidePanel{display:flex;flex-direction:column;width:480px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);z-index:30;transition:width .22s ease}
+    #sidePanel{display:flex;flex-direction:column;width:620px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);z-index:30;transition:width .22s ease}
     #sidePanel.collapsed{width:0;border-right:0;overflow:hidden}
     #sidePanelHead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
     #sidePanelToggle{background:var(--bg2);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;font-size:18px;color:var(--text2);cursor:pointer;line-height:1}
@@ -435,7 +435,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.3.4';
+const VERSION = 'map v2.3.5';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
