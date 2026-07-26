@@ -435,7 +435,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.3.7';
+const VERSION = 'map v2.3.8';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -554,6 +554,7 @@ window.openMoreMenu = function() {
       '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 성지 지도</div>' +
     '</div>';
   document.body.appendChild(sheet);
+  sheet.addEventListener('touchmove', function(e){ if (!e.target.closest('[style*="overflow-y"]')) e.preventDefault(); }, {passive:false});
 };
 
 // ── 개발자에게 의견 (Firebase 저장) ──
@@ -606,6 +607,11 @@ window.openFunBoard = async function() {
   inner.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   sheet.appendChild(inner);
   document.body.appendChild(sheet);
+  // iOS 뷰포트 바운스 방지
+  sheet.addEventListener('touchmove', function(e){
+    var sc = document.getElementById('funSwipeWrap') || document.getElementById('funBoardList');
+    if (!sc || !sc.contains(e.target)) { e.preventDefault(); return; }
+  }, {passive:false});
   inner.innerHTML =
     '<div style="position:relative;display:flex;align-items:center;gap:8px;padding:10px 16px;z-index:2">' +
       '<button onclick="document.getElementById(\'funBoardSheet\').remove();setTimeout(openMoreMenu,0)" style="background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
@@ -823,6 +829,11 @@ window.openBoard = async function() {
     '</div>' +
     '<div id="boardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
   document.body.appendChild(sheet);
+  // iOS 뷰포트 바운스 방지 (placeSheet과 동일 패턴)
+  sheet.addEventListener('touchmove', function(e){
+    var list = document.getElementById('boardList');
+    if (!list || !list.contains(e.target)) { e.preventDefault(); return; }
+  }, {passive:false});
   loadBoardList();
 };
 async function loadBoardList() {
@@ -1009,6 +1020,12 @@ window.openBoardWrite = function(editPost) {
       '<textarea id="boardBody" placeholder="한류 정보를 공유해 주세요. ★ 유튜브 링크 = 영상 자동 임베드 / [지도:작품명] = 지도 버튼 생성" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
   document.body.appendChild(w);
+  // iOS 뷰포트 바운스 방지
+  w.addEventListener('touchmove', function(e){
+    var inp = e.target.closest('input,textarea');
+    if (inp) return; // input/textarea 스크롤 허용
+    e.preventDefault();
+  }, {passive:false});
   if (editPost) {
     document.getElementById('boardTitle').value = editPost.title || '';
     document.getElementById('boardBody').value = editPost.body || '';
