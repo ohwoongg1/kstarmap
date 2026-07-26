@@ -145,7 +145,7 @@
   #sidePanelOpen{display:none}
   @media (min-width:900px){
     #mapWrap{display:flex}
-    #sidePanel{display:flex;flex-direction:column;width:360px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);z-index:30;transition:width .22s ease}
+    #sidePanel{display:flex;flex-direction:column;width:440px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);z-index:30;transition:width .22s ease}
     #sidePanel.collapsed{width:0;border-right:0;overflow:hidden}
     #sidePanelHead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
     #sidePanelToggle{background:var(--bg2);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;font-size:18px;color:var(--text2);cursor:pointer;line-height:1}
@@ -262,11 +262,14 @@
     <aside id="sidePanel">
       <div id="sidePanelHead">
         <span style="font-size:15px;font-weight:800;color:var(--text)">📚 한류정보창고</span>
-        <button id="sidePanelToggle" onclick="toggleSidePanel()" title="접기" aria-label="접기">‹</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer">글쓰기</button>
+          <button id="sidePanelToggle" onclick="toggleSidePanel()" title="접기" aria-label="접기">‹</button>
+        </div>
       </div>
       <div id="sidePanelBody"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>
     </aside>
-    <button id="sidePanelOpen" onclick="toggleSidePanel()" title="한류정보창고 열기" aria-label="열기" style="display:none">📚</button>
+    <button id="sidePanelOpen" onclick="toggleSidePanel()" title="한류정보창고 열기" aria-label="열기">📚</button>
     <div id="map"></div>
     <div class="filterbar-float">
       <div class="chip" id="chipSearch" onclick="toggleFilter('search')"><span class="dot" style="background:var(--red)"></span>검색</div>
@@ -432,7 +435,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.3.0';
+const VERSION = 'map v2.3.2';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -788,6 +791,19 @@ window.deleteFunPost = async function(pid) {
   } catch(e){showToast('실패:'+e.message);}
 };
 window.openBoard = async function() {
+  // PC(넓은 화면): 가운데 모달 대신 왼쪽 사이드 패널로 처리
+  if (window.innerWidth >= 900) {
+    const panel = document.getElementById('sidePanel');
+    const openBtn = document.getElementById('sidePanelOpen');
+    if (panel) {
+      panel.classList.remove('collapsed');
+      if (openBtn) openBtn.classList.remove('show');
+      if (map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 240);
+    }
+    initSidePanel();       // 아직 로드 안 됐으면 로드
+    loadBoardList();       // 최신 글로 갱신
+    return;
+  }
   const old = document.getElementById('boardSheet');
   if (old) old.remove();
   const sheet = document.createElement('div');
@@ -1195,7 +1211,7 @@ window.openLangPicker = function() {
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
       '<div style="display:flex;align-items:center;padding:4px 8px 10px 16px">' +
         '<div style="font-size:16px;font-weight:800;color:var(--text);flex:1">🌐 ' + (isEn()?'Language':'언어 선택') + '</div>' +
-        '<button onclick="document.getElementById(\'langSheet\').remove();setTimeout(openMoreMenu,0)" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
+        '<button onclick="document.getElementById(\'langSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
       rows +
       '<div style="font-size:11px;color:var(--text3);text-align:center;padding:14px 16px 4px">' +
