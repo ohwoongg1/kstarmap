@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.2';
+const VERSION = 'map v2.4.3';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1295,6 +1295,12 @@ function setGoogTransCookie(val) {
   if (!l || !l.google) return;
   const hasCookie = document.cookie.indexOf('googtrans=') !== -1;
   if (!hasCookie) {
+    // 쿠키 쓰기가 막힌 환경(인앱 브라우저·쿠키 차단 설정 등)에서
+    // 새로고침을 반복하지 않도록 세션당 1회만 시도
+    let alreadyTried = false;
+    try { alreadyTried = sessionStorage.getItem('kstar_lang_reload_tried') === '1'; } catch(e) {}
+    if (alreadyTried) return;
+    try { sessionStorage.setItem('kstar_lang_reload_tried', '1'); } catch(e) {}
     setGoogTransCookie('/ko/' + l.google);
     location.reload();   // 쿠키 복원 후 새로고침 → 저장한 언어로 표시
   }
