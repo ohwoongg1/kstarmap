@@ -15,17 +15,21 @@
   location.replace('map.html' + location.search + location.hash);
 </script>
 <style>
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:#f5f4ef;color:#1a1a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center}
-  .star{font-size:52px;animation:pulse 1.2s ease-in-out infinite}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:oklch(0.965 0.006 85);color:oklch(0.16 0.01 250);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center}
+  .logo{animation:pulse 1.2s ease-in-out infinite}
   @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:.7}}
-  h1{font-size:20px;color:#B5790F;margin:16px 0 6px}
-  p{font-size:14px;color:#8a8a85;margin:0}
-  a{color:#B5790F;font-weight:700;text-decoration:none;margin-top:20px}
+  h1{font-size:20px;font-weight:800;letter-spacing:-0.3px;color:oklch(0.16 0.01 250);margin:16px 0 6px}
+  h1 span{color:oklch(0.62 0.155 65)}
+  p{font-size:14px;color:oklch(0.58 0.008 250);margin:0}
+  a{color:oklch(0.62 0.155 65);font-weight:700;text-decoration:none;margin-top:20px}
 </style>
 </head>
 <body>
-  <div class="star">⭐</div>
-  <h1>KStarMap</h1>
+  <svg class="logo" width="52" height="52" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="16" cy="16" r="15" fill="oklch(0.62 0.155 65)"/>
+    <path d="M16 7l2.47 5.76L24.5 13.5l-4.5 4 1.27 6L16 20.5l-5.27 3 1.27-6-4.5-4 6.03-.74Z" fill="#fff"/>
+  </svg>
+  <h1>K<span>Star</span>Map</h1>
   <p>지도로 이동 중...</p>
   <a href="map.html">눌러도 이동해요 →</a>
 </body>
