@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.5';
+const VERSION = 'map v2.4.6';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -3812,6 +3812,12 @@ window.isAdmin = () => !!window.currentUser && ADMIN_UIDS.includes(window.curren
 // 화면엔 아무것도 뜨지 않음(지도 검색 방해 안 함) — 진행 상황은 전부 콘솔에 출력됨.
 // 지도에서 해당 위치를 순서대로 클릭만 하면 자동 저장 후 다음 항목으로 넘어감.
 // 건너뛰려면 콘솔에 adminSkipBulkAdd(), 중단하려면 adminCancelBulkAdd() 입력.
+// 한 곳만 추가할 때 (배열 없이 바로 객체 하나만):
+//   adminAddPilgrim({ placeName:'장소명', title:'작품명', mediaType:'drama', addr:'서울 ○○구', story:'설명' })
+window.adminAddPilgrim = function(item) {
+  if (!item || typeof item !== 'object') { console.warn('장소 정보 객체를 넣어주세요.'); return; }
+  window.adminBulkAddPilgrims([item]);
+};
 window.adminBulkAddPilgrims = function(list) {
   if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
   if (!Array.isArray(list) || !list.length) { console.warn('빈 목록입니다.'); return; }
