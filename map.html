@@ -149,7 +149,7 @@
     #sidePanel.collapsed{width:0;border-right:0;overflow:hidden}
     #sidePanelHead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
     #sidePanelToggle{background:var(--bg2);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;font-size:18px;color:var(--text2);cursor:pointer;line-height:1}
-    #sidePanelBody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    #sidePanelBody{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
     #map{flex:1;min-width:0}
     #sidePanelOpen.show{display:flex;align-items:center;justify-content:center;position:absolute;top:12px;left:12px;z-index:31;width:44px;height:44px;background:var(--bg);border:1px solid var(--border);border-radius:12px;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.12)}
   }
@@ -435,7 +435,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.3.9';
+const VERSION = 'map v2.4.0';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -619,7 +619,7 @@ window.openFunBoard = async function() {
       '<button onclick="funToggleView()" title="목록/재생 전환" style="background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:9px;padding:7px 10px;font-size:14px;cursor:pointer">📋</button>' +
       '<button onclick="openFunBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
-    '<div id="funSwipeWrap" style="flex:1;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
+    '<div id="funSwipeWrap" style="flex:1;min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
   inner.style.cssText += 'background:#000;';
   _loadFunSwipe();
 };
@@ -628,11 +628,11 @@ window.funToggleView = function() {
   const swipeWrap = document.getElementById('funSwipeWrap');
   const listWrap = document.getElementById('funBoardList');
   if (swipeWrap) {
-    swipeWrap.outerHTML = '<div id="funBoardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
+    swipeWrap.outerHTML = '<div id="funBoardList" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
     if (sheetInner) sheetInner.style.background = 'var(--bg)';
     loadFunBoardList();
   } else if (listWrap) {
-    listWrap.outerHTML = '<div id="funSwipeWrap" style="flex:1;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
+    listWrap.outerHTML = '<div id="funSwipeWrap" style="flex:1;min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
     if (sheetInner) sheetInner.style.background = '#000';
     _loadFunSwipe();
   }
@@ -729,7 +729,7 @@ window.openFunBoardWrite = function(editPost) {
       '<div style="font-size:16px;font-weight:800;flex:1">'+headerLabel+'</div>' +
       '<button onclick="submitFunPost()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">'+submitLabel+'</button>' +
     '</div>' +
-    '<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">' +
+    '<div style="flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">' +
       '<input id="funTitle" placeholder="제목 (선택사항)" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
       '<textarea id="funBody" placeholder="유튜브 숏츠 링크를 넣으면 자동으로 영상이 보여집니다!" style="width:100%;flex:1;min-height:200px;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
@@ -827,7 +827,7 @@ window.openBoard = async function() {
       '<div style="font-size:16px;font-weight:800;flex:1">📚 한류정보창고</div>' +
       '<button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
-    '<div id="boardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
+    '<div id="boardList" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
   document.body.appendChild(sheet);
   // iOS 뷰포트 바운스 방지 (placeSheet과 동일 패턴)
   sheet.addEventListener('touchmove', function(e){
@@ -1665,7 +1665,7 @@ window.openHallyuSearch = function() {
         '<input id="hallyuInput" type="text" placeholder="' + (isEn() ? 'Search artist, drama, movie' : '배우·드라마·영화·그룹명 검색') + '" autocomplete="off" style="flex:1;border:none;outline:none;background:none;font-size:14px;color:var(--text)">' +
       '</div>' +
     '</div>' +
-    '<div id="hallyuResults" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">' +
+    '<div id="hallyuResults" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch">' +
       '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px"><div style="font-size:34px;margin-bottom:10px">🎬</div>' + t('hallyuPlaceholder') + '</div>' +
     '</div>';
   document.body.appendChild(v);
