@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.6';
+const VERSION = 'map v2.4.7';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1559,6 +1559,16 @@ function passHallyuFilter(d) {
   }
   return true;
 }
+// 맛집(restaurants 컬렉션)용 필터: celeb 필드로 판단.
+// 작품(title) 필터는 맛집엔 해당 사항이 없으므로 숨김 처리.
+function passRestHallyuFilter(d) {
+  if (!_hallyuFilter) return true;
+  if (_hallyuFilter.type === 'actor') {
+    const celeb = (d.celeb || '').replace(/\s/g,'').toLowerCase();
+    return celeb.includes(_hallyuFilter.value);
+  }
+  return false;
+}
 
 function renderPilgrimPinsInView() {
   if (!map) return;
@@ -1653,6 +1663,7 @@ window.clearHallyuFilter = function() {
   _hallyuFilter = null;
   _hallyuFocus = null;
   renderPilgrimPinsInView();
+  renderRestPinsInView();
   showToast('필터 해제');
 };
 function renderActiveFilterChip() { updateContentBar(); }
@@ -1717,36 +1728,56 @@ function doHallyuSearch(q) {
            norm(d.placeName) + '|' + norm(actors) + '|' + norm(d.addr) + '|' + norm(d.addr_en);
   };
   const matched = _pilgrimData.filter(d => blobOf(d).includes(lq));
-  if (!matched.length) {
+  // 맛집(restaurants 컬렉션)도 같이 검색: celeb/name/area/comment
+  const restBlobOf = d => norm(d.celeb) + '|' + norm(d.name) + '|' + norm(d.area) + '|' + norm(d.comment) + '|' + norm(d.address);
+  const restMatched = _restData.filter(d => restBlobOf(d).includes(lq));
+  if (!matched.length && !restMatched.length) {
     box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">' + t('noResult') + '</div>';
     return;
   }
-  // 검색어가 배우명과 매칭되는지 (actors에 포함) → 배우 필터 항목
+  // 검색어가 배우명과 매칭되는지 (actors 또는 맛집 celeb에 포함) → 배우 필터 항목
   const actorMatched = matched.filter(d => {
     const actors = (Array.isArray(d.actors) ? d.actors.join('') : (d.actors||'')).replace(/\s/g,'').toLowerCase();
     return actors.includes(lq);
   });
-  // 실제 배우 이름 찾기 (표시용)
+  const celebRestMatched = restMatched.filter(d => (d.celeb||'').replace(/\s/g,'').toLowerCase().includes(lq));
+  // 실제 배우/셀럽 이름 찾기 (표시용)
   let actorLabel = q;
   for (const d of actorMatched) {
     const arr = Array.isArray(d.actors) ? d.actors : [];
     const found = arr.find(a => a.replace(/\s/g,'').toLowerCase().includes(lq));
     if (found) { actorLabel = found; break; }
   }
+  if (actorLabel === q && celebRestMatched.length) actorLabel = celebRestMatched[0].celeb || q;
 
-  let html = '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">' + matched.length + (isEn() ? ' spots found' : '곳의 성지를 찾았어요') + '</div>';
+  let html = '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">' + (matched.length + restMatched.length) + (isEn() ? ' spots found' : '곳을 찾았어요') + '</div>';
 
-  // ★ 배우 필터 항목 (맨 위, 강조)
-  if (actorMatched.length) {
+  // ★ 배우 필터 항목 (맨 위, 강조) — 성지+맛집 합산
+  if (actorMatched.length || celebRestMatched.length) {
+    const total = actorMatched.length + celebRestMatched.length;
     html += '<div onclick="applyActorFilter(\'' + lq + '\',\'' + actorLabel.replace(/'/g,"\\'") + '\')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;background:var(--gold-bg)">' +
       '<div style="width:44px;height:44px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">⭐</div>' +
       '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:var(--gold)">' + actorLabel.replace(/</g,'&lt;') + ' ' + t('allSpots') + '</div>' +
-      '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + t('hallyuHint') + ' ' + actorMatched.length + (isEn()?' spots':'곳') + '</div></div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + t('hallyuHint') + ' ' + total + (isEn()?' spots':'곳') + '</div></div>' +
       '<span style="color:var(--gold);font-size:13px;font-weight:700;flex-shrink:0">' + (isEn()?'Filter ›':'필터 ›') + '</span>' +
     '</div>';
   }
 
-  // 작품별 그룹핑
+  // 🍽️ 맛집 개별 리스트 (이름별로 하나씩, celeb 매칭분 우선 정렬)
+  if (restMatched.length) {
+    const sortedRest = [...restMatched].sort((a,b) => (celebRestMatched.includes(b)?1:0) - (celebRestMatched.includes(a)?1:0));
+    html += sortedRest.map(d => {
+      const safe = s => String(s||'').replace(/'/g,"\\'");
+      return '<div onclick="closeHallyuSearchAndOpenRest(\'' + d._id + '\')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer">' +
+        '<div style="width:44px;height:44px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🍽️</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text)">' + safe(d.name).replace(/</g,'&lt;') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + (d.celeb ? '⭐ '+safe(d.celeb).replace(/</g,'&lt;')+' · ' : '') + (d.area||d.cat||'') + '</div></div>' +
+        '<span style="color:var(--text3);font-size:13px;flex-shrink:0">›</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  // 작품별 그룹핑 (성지)
   const byTitle = {};
   matched.forEach(d => { const t = d.title || '기타'; (byTitle[t] = byTitle[t] || []).push(d); });
   const groups = Object.entries(byTitle).sort((a,b) => b[1].length - a[1].length);
@@ -1765,6 +1796,23 @@ function doHallyuSearch(q) {
   }).join('');
   box.innerHTML = html;
 }
+
+// 검색 결과에서 맛집 하나 클릭 → 검색창 닫고 지도에서 바로 상세 열기
+window.closeHallyuSearchAndOpenRest = function(id) {
+  const d = _restData.find(r => r._id === id);
+  if (!d) return;
+  document.getElementById('hallyuSearch')?.remove();
+  switchTabTo('map');
+  try {
+    map.setCenter(new kakao.maps.LatLng(d.lat, d.lng));
+    map.setLevel(5);
+  } catch(e) {}
+  openPlaceSheet({
+    name: d.name, sub: d.cat + (d.area?' · '+d.area:'') + (d.celeb?' · '+d.celeb:''),
+    lat: d.lat, lng: d.lng, color: 'var(--amber)', type: 'rest', raw: d
+  });
+  setTimeout(() => { renderPilgrimPinsInView(); renderRestPinsInView(); }, 300);
+};
 
 // 배우 필터 적용
 window.applyActorFilter = function(lq, label) {
@@ -1785,7 +1833,10 @@ function finishHallyuFilter(label) {
   document.getElementById('chipPilgrim')?.classList.remove('off');
   renderActiveFilterChip();
   const list = _pilgrimData.filter(d => d.lat && d.lng && passHallyuFilter(d));
-  if (!list.length) { showToast('해당 성지가 없어요'); return; }
+  const restList = _restData.filter(d => d.lat && d.lng && passRestHallyuFilter(d));
+  if (!list.length && !restList.length) { showToast('해당 성지가 없어요'); return; }
+  // 거리/화면판단은 성지+맛집 합쳐서 계산 (성지가 없고 맛집만 있는 셀럽도 정상 동작하도록)
+  const combined = [...list, ...restList];
 
   // 현재 지도 중심 기준 (명동 검색해서 보고 있으면 명동 유지)
   let cLat, cLng;
@@ -1793,32 +1844,32 @@ function finishHallyuFilter(label) {
   catch(e) { cLat = myLat; cLng = myLng; }
   const dist = (d, la, ln) => { const a=(d.lat-la)*111, b=(d.lng-ln)*88; return Math.sqrt(a*a+b*b); };
 
-  // 지금 보고 있는 화면 안에 필터 성지가 있으면 → 지도 안 움직이고 필터만
+  // 지금 보고 있는 화면 안에 필터 성지/맛집이 있으면 → 지도 안 움직이고 필터만
   let inView = [];
   try {
     const b = map.getBounds();
-    inView = list.filter(d => b.contain(new kakao.maps.LatLng(d.lat, d.lng)));
+    inView = combined.filter(d => b.contain(new kakao.maps.LatLng(d.lat, d.lng)));
   } catch(e) {}
   if (inView.length) {
-    showToast(label + ' 성지 ' + inView.length + '곳 (이 지역)');
-    setTimeout(() => renderPilgrimPinsInView(), 100);
+    showToast(label + ' ' + inView.length + '곳 (이 지역)');
+    setTimeout(() => { renderPilgrimPinsInView(); renderRestPinsInView(); }, 100);
     return;
   }
 
-  // 화면에 없으면 → 현재 지도 중심에서 가장 가까운 성지로
-  const sorted = [...list].sort((x,y) => dist(x,cLat,cLng) - dist(y,cLat,cLng));
+  // 화면에 없으면 → 현재 지도 중심에서 가장 가까운 곳으로
+  const sorted = [...combined].sort((x,y) => dist(x,cLat,cLng) - dist(y,cLat,cLng));
   const nearest = sorted[0];
   if (dist(nearest,cLat,cLng) <= 30) {
     const n = sorted.filter(d => dist(d,cLat,cLng) <= 30).length;
     map.setCenter(new kakao.maps.LatLng(cLat, cLng));
     map.setLevel(n > 1 ? 6 : 5);
-    showToast('이 근처 ' + label + ' 성지 ' + n + '곳');
+    showToast('이 근처 ' + label + ' ' + n + '곳');
   } else {
     map.setCenter(new kakao.maps.LatLng(nearest.lat, nearest.lng));
     map.setLevel(6);
-    showToast('가장 가까운 ' + label + ' 성지로 이동');
+    showToast('가장 가까운 ' + label + '로 이동');
   }
-  setTimeout(() => renderPilgrimPinsInView(), 300);
+  setTimeout(() => { renderPilgrimPinsInView(); renderRestPinsInView(); }, 300);
 }
 
 // 검색 결과 작품 선택 → 내 주변 우선으로 표시
@@ -1863,10 +1914,11 @@ function renderRestPinsInView() {
   clearMarkers(_restMarkers);
   if (!_filters.rest) return;
   const b = map.getBounds();
-  if (map.getLevel() > 10) return;
+  if (!_hallyuFilter && map.getLevel() > 10) return;
   let count = 0;
   for (const d of _restData) {
     if (!d.lat || !d.lng) continue;
+    if (!passRestHallyuFilter(d)) continue;
     const pos = new kakao.maps.LatLng(d.lat, d.lng);
     if (!b.contain(pos)) continue;
     if (count++ > 200) break;
