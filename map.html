@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.7';
+const VERSION = 'map v2.4.8';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -930,6 +930,57 @@ async function loadBoardList() {
     list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
   }
 }
+
+// ── 명장면 모음 / 맛집칼럼 상단 미니맵 ──
+// 남한 대략 경계로 위경도를 SVG 좌표로 선형 변환(정밀 지도 아님, 위치 감 정도만 제공)
+const KOREA_BOUNDS = { latMin: 33.0, latMax: 38.6, lngMin: 125.0, lngMax: 129.7 };
+const MINIMAP_W = 130, MINIMAP_H = 170;
+function latLngToMiniXY(lat, lng) {
+  const x = ((lng - KOREA_BOUNDS.lngMin) / (KOREA_BOUNDS.lngMax - KOREA_BOUNDS.lngMin)) * MINIMAP_W;
+  const y = MINIMAP_H - ((lat - KOREA_BOUNDS.latMin) / (KOREA_BOUNDS.latMax - KOREA_BOUNDS.latMin)) * MINIMAP_H;
+  return { x: Math.max(4, Math.min(MINIMAP_W - 4, x)), y: Math.max(4, Math.min(MINIMAP_H - 4, y)) };
+}
+// 대략적인 남한 윤곽선 (정밀 좌표 아님, 썸네일용 근사치)
+const KOREA_OUTLINE_PATH = 'M62,4 L78,8 L92,18 L98,30 L88,38 L94,48 L86,58 L92,66 L82,74 L88,84 L76,90 L80,100 L68,106 L72,116 L58,122 L62,132 L48,138 L52,148 L38,152 L34,144 L40,134 L30,128 L36,118 L26,112 L32,102 L22,96 L28,86 L20,78 L26,68 L18,60 L24,50 L18,40 L26,32 L22,22 L34,16 L30,8 L46,4 Z';
+function renderMiniMap(posts, activeColor) {
+  const pts = [];
+  posts.forEach(p => {
+    let names = Array.isArray(p.placeTags) && p.placeTags.length ? p.placeTags.slice() : [];
+    if (!names.length) {
+      const m = (p.body||'').match(/\[성지:([^\]]+)\]/g);
+      if (m) names = m.map(t => t.slice(4,-1).split(':')[0].trim());
+    }
+    names.forEach(placeName => {
+      if (!placeName) return;
+      let loc = (window._pilgrimData||[]).find(d => d.placeName === placeName && d.lat && d.lng) ||
+                (window._restData||[]).find(d => d.name === placeName && d.lat && d.lng);
+      if (loc) pts.push({ id: p.id, lat: loc.lat, lng: loc.lng });
+    });
+  });
+  if (!pts.length) return '';
+  const dots = pts.map(pt => {
+    const xy = latLngToMiniXY(pt.lat, pt.lng);
+    return '<circle cx="'+xy.x+'" cy="'+xy.y+'" r="4" fill="'+activeColor+'" stroke="#fff" stroke-width="1.2" style="cursor:pointer" onclick="event.stopPropagation();miniMapJumpToPost(\''+pt.id+'\','+pt.lat+','+pt.lng+')"><title>여기 보기</title></circle>';
+  }).join('');
+  return '<div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--bg2)">' +
+    '<svg viewBox="0 0 '+MINIMAP_W+' '+MINIMAP_H+'" style="width:100px;height:130px;cursor:pointer" onclick="miniMapOpenFull()">' +
+      '<path d="'+KOREA_OUTLINE_PATH+'" fill="var(--bg3)" stroke="var(--border2)" stroke-width="1.5"/>' +
+      dots +
+    '</svg>' +
+    '<div style="font-size:10.5px;color:var(--text3)">점을 누르면 바로 이동 · 지도를 누르면 전체보기</div>' +
+  '</div>';
+}
+window.miniMapJumpToPost = function(postId, lat, lng) {
+  document.getElementById('hallyuSearch')?.remove();
+  switchTabTo('map');
+  try { map.setCenter(new kakao.maps.LatLng(lat, lng)); map.setLevel(5); } catch(e) {}
+  setTimeout(() => { renderPilgrimPinsInView(); renderRestPinsInView(); }, 200);
+};
+window.miniMapOpenFull = function() {
+  switchTabTo('map');
+  try { map.setLevel(13); } catch(e) {}
+};
+
 window.openSceneCollection = async function() {
   const list = document.getElementById('boardList');
   if (!list) return;
@@ -961,7 +1012,7 @@ window.openSceneCollection = async function() {
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
       '</div>';
     }).join('');
-    list.innerHTML = header + rows;
+    list.innerHTML = header + renderMiniMap(posts, 'var(--gold)') + rows;
   } catch(e) {
     list.innerHTML = header + '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
   }
@@ -998,7 +1049,7 @@ window.openFoodCollection = async function() {
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
       '</div>';
     }).join('');
-    list.innerHTML = header + rows;
+    list.innerHTML = header + renderMiniMap(posts, '#e67e22') + rows;
   } catch(e) {
     list.innerHTML = header + '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
   }
