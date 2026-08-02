@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.8';
+const VERSION = 'map v2.4.9';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -952,8 +952,8 @@ function renderMiniMap(posts, activeColor) {
     }
     names.forEach(placeName => {
       if (!placeName) return;
-      let loc = (window._pilgrimData||[]).find(d => d.placeName === placeName && d.lat && d.lng) ||
-                (window._restData||[]).find(d => d.name === placeName && d.lat && d.lng);
+      let loc = (_pilgrimData||[]).find(d => d.placeName === placeName && d.lat && d.lng) ||
+                (_restData||[]).find(d => d.name === placeName && d.lat && d.lng);
       if (loc) pts.push({ id: p.id, lat: loc.lat, lng: loc.lng });
     });
   });
@@ -3824,7 +3824,7 @@ window.goCourseStop = function(cid, idx) {
   const c = _courses.find(x => x.id === cid);
   if (!c || !c.stops || !c.stops[idx]) return;
   const s = c.stops[idx];
-  const pg = (window._pilgrimData || []).find(p => p._id === s.placeId);
+  const pg = (_pilgrimData || []).find(p => p._id === s.placeId);
   switchTab('map');
   setTimeout(() => {
     if (window.map) {
@@ -3889,9 +3889,9 @@ async function adminApplyMovePlace(lat, lng) {
     const { db, doc, updateDoc } = window._mapDB;
     await updateDoc(doc(db, 'pilgrimages', mode.pid), { lat, lng });
     // 로컬 데이터도 갱신
-    if (window._pilgrimData) {
-      const idx = window._pilgrimData.findIndex(p => p._id === mode.pid);
-      if (idx >= 0) { window._pilgrimData[idx].lat = lat; window._pilgrimData[idx].lng = lng; }
+    if (_pilgrimData) {
+      const idx = _pilgrimData.findIndex(p => p._id === mode.pid);
+      if (idx >= 0) { _pilgrimData[idx].lat = lat; _pilgrimData[idx].lng = lng; }
     }
     showToast('✅ 위치를 옮겼어요');
     adminCancelMovePlace();
@@ -3975,7 +3975,7 @@ async function adminApplyBulkAdd(lat, lng) {
     };
     const ref = await addDoc(collection(db, 'pilgrimages'), docData);
     // 로컬 데이터에도 즉시 반영(새로고침 없이 지도에 바로 표시)
-    if (window._pilgrimData) window._pilgrimData.push({ ...docData, _id: ref.id, createdAt: new Date() });
+    if (_pilgrimData) _pilgrimData.push({ ...docData, _id: ref.id, createdAt: new Date() });
     renderPilgrimPinsInView();
     _bulkAddDone.push(item.placeName || item.title || '');
     console.log('✅ 저장됨 (' + (_bulkAddIndex+1) + '/' + _bulkAddQueue.length + '): ' + (item.placeName||'') + '  [' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ']');
@@ -4048,9 +4048,9 @@ async function adminRefresh(pid) {
   const snap = await getDoc(doc(db, 'pilgrimages', pid));
   if (!snap.exists()) return;
   const fresh = { ...snap.data(), _id: pid };
-  if (window._pilgrimData) {
-    const idx = window._pilgrimData.findIndex(p => p._id === pid);
-    if (idx >= 0) window._pilgrimData[idx] = fresh;
+  if (_pilgrimData) {
+    const idx = _pilgrimData.findIndex(p => p._id === pid);
+    if (idx >= 0) _pilgrimData[idx] = fresh;
   }
   if (window._selectedPlaceRef) {
     window._selectedPlaceRef.raw = fresh;
