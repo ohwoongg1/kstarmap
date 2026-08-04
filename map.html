@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.10';
+const VERSION = 'map v2.4.11';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -761,11 +761,13 @@ window.submitFunPost = async function() {
     if (editId) {
       await updateDoc(doc(db, 'funboard', editId), { title, body, updatedAt: serverTimestamp() });
       showToast('✅ 수정됐어요');
+      pingIndexNow('https://kstarmap.com/map.html');
     } else {
       await addDoc(collection(db,'funboard'), { title, body,
         uid: window.currentUser.uid, userName: window.currentUser.displayName||'익명',
         createdAt: serverTimestamp() });
       showToast('✅ 등록됐어요');
+      pingIndexNow('https://kstarmap.com/map.html');
     }
     document.getElementById('funBoardWrite').remove();
     loadFunBoardList();
@@ -1045,6 +1047,17 @@ window.editBoardPost = function(pid) {
   if (!p) { showToast('글 정보를 찾을 수 없어요'); return; }
   openBoardWrite(p);
 };
+// ── IndexNow: 새 콘텐츠 발행 시 네이버(+빙 등)에 즉시 알림 ──
+// searchadvisor.naver.com에 키 파일(bb888033e136aa1d8a4e0c5d37d5fc18.txt)을 사이트 루트에 올려둔 상태여야 동작함
+const INDEXNOW_KEY = 'bb888033e136aa1d8a4e0c5d37d5fc18';
+function pingIndexNow(url) {
+  try {
+    const endpoint = 'https://api.indexnow.org/indexnow?url=' + encodeURIComponent(url) +
+      '&key=' + INDEXNOW_KEY + '&keyLocation=' + encodeURIComponent('https://kstarmap.com/' + INDEXNOW_KEY + '.txt');
+    fetch(endpoint, { mode: 'no-cors' }).catch(() => {}); // 실패해도 사용자 흐름엔 영향 없도록 무시
+  } catch(e) {}
+}
+
 window.submitBoardPost = async function() {
   const title = document.getElementById('boardTitle').value.trim();
   const body = document.getElementById('boardBody').value.trim();
@@ -1059,6 +1072,7 @@ window.submitBoardPost = async function() {
         updatedAt: serverTimestamp()
       });
       showToast('✅ 글이 수정됐어요');
+      pingIndexNow('https://kstarmap.com/map.html');
     } else {
       await addDoc(collection(db, 'board'), {
         title, body,
@@ -1068,6 +1082,7 @@ window.submitBoardPost = async function() {
         createdAt: serverTimestamp()
       });
       showToast('✅ 글이 등록됐어요');
+      pingIndexNow('https://kstarmap.com/map.html');
     }
     document.getElementById('boardWrite').remove();
     loadBoardList();
@@ -3929,6 +3944,7 @@ async function adminApplyBulkAdd(lat, lng) {
     renderPilgrimPinsInView();
     _bulkAddDone.push(item.placeName || item.title || '');
     console.log('✅ 저장됨 (' + (_bulkAddIndex+1) + '/' + _bulkAddQueue.length + '): ' + (item.placeName||'') + '  [' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ']');
+    pingIndexNow('https://kstarmap.com/map.html');
     _bulkAddIndex++;
     if (_bulkAddIndex >= _bulkAddQueue.length) { adminFinishBulkAdd(); return; }
     logBulkAddNext();
