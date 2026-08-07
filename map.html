@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.11';
+const VERSION = 'map v2.4.12';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1050,6 +1050,23 @@ window.editBoardPost = function(pid) {
 // ── IndexNow: 새 콘텐츠 발행 시 네이버(+빙 등)에 즉시 알림 ──
 // searchadvisor.naver.com에 키 파일(bb888033e136aa1d8a4e0c5d37d5fc18.txt)을 사이트 루트에 올려둔 상태여야 동작함
 const INDEXNOW_KEY = 'bb888033e136aa1d8a4e0c5d37d5fc18';
+// 한국관광공사 TourAPI(공공데이터포털) — 관광사진 정보 서비스, 실시간 호출용
+const TOUR_API_KEY = '1841b269a603176ed99db0c0ab7f40a30a71ab76aed77c4e1da671ffa3468e2';
+async function fetchLiveTourPhotos(contentId) {
+  if (!contentId) return [];
+  try {
+    const url = 'https://apis.data.go.kr/B551011/PhotoGalleryService1/galleryList1'
+      + '?serviceKey=' + TOUR_API_KEY
+      + '&numOfRows=8&pageNo=1&MobileOS=ETC&MobileApp=KStarMap&_type=json&contentId=' + encodeURIComponent(contentId);
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const items = data?.response?.body?.items?.item;
+    if (!items) return [];
+    const arr = Array.isArray(items) ? items : [items];
+    return arr.map(it => it.galWebImageUrl).filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://'));
+  } catch(e) { console.warn('TourAPI 실시간 조회 실패', e); return []; }
+}
 function pingIndexNow(url) {
   try {
     const endpoint = 'https://api.indexnow.org/indexnow?url=' + encodeURIComponent(url) +
@@ -2179,6 +2196,20 @@ function openPlaceSheet(place) {
       if (actors) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🎭 ' + esc(actors) + '</div>';
       if (addr) html += '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">📍 ' + esc(addr) + '</div>';
       if (story) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--gold);border-radius:6px;padding:10px 12px">' + esc(story) + '</div>';
+      // 관광공사 TourAPI 실시간 사진 조회 (저장된 사진과 별개로, 그 순간 API를 직접 호출)
+      if (raw.tourContentId) {
+        const liveId = 'livePhotos_' + Date.now();
+        html += '<div id="' + liveId + '" style="margin-top:10px"></div>';
+        (async () => {
+          const photos = await fetchLiveTourPhotos(raw.tourContentId);
+          const box = document.getElementById(liveId);
+          if (!box || !photos.length) return;
+          box.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">📡 ' + (isEn()?'Live from Korea Tourism Org.':'한국관광공사 실시간 사진') + '</div>' +
+            '<div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">' +
+            photos.map(u => '<img src="' + u.replace(/</g,'&lt;') + '" style="width:84px;height:84px;object-fit:cover;border-radius:8px;flex:0 0 auto" loading="lazy">').join('') +
+            '</div>';
+        })();
+      }
       const _dispLang = (window.localStorage && localStorage.getItem('kstar_display_lang')) || 'ko';
       const _isEnDisp = _dispLang !== 'ko';
       const _mt = (_isEnDisp && raw.title_en) ? raw.title_en : (raw.title || '');
