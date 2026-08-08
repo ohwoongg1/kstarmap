@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.12';
+const VERSION = 'map v2.4.13';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -556,7 +556,6 @@ window.openMoreMenu = function() {
       '</div>' +
       item('📖', '사용 설명서', "location.href='guide.html'") +
       item('📚', '한류정보창고', "document.getElementById('moreSheet').remove();openBoard()") +
-      item('😂', '한류 웃음창고', "document.getElementById('moreSheet').remove();openFunBoard()") +
       item('✉️', '개발자에게 의견', "document.getElementById('moreSheet').remove();openDevFeedback()") +
       item('🌐', '언어 선택', "document.getElementById('moreSheet').remove();openLangPicker()") +
       '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 성지 지도</div>' +
@@ -870,7 +869,7 @@ async function loadBoardList() {
       let bodyTxt=bodyRaw.replace(ytRe,(m,id)=>{ytIds.push(id);return '';}).trim();
       const mapTitles=[]; bodyTxt=bodyTxt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';}).trim();
       const placeTags=[]; bodyTxt=bodyTxt.replace(/\[성지:([^\]]+)\]/g,(m,t)=>{placeTags.push(t.trim());return '';}).trim();
-      bodyTxt=bodyTxt.replace(/\[맛집\]/g,'').trim();
+      bodyTxt=bodyTxt.replace(/\[맛집\]/g,'').replace(/\[쇼핑\]/g,'').trim();
       const preview=bodyTxt.length>100?escB(bodyTxt.slice(0,100))+'...':escB(bodyTxt), full=escB(bodyTxt);
       const mkThumb=id=>
         '<div class="yt-thumb" data-yt="'+id+'" onclick="boardPlayVideo(this)" style="position:relative;border-radius:10px;overflow:hidden;margin-top:8px;cursor:pointer;background:#000">'+
@@ -915,7 +914,7 @@ async function loadBoardList() {
       (p.pinned?'</div>':'')+
       '</div>';
     }).join('');
-    const sceneCount = posts.filter(p=>(p.placeTags||[]).length>0 && !(p.body||'').includes('[맛집]')).length;
+    const sceneCount = posts.filter(p=>(p.placeTags||[]).length>0 && !(p.body||'').includes('[맛집]') && !(p.body||'').includes('[쇼핑]')).length;
     const sceneEntry = '<div onclick="openSceneCollection()" style="padding:15px 18px;border-bottom:2px solid var(--gold);background:var(--gold-bg);cursor:pointer;display:flex;align-items:center;gap:10px">' +
       '<span style="font-size:20px">🎬</span>' +
       '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:var(--gold)"><span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>명장면 모음</div>' +
@@ -927,7 +926,13 @@ async function loadBoardList() {
       '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:#e67e22"><span style="font-size:10px;background:#e67e22;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>맛집칼럼</div>' +
       '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">한류 성지 주변 숨은 맛집, 직접 먹어보고 쓰는 리얼 후기<br>미슐랭부터 동네 한 끼까지 — 성지순례 맛집 가이드!<br>현재 <b>'+foodCount+'편</b>의 맛집 칼럼이 등록되어 있습니다.</div></div>' +
       '<span style="font-size:14px;color:#e67e22">→</span></div>';
-    list.innerHTML = sceneEntry + foodEntry + list.innerHTML;
+    const shopCount = posts.filter(p=>(p.body||'').includes('[쇼핑]')).length;
+    const shopEntry = '<div onclick="openShoppingCollection()" style="padding:15px 18px;border-bottom:2px solid #9b59b6;background:#f8f3fb;cursor:pointer;display:flex;align-items:center;gap:10px">' +
+      '<span style="font-size:20px">🛍️</span>' +
+      '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:#9b59b6"><span style="font-size:10px;background:#9b59b6;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>쇼핑창고</div>' +
+      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">한국 오면 뭘 사야 할지, 어디를 가야 할지 막막할 때<br>진짜 도움 되는 쇼핑 정보와 장소만 골라서 소개합니다<br>현재 <b>'+shopCount+'편</b>의 쇼핑 정보가 등록되어 있습니다.</div></div>' +
+      '<span style="font-size:14px;color:#9b59b6">→</span></div>';
+    list.innerHTML = sceneEntry + foodEntry + shopEntry + list.innerHTML;
   } catch(e) {
     list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
   }
@@ -945,7 +950,7 @@ window.openSceneCollection = async function() {
     const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
     const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(200)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
-      .filter(p => Array.isArray(p.placeTags) && p.placeTags.length > 0 && !(p.body||'').includes('[맛집]'));
+      .filter(p => Array.isArray(p.placeTags) && p.placeTags.length > 0 && !(p.body||'').includes('[맛집]') && !(p.body||'').includes('[쇼핑]'));
     if (!posts.length) {
       list.innerHTML = header + '<div style="padding:60px;text-align:center;color:var(--text3);font-size:13px">아직 등록된 명장면이 없어요.</div>';
       return;
@@ -997,6 +1002,43 @@ window.openFoodCollection = async function() {
         '<div onclick="openBoardStory(\''+p.id+'\')">' +
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escF(p.title||'')+'</div>' +
         (place?'<div style="font-size:11.5px;color:#e67e22;font-weight:700;margin-bottom:4px">📍 '+escF(place)+'</div>':'') +
+        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
+        '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+      '</div>';
+    }).join('');
+    list.innerHTML = header + rows;
+  } catch(e) {
+    list.innerHTML = header + '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
+  }
+};
+window.openShoppingCollection = async function() {
+  const list = document.getElementById('boardList');
+  if (!list) return;
+  list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
+  const header = '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)">' +
+    '<button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>' +
+    '<div style="font-size:15px;font-weight:800">🛍️ 쇼핑창고</div>' +
+  '</div>';
+  try {
+    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
+    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(200)));
+    const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+      .filter(p => (p.body||'').includes('[쇼핑]'));
+    if (!posts.length) {
+      list.innerHTML = header + '<div style="padding:60px;text-align:center;color:var(--text3);font-size:13px">아직 등록된 쇼핑 정보가 없어요.</div>';
+      return;
+    }
+    const escS = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const rows = posts.map(p => {
+      const bodyClean = (p.body||'').replace(/\[쇼핑\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
+        .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
+      const preview = bodyClean.length>70 ? escS(bodyClean.slice(0,70))+'...' : escS(bodyClean);
+      const placeTags = (p.body||'').match(/\[성지:([^\]]+)\]/g);
+      const place = placeTags ? placeTags[0].slice(4,-1).split(':')[0].trim() : '';
+      return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
+        '<div onclick="openBoardStory(\''+p.id+'\')">' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escS(p.title||'')+'</div>' +
+        (place?'<div style="font-size:11.5px;color:#9b59b6;font-weight:700;margin-bottom:4px">📍 '+escS(place)+'</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
       '</div>';
@@ -1123,7 +1165,7 @@ window.openBoardStory = function(postId) {
       let txt=body.replace(ytRe,(m,id)=>{ytIds.push(id);return '';});
       const mapTitles=[]; txt=txt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';});
       const placeTags=[]; txt=txt.replace(/\[성지:([^\]]+)\]/g,(m,t)=>{placeTags.push(t.trim());return '';}).trim();
-      txt=txt.replace(/\[맛집\]/g,'').trim();
+      txt=txt.replace(/\[맛집\]/g,'').replace(/\[쇼핑\]/g,'').trim();
       const mapHtml=placeTags.length
         ? placeTags.map(pt=>{const parts=pt.split(':');const pn=parts[0].trim();const tt=parts[1]?parts[1].trim():'';return '<button onclick="boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\''+')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escS(pn)+' 지도에서 보기</button>';}).join('')
         : mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escS(t)+' 촬영지 전체보기</button>').join('');
@@ -3913,6 +3955,23 @@ window.isAdmin = () => !!window.currentUser && ADMIN_UIDS.includes(window.curren
 // 건너뛰려면 콘솔에 adminSkipBulkAdd(), 중단하려면 adminCancelBulkAdd() 입력.
 // 한 곳만 추가할 때 (배열 없이 바로 객체 하나만):
 //   adminAddPilgrim({ placeName:'장소명', title:'작품명', mediaType:'drama', addr:'서울 ○○구', story:'설명' })
+// 웃음창고(funboard) 전체 삭제용 콘솔 도구 — 관리자 로그인 상태에서 adminDeleteAllFunboard() 실행
+window.adminDeleteAllFunboard = async function() {
+  if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
+  try {
+    const { db, collection, getDocs, deleteDoc, doc } = window._mapDB;
+    const snap = await getDocs(collection(db, 'funboard'));
+    if (!snap.docs.length) { console.log('삭제할 웃음창고 글이 없습니다.'); return; }
+    console.log('총 ' + snap.docs.length + '건 삭제를 시작합니다...');
+    let done = 0;
+    for (const d of snap.docs) {
+      await deleteDoc(doc(db, 'funboard', d.id));
+      done++;
+      console.log('삭제됨 (' + done + '/' + snap.docs.length + '): ' + d.id);
+    }
+    console.log('✅ 웃음창고 전체 삭제 완료 (' + done + '건)');
+  } catch(e) { console.error('삭제 중 오류', e); }
+};
 window.adminAddPilgrim = function(item) {
   if (!item || typeof item !== 'object') { console.warn('장소 정보 객체를 넣어주세요.'); return; }
   window.adminBulkAddPilgrims([item]);
