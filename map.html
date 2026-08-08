@@ -172,7 +172,7 @@
   #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:12;padding:8px 16px 0;margin:0 -16px;border-bottom:0.5px solid var(--border)}
   /* 스크롤 영역: 상단바가 이미 경계선을 가지므로 자체 선은 제거 */
   #sheetExtra{margin-top:14px}
-  .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
+  .sheet-handle{display:none}
   /* 장소명도 상단에 고정 → 스크롤해도 어느 곳인지 항상 보임 */
   /* 상단바 안으로 들어왔으므로 자체 sticky 불필요.
      기존엔 sheetTopBar(sticky) + place-head(sticky top:44px)가 따로 붙어 있어
@@ -292,7 +292,7 @@
       <!-- 고정 영역: 손잡이·닫기·제목·버튼이 스크롤해도 항상 보인다.
            기존엔 손잡이·✕만 sticky라, 스크롤하면 내용 없는 흰 띠만 남아 어색했다. -->
       <div id="sheetTopBar">
-        <div id="sheetHandle" style="padding:10px 0 14px;cursor:grab;text-align:center;flex-shrink:0">
+        <div id="sheetHandle" style="padding:0;text-align:center;flex-shrink:0">
           <div class="sheet-handle" style="margin:0 auto"></div>
         </div>
         <button class="place-close" onclick="closePlaceSheet()">✕</button>
@@ -443,7 +443,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.13';
+const VERSION = 'map v2.4.14';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2519,60 +2519,8 @@ function collapseSheet() {
     sheet.dataset.expanded = '0';
   }
 
-  handle.addEventListener('touchstart', e => {
-    // ✕ 버튼에서 시작한 터치는 드래그 아님(닫기 전용)
-    if (e.target && e.target.closest && e.target.closest('.place-close')) return;
-    startY = lastY = e.touches[0].clientY;
-    startH = sheet.getBoundingClientRect().height;
-    dragging = true; velocity = 0; moved = false;
-    sheet.style.transition = 'none';
-    sheet.style.maxHeight = 'none';   // 드래그 중엔 62vh 상한 해제(크게 열 수 있게)
-  }, {passive:true});
-
-  document.addEventListener('touchmove', e => {
-    if (!dragging) return;
-    const y = e.touches[0].clientY;
-    velocity = lastY - y; lastY = y;
-    if (Math.abs(y - startY) > 6) moved = true;
-    // 손가락 따라 실시간 높이 (위로 끌면 커지고 아래로 내리면 작아짐)
-    const newH = Math.min(Math.max(startH + (startY - y), MIN_H), maxH());
-    sheet.style.height = newH + 'px';
-  }, {passive:true});
-
-  document.addEventListener('touchend', (e) => {
-    if (!dragging) return;
-    dragging = false;
-    // ✕ 위에서 끝난 순수 탭은 닫기 로직에 맡김
-    if (!moved && e && e.target && e.target.closest && e.target.closest('.place-close')) return;
-    const curH = sheet.getBoundingClientRect().height;
-    // 거의 안 움직였으면(탭) 펼침/접힘 토글
-    if (!moved) {
-      const expanded = sheet.dataset.expanded === '1';
-      if (expanded) {
-        collapseToAuto();
-      } else {
-        snapTo(midH(), true);
-      }
-      return;
-    }
-    // 스와이프: 속도 우선, 아니면 가까운 지점으로 snap
-    if (velocity > 8) snapTo(maxH(), true);            // 빠르게 위로 → 크게
-    else if (velocity < -8) collapseToAuto();          // 빠르게 아래로 → 접힘
-    else {
-      // 3지점 중 가까운 곳: 접힘(MIN_H)·중간(midH)·크게(maxH)
-      const pts = [MIN_H, midH(), maxH()];
-      const nearest = pts.reduce((a,b) => Math.abs(a-curH) < Math.abs(b-curH) ? a : b);
-      if (nearest === MIN_H) collapseToAuto();
-      else snapTo(nearest, true);
-    }
-  });
-
-  // 데스크톱: 핸들 클릭으로 토글 (터치 기기는 위 로직이 처리)
-  handle.addEventListener('click', e => {
-    if (e.target && e.target.closest && e.target.closest('.place-close')) return;
-    if ('ontouchstart' in window) return;
-    toggleSheetExpand();
-  });
+  // 손잡이를 이용한 드래그/탭 확장 기능은 혼란을 유발해 제거함 (2026-08).
+  // 시트는 이제 ✕ 버튼으로만 닫고, 펼치기는 본문의 "더보기" 텍스트 링크(toggleSheetExpand)로만 동작함.
 
   // 본문 스크롤이 지도로 전파되지 않게 (index.html과 동일)
   sheet.addEventListener('touchstart', e => { sheet._ty = e.touches[0].clientY; sheet._st = sheet.scrollTop; }, {passive:true});
