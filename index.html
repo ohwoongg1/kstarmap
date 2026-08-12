@@ -78,7 +78,7 @@
   .chip.off{opacity:0.4}
   .chip .dot{width:9px;height:9px;border-radius:50%}
   #contentBar::-webkit-scrollbar{display:none}
-  .filterbar-float{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:6px;z-index:30;align-items:flex-start}
+  .filterbar-float{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:30;align-items:flex-end}
   #homeRankingView{position:absolute;inset:0;background:var(--bg);z-index:40;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
   #homeRankingView.show{display:block}
   .hr-cat{padding:16px 16px 4px}
@@ -196,12 +196,8 @@
   .cert-btn{width:100%;margin-top:12px;padding:12px;background:var(--gold);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
   .place-close{position:absolute;top:8px;right:14px;width:32px;height:32px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:15px;cursor:pointer;z-index:4}
 
-  /* 검색 결과 리스트 */
+  /* 검색 결과 리스트: 필터 칩(오른쪽 위)과 안 겹치게 그 아래부터 시작 — 모바일·PC 공통 */
   #searchResults{position:absolute;top:115px;left:0;right:0;bottom:0;background:var(--bg);overflow-y:auto;z-index:28;display:none}
-  /* PC: 옆으로 여유가 있으니 성지·맛집 필터 칩 옆(오른쪽)으로 배치, 위 여백은 불필요 */
-  @media (min-width:900px){
-    #searchResults{left:150px;top:0}
-  }
   .sr-item{padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer}
   .sr-item:active{background:var(--bg2)}
   .sr-name{font-size:14px;font-weight:700;color:var(--text)}
@@ -460,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.5.0';
+const VERSION = 'map v2.5.2';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2358,6 +2354,9 @@ function openPlaceSheet(place) {
   sheet.style.transform = '';   // 이전에 남은 인라인 transform(예: translateY로 아래로 밀림) 제거 → .show가 정상 적용되게
   sheet.dataset.expanded = '0';
   sheet.classList.add('show');
+  // 성지 카드가 떠 있는 동안엔 검색·성지·맛집 칩을 지도처럼 뒤로 숨겨 안 보이게
+  const fbar = document.querySelector('.filterbar-float');
+  if (fbar) fbar.style.display = 'none';
   // 상단(핸들·✕·장소명)이 항상 보이도록 스크롤 최상단 고정
   // 사진 등 콘텐츠가 뒤늦게 로드되며 레이아웃이 밀리는 경우까지 커버
   sheet.scrollTop = 0;
@@ -2459,6 +2458,9 @@ window.closePlaceSheet = function() {
   sheet.style.maxHeight = '';
   sheet.dataset.expanded = '0';
   _selectedPlace = null;
+  // 카드가 닫히면 칩바 다시 표시
+  const fbar = document.querySelector('.filterbar-float');
+  if (fbar) fbar.style.display = '';
 };
 
 // 시트 펼침/접힘 토글 (탭·프로그램 호출용). 스와이프는 아래 setupSheetDrag가 담당
