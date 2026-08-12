@@ -261,7 +261,7 @@
 
   <div id="appMain">
   <div class="topbar">
-    <div class="logo">
+    <div class="logo" onclick="goHome()" style="cursor:pointer">
       <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="16" cy="16" r="15" fill="oklch(0.62 0.155 65)"/>
         <path d="M16 7l2.47 5.76L24.5 13.5l-4.5 4 1.27 6L16 20.5l-5.27 3 1.27-6-4.5-4 6.03-.74Z" fill="#fff"/>
@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.1';
+const VERSION = 'map v2.6.2';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1187,6 +1187,7 @@ window.submitBoardPost = async function() {
       });
       showToast('✅ 글이 수정됐어요');
       pingIndexNow('https://kstarmap.com/map.html');
+      _boardTitleCache = null;
     } else {
       await addDoc(collection(db, 'board'), {
         title, body,
@@ -1197,6 +1198,7 @@ window.submitBoardPost = async function() {
       });
       showToast('✅ 글이 등록됐어요');
       pingIndexNow('https://kstarmap.com/map.html');
+      _boardTitleCache = null;
     }
     document.getElementById('boardWrite').remove();
     loadBoardList();
@@ -3605,6 +3607,7 @@ window.onAuthChanged = function(user) {
 // location/food/shopping: 실제 등록된 성지/맛집 이름과 매칭해 지도로 바로 연결.
 // actor/drama/movie/music: 한류정보창고 글 제목과 매칭해 해당 글로 연결(없으면 준비중 안내).
 let _showHomeRanking = true;
+let _boardTitleCache = null; // 인물/드라마/영화/음악 카드 클릭 시 제목 검색용 캐시 (최초 1회만 서버에서 읽고 재사용)
 const HOME_RANKINGS = {
   actor: { icon:'🌟', label:'인기연예인', sub:'데뷔부터 지금까지, 그 사람의 이야기', linkType:'post', items:[
     {name:'아이유', blurb:'가난한 연습생에서 국민 여동생까지'},
@@ -3693,10 +3696,18 @@ function renderHomeRanking() {
   html += '<div style="height:24px"></div>';
   box.innerHTML = html;
 }
+// 로고 클릭 → 어디서든 홈 랭킹 화면으로 복귀
+window.goHome = function() {
+  if (window.closePlaceSheet) closePlaceSheet();
+  if (window.hideSearchResults) hideSearchResults();
+  switchTabTo('map');
+  showHomeRanking();
+};
 window.showHomeRanking = function() {
   _showHomeRanking = true;
   const box = document.getElementById('homeRankingView');
   if (box) { if (!box.innerHTML) renderHomeRanking(); box.classList.add('show'); }
+  prefetchBoardTitleCache();
 };
 window.hideHomeRanking = function() {
   _showHomeRanking = false;
@@ -3731,13 +3742,25 @@ window.homeRankingGo = function(category, name) {
 // 제목이 정확히 일치하는 한류정보창고 글을 찾아 바로 열기 (없으면 준비중 안내)
 window.openBoardPostByTitle = async function(nameHint) {
   try {
-    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(300)));
-    const match = snap.docs.find(d => (d.data().title||'').includes(nameHint));
+    const list = await getBoardTitleCache();
+    const match = list.find(d => (d.title||'').includes(nameHint));
     if (match) { openBoardStory(match.id); return; }
     showToast('📝 "' + nameHint + '" 콘텐츠는 준비 중이에요. 곧 채워드릴게요!');
   } catch(e) { console.error(e); showToast('불러오기 실패'); }
 };
+// 게시글 목록을 한 번만 서버에서 읽어 캐시해두고 재사용 (홈 랭킹 카드 클릭 시 즉시 반응하도록)
+async function getBoardTitleCache(forceRefresh) {
+  if (_boardTitleCache && !forceRefresh) return _boardTitleCache;
+  const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
+  const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(300)));
+  _boardTitleCache = snap.docs.map(d => ({ id: d.id, title: d.data().title || '' }));
+  return _boardTitleCache;
+}
+// 홈 랭킹 화면이 뜨는 시점에 미리 백그라운드로 캐시를 데워둠 → 실제 카드 클릭 시 지연 없이 바로 열림
+function prefetchBoardTitleCache() {
+  if (_boardTitleCache) return;
+  getBoardTitleCache().catch(() => {});
+}
 
 function boot() {
   if (window.kakao && window.kakao.maps) {
