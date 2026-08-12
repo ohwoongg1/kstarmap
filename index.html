@@ -79,6 +79,16 @@
   .chip .dot{width:9px;height:9px;border-radius:50%}
   #contentBar::-webkit-scrollbar{display:none}
   .filterbar-float{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:6px;z-index:30;align-items:flex-start}
+  #homeRankingView{position:absolute;inset:0;background:var(--bg);z-index:40;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
+  #homeRankingView.show{display:block}
+  .hr-cat{padding:16px 16px 4px}
+  .hr-cat-title{font-size:15px;font-weight:800;display:flex;align-items:center;gap:6px;margin-bottom:2px}
+  .hr-cat-sub{font-size:11.5px;color:var(--text3);margin-bottom:10px}
+  .hr-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+  .hr-card{flex:0 0 auto;width:132px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px;cursor:pointer}
+  .hr-rank{font-size:11px;font-weight:800;color:var(--gold)}
+  .hr-name{font-size:13px;font-weight:700;margin:4px 0 2px;line-height:1.3}
+  .hr-blurb{font-size:11px;color:var(--text2);line-height:1.4}
   .filterbar-float .chip{background:rgba(255,255,255,0.92);backdrop-filter:blur(4px);box-shadow:0 1px 4px rgba(0,0,0,0.15);border:none}
   .filterbar-float .chip.off{opacity:0.55;background:rgba(255,255,255,0.7)}
   .c-pill{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:6px 14px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease}
@@ -187,10 +197,10 @@
   .place-close{position:absolute;top:8px;right:14px;width:32px;height:32px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:15px;cursor:pointer;z-index:4}
 
   /* 검색 결과 리스트 */
-  #searchResults{position:absolute;top:0;left:0;right:0;background:var(--bg);max-height:100%;overflow-y:auto;z-index:28;display:none}
-  /* PC: 검색 결과가 왼쪽 상단 성지·맛집 필터 칩과 겹치지 않도록 오른쪽으로 밀어냄 */
+  #searchResults{position:absolute;top:115px;left:0;right:0;bottom:0;background:var(--bg);overflow-y:auto;z-index:28;display:none}
+  /* PC: 옆으로 여유가 있으니 성지·맛집 필터 칩 옆(오른쪽)으로 배치, 위 여백은 불필요 */
   @media (min-width:900px){
-    #searchResults{left:150px}
+    #searchResults{left:150px;top:0}
   }
   .sr-item{padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer}
   .sr-item:active{background:var(--bg2)}
@@ -285,6 +295,7 @@
     </aside>
     <button id="sidePanelOpen" onclick="toggleSidePanel()" title="한류정보창고 열기" aria-label="열기">📚</button>
     <div id="map"></div>
+    <div id="homeRankingView"></div>
     <div class="filterbar-float">
       <div class="chip" id="chipSearch" onclick="toggleFilter('search')"><span class="dot" style="background:var(--red)"></span>검색</div>
       <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
@@ -449,7 +460,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.16';
+const VERSION = 'map v2.5.0';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1476,6 +1487,8 @@ function initMap() {
     level: 5
   });
   window._map = map;
+  // 첫 진입 시 지도 대신 홈 랭킹 화면부터 보여줌(지도는 뒤에서 정상 초기화됨)
+  if (_showHomeRanking) showHomeRanking();
 
   // 카카오 로컬 검색 서비스 (SDK 로드 완료 후 생성)
   ps = new kakao.maps.services.Places();
@@ -3509,6 +3522,8 @@ window.switchTab = function(tab) {
     if (window.closePlaceSheet) closePlaceSheet();
     hideSearchResults();
     switchTabTo('map');
+    // 이미 지도 탭에 있는 상태에서 다시 누르면 → 홈 랭킹 화면으로 복귀
+    if (wasMap) { showHomeRanking(); return; }
     // 이미 지도에 있었으면 relayout 한 번 더 (먹통 방지)
     if (wasMap && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 40);
     return;
@@ -3541,6 +3556,143 @@ window.onAuthChanged = function(user) {
 })();
 
 // ── 시작 ──
+// ── 홈 랭킹 화면 (지도 탭 첫 진입 화면) ──
+// 실사용 데이터(조회수·인증·저장)가 쌓이기 전까지는 큐레이션 순위로 시작.
+// location/food/shopping: 실제 등록된 성지/맛집 이름과 매칭해 지도로 바로 연결.
+// actor/drama/movie/music: 한류정보창고 글 제목과 매칭해 해당 글로 연결(없으면 준비중 안내).
+let _showHomeRanking = true;
+const HOME_RANKINGS = {
+  actor: { icon:'🌟', label:'인기연예인', sub:'데뷔부터 지금까지, 그 사람의 이야기', linkType:'post', items:[
+    {name:'아이유', blurb:'가난한 연습생에서 국민 여동생까지'},
+    {name:'김수현', blurb:'한류 정상급 배우의 성장기'},
+    {name:'박서준', blurb:'이태원클라쓰 이후의 행보'},
+    {name:'뷔(BTS)', blurb:'대구 소년에서 세계적 아이돌로'},
+    {name:'지수(BLACKPINK)', blurb:'YG 연습생부터 블랙핑크까지'},
+    {name:'변우석', blurb:'선재 업고 튀어로 폭발한 스타성'},
+    {name:'김혜윤', blurb:'아역부터 로코퀸까지'},
+    {name:'송강', blurb:'스위트홈에서 스타덤으로'},
+  ]},
+  drama: { icon:'📺', label:'인기드라마', sub:'전 세계가 본 K-드라마', linkType:'post', items:[
+    {name:'선재 업고 튀어', blurb:'2024년 최고 화제작'},
+    {name:'사랑의 불시착', blurb:'전 세계가 사랑한 로맨스'},
+    {name:'도깨비', blurb:'K-드라마 신드롬의 시작'},
+    {name:'이상한 변호사 우영우', blurb:'전 세계 넷플릭스 1위'},
+    {name:'폭싹 속았수다', blurb:'2025년 넷플릭스 글로벌 히트작'},
+    {name:'이태원클라쓰', blurb:'청춘 복수극의 정석'},
+    {name:'눈물의 여왕', blurb:'김수현·김지원 재벌 로맨스'},
+    {name:'오징어 게임', blurb:'넷플릭스 역대 최고 흥행작'},
+  ]},
+  movie: { icon:'🎬', label:'인기영화', sub:'세계가 인정한 한국 영화', linkType:'post', items:[
+    {name:'기생충', blurb:'아카데미 작품상 수상작'},
+    {name:'극한직업', blurb:'천만 관객 코미디, 수원왕갈비통닭 신드롬'},
+    {name:'부산행', blurb:'K-좀비 장르의 시작'},
+    {name:'헤어질 결심', blurb:'칸이 인정한 박찬욱'},
+    {name:'미나리', blurb:'아카데미 여우조연상 수상작'},
+    {name:'베테랑', blurb:'황정민표 통쾌한 액션'},
+  ]},
+  music: { icon:'🎵', label:'인기음악', sub:'전 세계를 흔든 K-pop 히트곡', linkType:'post', items:[
+    {name:'Dynamite', blurb:'한국 가수 최초 빌보드 핫100 1위'},
+    {name:'봄날', blurb:'BTS가 부르는 그리움의 노래'},
+    {name:'DNA', blurb:'BTS를 세계로 알린 곡'},
+    {name:'Butter', blurb:'역대 최다 동시 시청자 기록'},
+    {name:'붐바야', blurb:'블랙핑크 데뷔곡'},
+    {name:'휘파람', blurb:'데뷔 13일 만에 1위'},
+    {name:'불장난', blurb:'블랙핑크 신인 최초 3관왕'},
+    {name:'IDOL', blurb:'니키 미나즈와의 콜라보'},
+  ]},
+  location: { icon:'📍', label:'인기촬영지', sub:'드라마 속 그 장소, 실제로 가보기', linkType:'place', items:[
+    {name:'카페 몽테드', blurb:'선재 업고 튀어 촬영지, 수원 행궁동'},
+    {name:'일영역', blurb:'봄날 뮤직비디오 촬영지'},
+    {name:'서울대학교 폐수영장', blurb:'화양연화·봄날 촬영지'},
+    {name:'잠실종합운동장', blurb:'BTS 월드투어 개막 무대'},
+    {name:'광화문광장', blurb:'BTS 완전체 컴백쇼 무대'},
+    {name:'고척스카이돔', blurb:'BTS 최초 국내 돔 콘서트'},
+  ]},
+  food: { icon:'🍲', label:'인기맛집', sub:'그 지역을 대표하는 진짜 노포', linkType:'place', items:[
+    {name:'안일옥', blurb:'경기도 최고령, 100년 국밥집'},
+    {name:'이문설농탕', blurb:'대한민국 현존 최고(最古) 식당'},
+    {name:'우래옥', blurb:'서울 3대 평양냉면'},
+    {name:'삼백집', blurb:'전주 콩나물국밥 원조'},
+    {name:'고복수평양냉면', blurb:'실향민 3대가 이어온 냉면'},
+    {name:'인하찹쌀순대', blurb:'부천 40년 순대국밥'},
+    {name:'신승반점', blurb:'짜장면 원조 공화춘의 진짜 혈통'},
+  ]},
+  shopping: { icon:'🛍️', label:'인기쇼핑지역', sub:'한국 오면 꼭 가봐야 할 곳', linkType:'place', items:[
+    {name:'올리브영 명동타운', blurb:'외국인 매출 95%, K뷰티 성지'},
+    {name:'다이소 명동역점', blurb:'즉시환급 가능한 관광객 특화점'},
+    {name:'오프뷰티 명동스퀘어점', blurb:'화장품 최대 90% 할인 아울렛'},
+    {name:'CU 홍대상상점', blurb:'라면 225종, 라면 라이브러리'},
+    {name:'남대문시장', blurb:'600년 전통, 흥정이 통하는 시장'},
+    {name:'동대문시장', blurb:'낮시장·밤시장이 다른 도매의 성지'},
+    {name:'아트박스 명동길점', blurb:'올다아무의 마지막 한 글자'},
+  ]},
+};
+function renderHomeRanking() {
+  const box = document.getElementById('homeRankingView');
+  if (!box) return;
+  let html = '<div style="padding:18px 16px 6px;display:flex;align-items:center;justify-content:space-between">' +
+    '<div><div style="font-size:19px;font-weight:900">⭐ KStarMap</div>' +
+    '<div style="font-size:12px;color:var(--text3);margin-top:2px">K-드라마·K-팝 성지 지도 · 지금 가장 인기 있는 것들</div></div>' +
+    '<button onclick="hideHomeRanking()" style="background:var(--gold);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap">🗺️ 지도 바로가기</button>' +
+  '</div>';
+  Object.entries(HOME_RANKINGS).forEach(([key, cat]) => {
+    html += '<div class="hr-cat"><div class="hr-cat-title">' + cat.icon + ' ' + cat.label + '</div>' +
+      '<div class="hr-cat-sub">' + cat.sub + '</div>' +
+      '<div class="hr-row">' +
+      cat.items.map((it, i) => '<div class="hr-card" onclick="homeRankingGo(\'' + key + '\',\'' + it.name.replace(/'/g,"\\'") + '\')">' +
+        '<div class="hr-rank">' + (i+1) + '위</div>' +
+        '<div class="hr-name">' + it.name.replace(/</g,'&lt;') + '</div>' +
+        '<div class="hr-blurb">' + it.blurb.replace(/</g,'&lt;') + '</div>' +
+      '</div>').join('') +
+      '</div></div>';
+  });
+  html += '<div style="height:24px"></div>';
+  box.innerHTML = html;
+}
+window.showHomeRanking = function() {
+  _showHomeRanking = true;
+  const box = document.getElementById('homeRankingView');
+  if (box) { if (!box.innerHTML) renderHomeRanking(); box.classList.add('show'); }
+};
+window.hideHomeRanking = function() {
+  _showHomeRanking = false;
+  const box = document.getElementById('homeRankingView');
+  if (box) box.classList.remove('show');
+};
+window.homeRankingGo = function(category, name) {
+  hideHomeRanking();
+  switchTabTo('map');
+  const cat = HOME_RANKINGS[category];
+  if (cat && cat.linkType === 'place') {
+    const pg = (typeof _pilgrimData !== 'undefined' ? _pilgrimData : []).find(d => d.placeName === name);
+    const rt = (typeof _restData !== 'undefined' ? _restData : []).find(d => d.name === name);
+    try {
+      if (pg) {
+        map.setCenter(new kakao.maps.LatLng(pg.lat, pg.lng)); map.setLevel(5);
+        openPlaceSheet({ name: pg.placeName, sub: (pg.title||'') + (pg.area?' · '+pg.area:''), lat: pg.lat, lng: pg.lng, color: 'var(--gold)', type: 'pilgrim', raw: pg });
+      } else if (rt) {
+        map.setCenter(new kakao.maps.LatLng(rt.lat, rt.lng)); map.setLevel(5);
+        openPlaceSheet({ name: rt.name, sub: (rt.cat||'') + (rt.area?' · '+rt.area:''), lat: rt.lat, lng: rt.lng, color: 'var(--amber)', type: 'rest', raw: rt });
+      } else {
+        document.getElementById('searchInput').value = name;
+        doSearch(name);
+      }
+    } catch(e) { console.warn('homeRankingGo place', e); }
+  } else {
+    if (window.openBoardPostByTitle) openBoardPostByTitle(name);
+  }
+};
+// 제목이 정확히 일치하는 한류정보창고 글을 찾아 바로 열기 (없으면 준비중 안내)
+window.openBoardPostByTitle = async function(nameHint) {
+  try {
+    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
+    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(300)));
+    const match = snap.docs.find(d => (d.data().title||'').includes(nameHint));
+    if (match) { openBoardStory(match.id); return; }
+    showToast('📝 "' + nameHint + '" 콘텐츠는 준비 중이에요. 곧 채워드릴게요!');
+  } catch(e) { console.error(e); showToast('불러오기 실패'); }
+};
+
 function boot() {
   if (window.kakao && window.kakao.maps) {
     kakao.maps.load(initMap);
