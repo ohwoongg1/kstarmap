@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.7';
+const VERSION = 'map v2.6.8';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -859,7 +859,17 @@ window.openBoard = async function() {
   }, {passive:false});
   loadBoardList();
 };
+// 현재 어떤 게시판 화면을 보고 있는지 추적 — 수정 완료 후 원래 있던 화면으로 되돌아가기 위함
+let _boardCurrentView = 'main';
+function reloadBoardCurrentView() {
+  if (_boardCurrentView === 'scene') return openSceneCollection();
+  if (_boardCurrentView === 'food') return openFoodCollection();
+  if (_boardCurrentView === 'shop') return openShoppingCollection();
+  if (_boardCurrentView === 'person') return openPersonCollection();
+  return loadBoardList();
+}
 async function loadBoardList() {
+  _boardCurrentView = 'main';
   // 게시판 모달이 열려 있으면 그 안의 목록을, 아니면 사이드 패널의 목록을 사용
   const sheet = document.getElementById('boardSheet');
   const list = (sheet && sheet.querySelector('#boardList')) || document.getElementById('boardList');
@@ -959,6 +969,7 @@ async function loadBoardList() {
 }
 
 window.openSceneCollection = async function() {
+  _boardCurrentView = 'scene';
   const list = document.getElementById('boardList');
   if (!list) return;
   list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
@@ -999,6 +1010,7 @@ window.openSceneCollection = async function() {
   }
 };
 window.openFoodCollection = async function() {
+  _boardCurrentView = 'food';
   const list = document.getElementById('boardList');
   if (!list) return;
   list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
@@ -1040,6 +1052,7 @@ window.openFoodCollection = async function() {
   }
 };
 window.openShoppingCollection = async function() {
+  _boardCurrentView = 'shop';
   const list = document.getElementById('boardList');
   if (!list) return;
   list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
@@ -1081,6 +1094,7 @@ window.openShoppingCollection = async function() {
   }
 };
 window.openPersonCollection = async function() {
+  _boardCurrentView = 'person';
   const list = document.getElementById('boardList');
   if (!list) return;
   list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
@@ -1218,7 +1232,7 @@ window.submitBoardPost = async function() {
       _boardTitleCache = null;
     }
     document.getElementById('boardWrite').remove();
-    loadBoardList();
+    reloadBoardCurrentView();
   } catch(e) { showToast((editId?'수정':'등록')+' 실패: ' + (e.message||e)); }
 };
 window.openBoardStory = function(postId) {
