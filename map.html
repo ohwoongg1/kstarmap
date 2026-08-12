@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.2';
+const VERSION = 'map v2.6.3';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1225,7 +1225,7 @@ window.openBoardStory = function(postId) {
       const mapHtml=placeTags.length
         ? placeTags.map(pt=>{const parts=pt.split(':');const pn=parts[0].trim();const tt=parts[1]?parts[1].trim():'';return '<button onclick="boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\''+')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escS(pn)+' 지도에서 보기</button>';}).join('')
         : mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escS(t)+' 촬영지 전체보기</button>').join('');
-      const ytHtml=ytIds.map(id=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
+      const ytHtml=ytIds.map((id,i)=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+(i===0?'?autoplay=1':'')+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
       list.innerHTML='<div style="padding:18px">'+
         '<div style="display:flex;gap:8px;margin-bottom:14px"><button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>'+
         '<button onclick="sharePost(\''+postId+'\')" style="background:#3b82f6;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">📤 공유</button></div>'+
@@ -3699,6 +3699,18 @@ function renderHomeRanking() {
 window.goHome = function() {
   if (window.closePlaceSheet) closePlaceSheet();
   if (window.hideSearchResults) hideSearchResults();
+  // 모바일: 한류정보창고가 별도 풀스크린 오버레이(#boardSheet)라 지도 탭 전환만으로는 안 닫힘 → 명시적으로 제거
+  // (재생 중이던 유튜브 iframe도 DOM에서 사라지면서 함께 정지됨)
+  const boardSheet = document.getElementById('boardSheet');
+  if (boardSheet) boardSheet.remove();
+  // PC: 사이드 패널도 접고, 안에 있던 콘텐츠(재생 중이던 영상 포함)를 비워서 완전히 정지
+  const sidePanel = document.getElementById('sidePanel');
+  if (sidePanel) sidePanel.classList.add('collapsed');
+  const sidePanelBody = document.getElementById('sidePanelBody');
+  if (sidePanelBody) sidePanelBody.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
+  _sidePanelReady = false;
+  const sidePanelOpenBtn = document.getElementById('sidePanelOpen');
+  if (sidePanelOpenBtn) sidePanelOpenBtn.classList.add('show');
   switchTabTo('map');
   showHomeRanking();
 };
