@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.3';
+const VERSION = 'map v2.6.5';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -818,6 +818,8 @@ window.deleteFunPost = async function(pid) {
   } catch(e){showToast('실패:'+e.message);}
 };
 window.openBoard = async function() {
+  // 홈 랭킹 화면이 떠 있으면 먼저 치워야 게시판이 그 뒤에 가려지지 않음(특히 PC)
+  if (window.hideHomeRanking) hideHomeRanking();
   // PC(넓은 화면): 가운데 모달 대신 왼쪽 사이드 패널로 처리
   if (window.innerWidth >= 900) {
     // 사이드 패널은 지도 영역 안에 있으므로, 다른 탭(피드/코스/내공간)이면 지도 탭으로 먼저 전환
@@ -3607,6 +3609,8 @@ window.onAuthChanged = function(user) {
 // actor/drama/movie/music: 한류정보창고 글 제목과 매칭해 해당 글로 연결(없으면 준비중 안내).
 let _showHomeRanking = true;
 let _boardTitleCache = null; // 인물/드라마/영화/음악 카드 클릭 시 제목 검색용 캐시 (최초 1회만 서버에서 읽고 재사용)
+// 카테고리별로 매칭에 요구할 게시글 태그 (예: 드라마 랭킹은 [드라마] 태그 있는 글만 찾음 — 배우 소개글에 드라마명이 우연히 들어있어도 안 걸리게)
+const HOME_CATEGORY_TAG = { actor:'인물', drama:'드라마', movie:'영화', music:'음악' };
 const HOME_RANKINGS = {
   actor: { icon:'🌟', label:'인기연예인', sub:'데뷔부터 지금까지, 그 사람의 이야기', linkType:'post', items:[
     {name:'아이유', blurb:'가난한 연습생에서 국민 여동생까지'},
@@ -3747,14 +3751,15 @@ window.homeRankingGo = function(category, name) {
   } else {
     // 카드 이름에 괄호로 소속 그룹을 붙인 경우(예: 뷔(BTS))가 있어 — 실제 글 제목엔 괄호가 없으니 제거하고 검색
     const cleanName = name.replace(/\s*\([^)]*\)\s*$/, '');
-    if (window.openBoardPostByTitle) openBoardPostByTitle(cleanName);
+    if (window.openBoardPostByTitle) openBoardPostByTitle(cleanName, HOME_CATEGORY_TAG[category]);
   }
 };
-// 제목이 정확히 일치하는 한류정보창고 글을 찾아 바로 열기 (없으면 준비중 안내)
-window.openBoardPostByTitle = async function(nameHint) {
+// 제목이 일치하고, requiredTag가 있으면 그 태그도 포함하는 글만 찾아서 열기 (없으면 준비중 안내)
+// requiredTag로 카테고리를 한정하는 이유: 예) 배우 소개글 제목에 드라마명이 우연히 들어있어도, 드라마 랭킹에서는 [드라마] 태그 있는 글만 찾도록 해서 잘못 연결되는 걸 막음
+window.openBoardPostByTitle = async function(nameHint, requiredTag) {
   try {
     const list = await getBoardTitleCache();
-    const match = list.find(d => (d.title||'').includes(nameHint));
+    const match = list.find(d => (d.title||'').includes(nameHint) && (!requiredTag || d.tags.includes(requiredTag)));
     if (match) { openBoardStory(match.id); return; }
     showToast('📝 "' + nameHint + '" 콘텐츠는 준비 중이에요. 곧 채워드릴게요!');
   } catch(e) { console.error(e); showToast('불러오기 실패'); }
@@ -3764,7 +3769,11 @@ async function getBoardTitleCache(forceRefresh) {
   if (_boardTitleCache && !forceRefresh) return _boardTitleCache;
   const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
   const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(300)));
-  _boardTitleCache = snap.docs.map(d => ({ id: d.id, title: d.data().title || '' }));
+  _boardTitleCache = snap.docs.map(d => {
+    const body = d.data().body || '';
+    const tags = (body.match(/\[(인물|드라마|영화|음악|맛집|쇼핑)\]/g) || []).map(t => t.slice(1,-1));
+    return { id: d.id, title: d.data().title || '', tags };
+  });
   return _boardTitleCache;
 }
 // 홈 랭킹 화면이 뜨는 시점에 미리 백그라운드로 캐시를 데워둠 → 실제 카드 클릭 시 지연 없이 바로 열림
