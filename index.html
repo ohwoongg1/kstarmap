@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.0';
+const VERSION = 'map v2.6.1';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -3723,7 +3723,9 @@ window.homeRankingGo = function(category, name) {
       }
     } catch(e) { console.warn('homeRankingGo place', e); }
   } else {
-    if (window.openBoardPostByTitle) openBoardPostByTitle(name);
+    // 카드 이름에 괄호로 소속 그룹을 붙인 경우(예: 뷔(BTS))가 있어 — 실제 글 제목엔 괄호가 없으니 제거하고 검색
+    const cleanName = name.replace(/\s*\([^)]*\)\s*$/, '');
+    if (window.openBoardPostByTitle) openBoardPostByTitle(cleanName);
   }
 };
 // 제목이 정확히 일치하는 한류정보창고 글을 찾아 바로 열기 (없으면 준비중 안내)
