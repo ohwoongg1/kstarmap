@@ -187,6 +187,10 @@
 
   /* 검색 결과 리스트 */
   #searchResults{position:absolute;top:0;left:0;right:0;background:var(--bg);max-height:100%;overflow-y:auto;z-index:28;display:none}
+  /* PC: 검색 결과가 왼쪽 상단 성지·맛집 필터 칩과 겹치지 않도록 오른쪽으로 밀어냄 */
+  @media (min-width:900px){
+    #searchResults{left:150px}
+  }
   .sr-item{padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer}
   .sr-item:active{background:var(--bg2)}
   .sr-name{font-size:14px;font-weight:700;color:var(--text)}
@@ -444,7 +448,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.4.15';
+const VERSION = 'map v2.4.16';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
