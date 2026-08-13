@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.8';
+const VERSION = 'map v2.6.9';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -914,6 +914,7 @@ async function loadBoardList() {
       const badge=p.pinned?'<span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>':'';
       const pinBtn=isAdmin?'<button onclick="toggleBoardPin(\''+p.id+'\','+!!p.pinned+')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">'+(p.pinned?'언피닝':'📌 고정')+'</button>':'';
       const editBtn=canEdit?'<button onclick="editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:0">수정</button>':'';
+      const quickMapBtn = placeTags.length ? (()=>{ const parts=placeTags[0].split(':'); const pn=parts[0].trim(); const tt=parts[1]?parts[1].trim():''; return '<button onclick="event.stopPropagation();boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">📍 지도에서 보기</button>'; })() : '';
       const bg=p.pinned?'background:var(--gold-bg);':'';
       const expandable = (bodyTxt.length>100||ytIds.length>1||mapTitles.length);
       const clickAttr = expandable ? ' onclick="boardToggle(this)" style="cursor:pointer;' : ' style="';
@@ -931,6 +932,7 @@ async function loadBoardList() {
           '<div style="display:flex;gap:6px;align-items:center">'+
             ((bodyTxt.length>100||ytIds.length>1||mapTitles.length)?'<button class="board-more-btn" onclick="boardToggle(this)" style="font-size:12px;color:#c0392b;font-weight:800;border:none;background:none;cursor:pointer;padding:0">더 보기</button>':'')+
             '<button onclick="event.stopPropagation();sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:0">📤 공유</button>'+
+            quickMapBtn+
             pinBtn+
             editBtn+
             (canDel?'<button onclick="deleteBoardPost(\''+p.id+'\')" style="font-size:11px;color:#ef4444;border:none;background:none;cursor:pointer;padding:0">삭제</button>':'')+
@@ -994,14 +996,8 @@ window.openSceneCollection = async function() {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
-      const preview = bodyClean.length>70 ? escC(bodyClean.slice(0,70))+'...' : escC(bodyClean);
-      const place = (p.placeTags||[])[0] || '';
-      return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
-        '<div onclick="openBoardStory(\''+p.id+'\')">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escC(p.title||'')+'</div>' +
-        (place?'<div style="font-size:11.5px;color:var(--gold);font-weight:700;margin-bottom:4px">📍 '+escC(place)+'</div>':'') +
-        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
     }).join('');
@@ -1044,6 +1040,7 @@ window.openFoodCollection = async function() {
         (place?'<div style="font-size:11.5px;color:#e67e22;font-weight:700;margin-bottom:4px">📍 '+escF(place)+'</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
     }).join('');
@@ -1086,6 +1083,7 @@ window.openShoppingCollection = async function() {
         (place?'<div style="font-size:11.5px;color:#9b59b6;font-weight:700;margin-bottom:4px">📍 '+escS(place)+'</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
     }).join('');
@@ -1121,12 +1119,14 @@ window.openPersonCollection = async function() {
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
       const preview = bodyClean.length>70 ? escP(bodyClean.slice(0,70))+'...' : escP(bodyClean);
       const spotCount = (p.placeTags||[]).length;
+      const place = (p.placeTags||[])[0] || '';
       return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
         '<div onclick="openBoardStory(\''+p.id+'\')">' +
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escP(p.title||'')+'</div>' +
         (spotCount?'<div style="font-size:11.5px;color:#2563eb;font-weight:700;margin-bottom:4px">📍 관련 성지 '+spotCount+'곳</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
     }).join('');
@@ -3734,6 +3734,7 @@ function renderHomeRanking() {
         '<div class="hr-name">' + it.name.replace(/</g,'&lt;') + '</div>' +
         '<div class="hr-blurb">' + it.blurb.replace(/</g,'&lt;') + '</div>' +
       '</div>').join('') +
+      '<div class="hr-card" onclick="openBoard()" style="display:flex;align-items:center;justify-content:center;text-align:center;color:var(--gold);font-weight:700;font-size:13px;background:var(--gold-bg);border:1px dashed var(--gold)">더 많은 자료를<br>원하시면?<br>→ 한류정보창고</div>' +
       '</div></div>';
   });
   html += '<div style="height:24px"></div>';
