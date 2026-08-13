@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.11';
+const VERSION = 'map v2.6.12';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -3652,6 +3652,14 @@ let _boardTitleCache = null; // 인물/드라마/영화/음악 카드 클릭 시
 const HOME_CATEGORY_TAG = { actor:'인물', drama:'드라마', movie:'영화', music:'음악' };
 const HOME_PLACE_TAG = { location: null, food:'맛집', shopping:'쇼핑' };
 const HOME_RANKINGS = {
+  location: { icon:'📍', label:'인기촬영지', sub:'드라마 속 그 장소, 실제로 가보기', linkType:'place', items:[
+    {name:'카페 몽테드', blurb:'선재 업고 튀어 촬영지, 수원 행궁동'},
+    {name:'일영역', blurb:'봄날 뮤직비디오 촬영지'},
+    {name:'서울대학교 폐수영장', blurb:'화양연화·봄날 촬영지'},
+    {name:'잠실종합운동장', blurb:'BTS 월드투어 개막 무대'},
+    {name:'광화문광장', blurb:'BTS 완전체 컴백쇼 무대'},
+    {name:'고척스카이돔', blurb:'BTS 최초 국내 돔 콘서트'},
+  ]},
   actor: { icon:'🌟', label:'인기연예인', sub:'데뷔부터 지금까지, 그 사람의 이야기', linkType:'post', items:[
     {name:'아이유', blurb:'가난한 연습생에서 국민 여동생까지'},
     {name:'김수현', blurb:'한류 정상급 배우의 성장기'},
@@ -3689,14 +3697,6 @@ const HOME_RANKINGS = {
     {name:'휘파람', blurb:'데뷔 13일 만에 1위'},
     {name:'불장난', blurb:'블랙핑크 신인 최초 3관왕'},
     {name:'IDOL', blurb:'니키 미나즈와의 콜라보'},
-  ]},
-  location: { icon:'📍', label:'인기촬영지', sub:'드라마 속 그 장소, 실제로 가보기', linkType:'place', items:[
-    {name:'카페 몽테드', blurb:'선재 업고 튀어 촬영지, 수원 행궁동'},
-    {name:'일영역', blurb:'봄날 뮤직비디오 촬영지'},
-    {name:'서울대학교 폐수영장', blurb:'화양연화·봄날 촬영지'},
-    {name:'잠실종합운동장', blurb:'BTS 월드투어 개막 무대'},
-    {name:'광화문광장', blurb:'BTS 완전체 컴백쇼 무대'},
-    {name:'고척스카이돔', blurb:'BTS 최초 국내 돔 콘서트'},
   ]},
   food: { icon:'🍲', label:'인기맛집', sub:'그 지역을 대표하는 진짜 노포', linkType:'place', items:[
     {name:'안일옥', blurb:'경기도 최고령, 100년 국밥집'},
