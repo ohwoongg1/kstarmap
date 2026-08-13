@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.12';
+const VERSION = 'map v2.6.13';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -3653,6 +3653,8 @@ const HOME_CATEGORY_TAG = { actor:'인물', drama:'드라마', movie:'영화', m
 const HOME_PLACE_TAG = { location: null, food:'맛집', shopping:'쇼핑' };
 const HOME_RANKINGS = {
   location: { icon:'📍', label:'인기촬영지', sub:'드라마 속 그 장소, 실제로 가보기', linkType:'place', items:[
+    {name:'도깨비 방파제', blurb:'공유·김고은의 명장면, 강릉 주문진'},
+    {name:'BTS 버스정류장', blurb:'BTS 앨범 재킷 촬영지, 아미들의 순례지'},
     {name:'카페 몽테드', blurb:'선재 업고 튀어 촬영지, 수원 행궁동'},
     {name:'일영역', blurb:'봄날 뮤직비디오 촬영지'},
     {name:'서울대학교 폐수영장', blurb:'화양연화·봄날 촬영지'},
