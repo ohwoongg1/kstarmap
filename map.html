@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.9';
+const VERSION = 'map v2.6.11';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -3650,6 +3650,7 @@ let _showHomeRanking = true;
 let _boardTitleCache = null; // 인물/드라마/영화/음악 카드 클릭 시 제목 검색용 캐시 (최초 1회만 서버에서 읽고 재사용)
 // 카테고리별로 매칭에 요구할 게시글 태그 (예: 드라마 랭킹은 [드라마] 태그 있는 글만 찾음 — 배우 소개글에 드라마명이 우연히 들어있어도 안 걸리게)
 const HOME_CATEGORY_TAG = { actor:'인물', drama:'드라마', movie:'영화', music:'음악' };
+const HOME_PLACE_TAG = { location: null, food:'맛집', shopping:'쇼핑' };
 const HOME_RANKINGS = {
   actor: { icon:'🌟', label:'인기연예인', sub:'데뷔부터 지금까지, 그 사람의 이야기', linkType:'post', items:[
     {name:'아이유', blurb:'가난한 연습생에서 국민 여동생까지'},
@@ -3777,12 +3778,27 @@ window.homeRankingGo = function(category, name) {
     const pg = (typeof _pilgrimData !== 'undefined' ? _pilgrimData : []).find(d => d.placeName === name);
     const rt = (typeof _restData !== 'undefined' ? _restData : []).find(d => d.name === name);
     try {
+      clearMarkers(_searchMarkers);   // 이전에 찍어둔 핀이 있으면 정리
       if (pg) {
-        map.setCenter(new kakao.maps.LatLng(pg.lat, pg.lng)); map.setLevel(5);
-        openPlaceSheet({ name: pg.placeName, sub: (pg.title||'') + (pg.area?' · '+pg.area:''), lat: pg.lat, lng: pg.lng, color: 'var(--gold)', type: 'pilgrim', raw: pg });
+        const pos = new kakao.maps.LatLng(pg.lat, pg.lng);
+        const el = makePinEl('#E24B4A', '📍', () => {
+          openPlaceSheet({ name: pg.placeName, sub: (pg.title||'') + (pg.area?' · '+pg.area:''), lat: pg.lat, lng: pg.lng, color: 'var(--gold)', type: 'pilgrim', raw: pg });
+        }, true, 42);
+        const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 20 });
+        ov.setMap(map);
+        _searchMarkers.push(ov);
+        map.setCenter(pos); map.setLevel(5);
+        openPlaceOrStory(pg.placeName, { name: pg.placeName, sub: (pg.title||'') + (pg.area?' · '+pg.area:''), lat: pg.lat, lng: pg.lng, color: 'var(--gold)', type: 'pilgrim', raw: pg }, HOME_PLACE_TAG[category]);
       } else if (rt) {
-        map.setCenter(new kakao.maps.LatLng(rt.lat, rt.lng)); map.setLevel(5);
-        openPlaceSheet({ name: rt.name, sub: (rt.cat||'') + (rt.area?' · '+rt.area:''), lat: rt.lat, lng: rt.lng, color: 'var(--amber)', type: 'rest', raw: rt });
+        const pos = new kakao.maps.LatLng(rt.lat, rt.lng);
+        const el = makePinEl('#E24B4A', '📍', () => {
+          openPlaceSheet({ name: rt.name, sub: (rt.cat||'') + (rt.area?' · '+rt.area:''), lat: rt.lat, lng: rt.lng, color: 'var(--amber)', type: 'rest', raw: rt });
+        }, true, 42);
+        const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 20 });
+        ov.setMap(map);
+        _searchMarkers.push(ov);
+        map.setCenter(pos); map.setLevel(5);
+        openPlaceOrStory(rt.name, { name: rt.name, sub: (rt.cat||'') + (rt.area?' · '+rt.area:''), lat: rt.lat, lng: rt.lng, color: 'var(--amber)', type: 'rest', raw: rt }, HOME_PLACE_TAG[category]);
       } else {
         document.getElementById('searchInput').value = name;
         doSearch(name);
@@ -3794,6 +3810,23 @@ window.homeRankingGo = function(category, name) {
     if (window.openBoardPostByTitle) openBoardPostByTitle(cleanName, HOME_CATEGORY_TAG[category]);
   }
 };
+// 촬영지/맛집/쇼핑 랭킹 카드 클릭 시: 이 장소를 다루는 한류정보창고 심층글(placeTags에 이 장소명이 태그된 글)이 있으면
+// 잠깐 로딩 후 바로 그 글로 전환하고, 없으면 기존처럼 장소 정보카드를 보여준다.
+async function openPlaceOrStory(placeName, sheetArgs, requiredTag) {
+  showToast('불러오는 중...');
+  try {
+    const { db, collection, getDocs, query, where } = window._mapDB;
+    const snap = await getDocs(query(collection(db,'board'), where('placeTags','array-contains', placeName || '')));
+    let match = null;
+    snap.forEach(d => {
+      if (match) return;
+      const body = d.data().body || '';
+      if (!requiredTag || body.includes('['+requiredTag+']')) match = d.id;
+    });
+    if (match) { openBoardStory(match); return; }
+  } catch(e) { console.warn('openPlaceOrStory', e); }
+  openPlaceSheet(sheetArgs);
+}
 // 제목이 일치하고, requiredTag가 있으면 그 태그도 포함하는 글만 찾아서 열기 (없으면 준비중 안내)
 // requiredTag로 카테고리를 한정하는 이유: 예) 배우 소개글 제목에 드라마명이 우연히 들어있어도, 드라마 랭킹에서는 [드라마] 태그 있는 글만 찾도록 해서 잘못 연결되는 걸 막음
 window.openBoardPostByTitle = async function(nameHint, requiredTag) {
