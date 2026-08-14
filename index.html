@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.23';
+const VERSION = 'map v2.6.26';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2416,24 +2416,33 @@ function openPlaceSheet(place) {
         const _eq = encodeURIComponent(_q);
         const _yt = 'https://www.youtube.com/results?search_query=' + _eq;
         const _gg = 'https://www.google.com/search?q=' + _eq;
-        // 명장면 블로그 연결
+        // 명장면 블로그 연결 — 관련 글을 최대 3개까지 목록으로, 더 있으면 "더보기"로 나머지 펼침
         const _pnClean = (raw.placeName||'').replace(/\s/g,'');
         if (_pnClean) {
           const storyBtnId = 'storyBtn_' + Date.now();
           html += '<div id="'+storyBtnId+'" style="display:none;margin-top:10px"></div>';
           (async()=>{
             try {
-              const {db,collection,getDocs,query,where}=window._mapDB;
-              const snap=await getDocs(query(collection(db,'board'),where('placeTags','array-contains',raw.placeName||'')));
+              const {db,collection,getDocs,query,where,orderBy}=window._mapDB;
+              const snap=await getDocs(query(collection(db,'board'),where('placeTags','array-contains',raw.placeName||''),orderBy('createdAt','desc')));
               if(snap.empty) return;
-              const post=snap.docs[0]; const pd=post.data();
-              const btn=document.getElementById(storyBtnId);
-              if(!btn) return;
-              btn.style.display='';
-              btn.innerHTML='<button onclick="openBoardStory(\''+post.id+'\')" style="display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;border:1px solid var(--gold);border-radius:10px;padding:11px 13px;background:var(--gold-bg);cursor:pointer">'+
+              const box=document.getElementById(storyBtnId);
+              if(!box) return;
+              const posts = snap.docs.map(d => ({ id:d.id, title:d.data().title||'명장면 보기' }));
+              const escT = t => String(t).replace(/</g,'&lt;').replace(/'/g,"\\'");
+              const rowHtml = p => '<button onclick="openBoardStory(\''+p.id+'\')" style="display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;border:1px solid var(--gold);border-radius:10px;padding:11px 13px;background:var(--gold-bg);cursor:pointer;margin-bottom:6px">'+
                 '<span style="font-size:16px">📖</span>'+
-                '<span style="flex:1;font-size:13px;color:var(--gold);font-weight:700;text-align:left">'+(pd.title||'명장면 보기')+'</span>'+
+                '<span style="flex:1;font-size:13px;color:var(--gold);font-weight:700;text-align:left">'+escT(p.title)+'</span>'+
                 '<span style="font-size:11px;color:var(--text3)">→</span></button>';
+              const shown = posts.slice(0,3), rest = posts.slice(3);
+              let innerHtml = shown.map(rowHtml).join('');
+              if (rest.length) {
+                const moreId = storyBtnId + '_more';
+                innerHtml += '<button onclick="document.getElementById(\''+moreId+'\').style.display=\'block\';this.remove()" style="width:100%;text-align:center;font-size:12px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0">더보기 (' + rest.length + '개 더) ▾</button>' +
+                  '<div id="'+moreId+'" style="display:none">' + rest.map(rowHtml).join('') + '</div>';
+              }
+              box.innerHTML = innerHtml;
+              box.style.display='';
             }catch(e){}
           })();
         }
@@ -3878,8 +3887,8 @@ window.homeRankingGo = function(category, name) {
 async function openPlaceOrStory(placeName, sheetArgs, requiredTag) {
   showToast('불러오는 중...');
   try {
-    const { db, collection, getDocs, query, where } = window._mapDB;
-    const snap = await getDocs(query(collection(db,'board'), where('placeTags','array-contains', placeName || '')));
+    const { db, collection, getDocs, query, where, orderBy } = window._mapDB;
+    const snap = await getDocs(query(collection(db,'board'), where('placeTags','array-contains', placeName || ''), orderBy('createdAt','desc')));
     let match = null;
     snap.forEach(d => {
       if (match) return;
@@ -4369,7 +4378,7 @@ window.adminSkipBulkAdd = function() {
 window.adminCancelBulkAdd = function() {
   if (_bulkAddQueue && _bulkAddDone.length) console.log('중단됨. 완료: ' + _bulkAddDone.join(', '));
   else console.log('중단됨.');
-  _bulkAddQueue = null; _bulkAddIndex = 0;
+  _bulkAddQueue = null; _bulkAddIndex = 0; _bulkAddBusy = false;
 };
 function adminFinishBulkAdd() {
   console.log('✅ 전체 완료 (' + _bulkAddDone.length + '곳): ' + _bulkAddDone.join(', '));
@@ -4423,9 +4432,12 @@ async function matchTourContentIdStrict(lat, lng, placeName) {
     return null;
   } catch(e) { console.warn('tourContentId 매칭 실패', e); return null; }
 }
+let _bulkAddBusy = false;
 async function adminApplyBulkAdd(lat, lng) {
+  if (_bulkAddBusy) { console.warn('⏳ 이전 항목을 아직 저장 중이에요. 잠깐 기다렸다가 다시 클릭해주세요.'); return; }
   const item = _bulkAddQueue[_bulkAddIndex];
   if (!item) return;
+  _bulkAddBusy = true;
   try {
     const { db, collection, addDoc, serverTimestamp } = window._mapDB;
     const docData = {
@@ -4457,9 +4469,11 @@ async function adminApplyBulkAdd(lat, lng) {
     console.log('✅ 저장됨 (' + (_bulkAddIndex+1) + '/' + _bulkAddQueue.length + '): ' + (item.placeName||'') + '  [' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ']');
     pingIndexNow('https://kstarmap.com/map.html');
     _bulkAddIndex++;
+    _bulkAddBusy = false;
     if (_bulkAddIndex >= _bulkAddQueue.length) { adminFinishBulkAdd(); return; }
     logBulkAddNext();
   } catch(e) {
+    _bulkAddBusy = false;
     console.error('저장 실패: ' + (e.message||e));
     // 실패 시 같은 항목에서 재시도 가능하도록 인덱스 유지 (배너 없이 콘솔에만 표시)
   }
