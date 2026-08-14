@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.16';
+const VERSION = 'map v2.6.17';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1179,21 +1179,25 @@ window.editBoardPost = function(pid) {
 // ── IndexNow: 새 콘텐츠 발행 시 네이버(+빙 등)에 즉시 알림 ──
 // searchadvisor.naver.com에 키 파일(bb888033e136aa1d8a4e0c5d37d5fc18.txt)을 사이트 루트에 올려둔 상태여야 동작함
 const INDEXNOW_KEY = 'bb888033e136aa1d8a4e0c5d37d5fc18';
-// 한국관광공사 TourAPI(공공데이터포털) — 관광사진 정보 서비스, 실시간 호출용
+// 한국관광공사 TourAPI(공공데이터포털) — 실시간 호출용. PhotoGalleryService1은 파라미터 체계가 달라 계속 실패해서
+// 이번에 실제로 정상 동작 확인된 KorService2/detailImage2(콘텐츠ID의 서브 이미지 목록 조회)로 교체함.
 const TOUR_API_KEY = '1841b269a603176ed99db0c0ab7f40a30a71ab76aed77c4e1da671ffa3468e82';
 async function fetchLiveTourPhotos(contentId) {
   if (!contentId) return [];
   try {
-    const url = 'https://apis.data.go.kr/B551011/PhotoGalleryService1/galleryList1'
+    const url = 'https://apis.data.go.kr/B551011/KorService2/detailImage2'
       + '?serviceKey=' + TOUR_API_KEY
-      + '&numOfRows=8&pageNo=1&MobileOS=ETC&MobileApp=KStarMap&_type=json&contentId=' + encodeURIComponent(contentId);
+      + '&numOfRows=8&pageNo=1&MobileOS=ETC&MobileApp=KStarMap&_type=json'
+      + '&contentId=' + encodeURIComponent(contentId) + '&imageYN=Y&subImageYN=Y';
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
+    const header = data?.response?.header;
+    if (header && header.resultCode && header.resultCode !== '0000' && header.resultCode !== '00') return [];
     const items = data?.response?.body?.items?.item;
     if (!items) return [];
     const arr = Array.isArray(items) ? items : [items];
-    return arr.map(it => it.galWebImageUrl).filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://'));
+    return arr.map(it => it.originimgurl).filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://'));
   } catch(e) { console.warn('TourAPI 실시간 조회 실패', e); return []; }
 }
 function pingIndexNow(url) {
@@ -4341,13 +4345,15 @@ function nameSimilarity(a, b) {
 async function matchTourContentIdStrict(lat, lng, placeName) {
   if (!lat || !lng || !placeName) return null;
   try {
-    const url = 'https://apis.data.go.kr/B551011/KorService1/locationBasedList1'
+    const url = 'https://apis.data.go.kr/B551011/KorService2/locationBasedList2'
       + '?serviceKey=' + TOUR_API_KEY
       + '&numOfRows=10&pageNo=1&MobileOS=ETC&MobileApp=KStarMap&_type=json'
       + '&mapX=' + lng + '&mapY=' + lat + '&radius=300&arrange=E';
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
+    const header = data?.response?.header;
+    if (header && header.resultCode && header.resultCode !== '0000' && header.resultCode !== '00') return null;
     const items = data?.response?.body?.items?.item;
     if (!items) return null;
     const arr = Array.isArray(items) ? items : [items];
