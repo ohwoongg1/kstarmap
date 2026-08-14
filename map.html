@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.19';
+const VERSION = 'map v2.6.20';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1201,7 +1201,12 @@ async function fetchLiveTourPhotos(contentId) {
           if (it.firstimage) urls.push(String(it.firstimage).replace(/^http:\/\//, 'https://'));
           if (it.firstimage2 && it.firstimage2 !== it.firstimage) urls.push(String(it.firstimage2).replace(/^http:\/\//, 'https://'));
         }
+        if (!urls.length) console.log('[실시간사진 디버그] detailCommon2 원본 응답(사진 없음):', JSON.stringify(data));
+      } else {
+        console.log('[실시간사진 디버그] detailCommon2 API 오류:', header.resultCode, header.resultMsg);
       }
+    } else {
+      console.log('[실시간사진 디버그] detailCommon2 HTTP 오류:', res.status);
     }
   } catch(e) { console.warn('TourAPI 실시간 조회 실패(detailCommon2)', e); }
   // 서브 이미지가 더 있으면 보너스로 추가 시도(실패해도 위 결과는 유지)
