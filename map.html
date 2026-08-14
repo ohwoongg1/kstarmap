@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.26';
+const VERSION = 'map v2.6.27';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -4246,7 +4246,7 @@ window.adminStartMovePlace = function(pid, name) {
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'moveBanner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10001;background:#378ADD;color:#fff;padding:12px 16px;text-align:center;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;gap:12px';
+    banner.style.cssText = 'position:fixed;top:60px;left:8px;right:8px;z-index:29;background:#378ADD;color:#fff;padding:10px 14px;text-align:center;font-size:12.5px;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;gap:10px;border-radius:10px;flex-wrap:wrap';
     document.body.appendChild(banner);
   }
   banner.innerHTML = '📍 "' + name + '" — 지도에서 새 위치를 클릭하세요' +
