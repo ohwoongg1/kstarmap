@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.22';
+const VERSION = 'map v2.6.23';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1197,8 +1197,8 @@ async function fetchLiveTourPhotos(contentId) {
         const items = data?.response?.body?.items?.item;
         const it = Array.isArray(items) ? items[0] : items;
         if (it) {
+          // firstimage2는 firstimage의 썸네일 버전(같은 사진, URL만 다름)이라 중복 방지를 위해 firstimage만 사용
           if (it.firstimage) urls.push(String(it.firstimage).replace(/^http:\/\//, 'https://'));
-          if (it.firstimage2 && it.firstimage2 !== it.firstimage) urls.push(String(it.firstimage2).replace(/^http:\/\//, 'https://'));
         }
         if (!urls.length) console.log('[실시간사진 디버그] detailCommon2 원본 응답(사진 없음):', JSON.stringify(data));
       } else {
