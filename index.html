@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.14';
+const VERSION = 'map v2.6.15';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -4227,6 +4227,42 @@ window.isAdmin = () => !!window.currentUser && ADMIN_UIDS.includes(window.curren
 // 한 곳만 추가할 때 (배열 없이 바로 객체 하나만):
 //   adminAddPilgrim({ placeName:'장소명', title:'작품명', mediaType:'drama', addr:'서울 ○○구', story:'설명' })
 // 웃음창고(funboard) 전체 삭제용 콘솔 도구 — 관리자 로그인 상태에서 adminDeleteAllFunboard() 실행
+// ── 기존 성지 9,574곳에 tourContentId 일괄 매칭(브라우저 콘솔용, 서비스 계정 키 불필요) ──
+// 사용법: kstarmap.com에서 관리자 계정으로 로그인 → F12 콘솔 → adminBackfillTourContentIds() 입력
+// 이미 tourContentId가 있는 곳은 자동으로 건너뜀 → 몇 번을 실행해도 안전, 하루 트래픽 한도에 걸리면
+// 멈추고 안내가 뜨니 다음날 다시 adminBackfillTourContentIds() 실행하면 이어서 진행됨.
+// 한 번에 처리할 개수를 지정하려면 adminBackfillTourContentIds(500) 처럼 인자를 넣으면 됨(기본 900).
+window.adminBackfillTourContentIds = async function(limit) {
+  if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
+  const max = limit || 900;   // 개발계정 하루 1,000건 한도 안에서 안전하게
+  const { db, collection, getDocs, doc, updateDoc } = window._mapDB;
+  console.log('▶ pilgrimages 목록을 불러오는 중... (9,574건이라 몇 초 걸릴 수 있어요)');
+  const snap = await getDocs(collection(db, 'pilgrimages'));
+  const docs = snap.docs;
+  console.log('총 ' + docs.length + '건 로드 완료. tourContentId 없는 곳부터 매칭 시작 (이번 실행 최대 ' + max + '건)...');
+  let matched = 0, alreadyDone = 0, failed = 0, checked = 0, quotaStop = false;
+  for (const d of docs) {
+    const data = d.data();
+    if (data.tourContentId) { alreadyDone++; continue; }
+    if (checked >= max) break;
+    if (!data.lat || !data.lng || !data.placeName) { console.log('⏭ 좌표/이름 없음: ' + d.id); continue; }
+    checked++;
+    const contentId = await matchTourContentIdStrict(data.lat, data.lng, data.placeName);
+    if (contentId) {
+      await updateDoc(doc(db, 'pilgrimages', d.id), { tourContentId: contentId });
+      matched++;
+      console.log('✅ (' + checked + '/' + max + ') ' + data.placeName + ' → contentId ' + contentId);
+    } else {
+      failed++;
+      console.log('⚪ (' + checked + '/' + max + ') ' + data.placeName + ' — 매칭 없음(건너뜀)');
+    }
+    await new Promise(r => setTimeout(r, 350));   // 트래픽 과다 방지
+  }
+  console.log('──────────────');
+  console.log('이미 매칭됨: ' + alreadyDone + '건 / 이번에 새로 매칭: ' + matched + '건 / 매칭 없음: ' + failed + '건');
+  if (checked >= max) console.log('이번 실행 한도(' + max + '건)에 도달했어요. adminBackfillTourContentIds() 다시 실행하면 이어서 진행됩니다.');
+  else console.log('✅ 전체 완료! 더 이상 처리할 곳이 없어요.');
+};
 window.adminDeleteAllFunboard = async function() {
   if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
   try {
