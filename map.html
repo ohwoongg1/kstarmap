@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.27';
+const VERSION = 'map v2.6.28';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -4528,9 +4528,29 @@ window.renderAdminPanel = (raw) => {
     '<div style="margin-top:6px"><label style="font-size:11px;color:var(--text3);cursor:pointer">📁 파일 업로드 <input type="file" accept="image/*" multiple onchange="adminUploadImages(\'' + raw._id + '\', this.files)" style="font-size:11px"></label></div>' +
     '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(181,121,15,0.3)">' +
       '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">📍 현재 좌표: ' + (raw.lat||0).toFixed(6) + ', ' + (raw.lng||0).toFixed(6) + '</div>' +
-      '<button onclick="adminStartMovePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#378ADD;color:#fff;cursor:pointer">📍 지도에서 위치 이동</button>' +
+      '<button onclick="adminStartMovePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#378ADD;color:#fff;cursor:pointer;margin-bottom:6px">📍 지도에서 위치 이동</button>' +
+      '<button onclick="adminDeletePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#EF4444;color:#fff;cursor:pointer">🗑️ 이 성지 삭제</button>' +
     '</div>' +
   '</div>';
+};
+window.adminDeletePlace = async function(pid, name) {
+  if (!window.isAdmin()) return;
+  if (!confirm('"' + name + '"을(를) 정말 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) return;
+  if (!confirm('한 번 더 확인할게요 — "' + name + '"을(를) 완전히 삭제합니다. 진행할까요?')) return;
+  try {
+    const { db, doc, deleteDoc } = window._mapDB;
+    await deleteDoc(doc(db, 'pilgrimages', pid));
+    if (_pilgrimData) {
+      const idx = _pilgrimData.findIndex(p => p._id === pid);
+      if (idx >= 0) _pilgrimData.splice(idx, 1);
+    }
+    closePlaceSheet();
+    renderPilgrimPinsInView();
+    showToast('🗑️ "' + name + '" 삭제 완료');
+  } catch(e) {
+    console.error('삭제 실패: ' + (e.message||e));
+    showToast('❌ 삭제 실패: ' + (e.message||e));
+  }
 };
 
 async function adminRefresh(pid) {
