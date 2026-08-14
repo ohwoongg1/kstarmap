@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.15';
+const VERSION = 'map v2.6.16';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1179,7 +1179,7 @@ window.editBoardPost = function(pid) {
 // searchadvisor.naver.com에 키 파일(bb888033e136aa1d8a4e0c5d37d5fc18.txt)을 사이트 루트에 올려둔 상태여야 동작함
 const INDEXNOW_KEY = 'bb888033e136aa1d8a4e0c5d37d5fc18';
 // 한국관광공사 TourAPI(공공데이터포털) — 관광사진 정보 서비스, 실시간 호출용
-const TOUR_API_KEY = '1841b269a603176ed99db0c0ab7f40a30a71ab76aed77c4e1da671ffa3468e2';
+const TOUR_API_KEY = '1841b269a603176ed99db0c0ab7f40a30a71ab76aed77c4e1da671ffa3468e82';
 async function fetchLiveTourPhotos(contentId) {
   if (!contentId) return [];
   try {
