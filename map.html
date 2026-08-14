@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.13';
+const VERSION = 'map v2.6.14';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -4279,6 +4279,51 @@ function adminFinishBulkAdd() {
   showToast('✅ 성지 ' + _bulkAddDone.length + '곳 추가 완료');
   _bulkAddQueue = null; _bulkAddIndex = 0;
 }
+// 좌표+이름으로 관광공사 콘텐츠를 찾아 tourContentId를 매칭한다.
+// 정확도를 최우선으로 함: 이름을 정규화한 뒤에도 유사도가 아주 높을 때만(기본 0.92) 매칭시킴.
+// 애매하면 그냥 null을 반환 — 잘못된 콘텐츠가 실시간 사진에 붙는 것보다, 안 붙는 게 낫다는 원칙.
+function normalizeForMatch(s) {
+  return String(s || '')
+    .replace(/[\s\-_·,\.]/g, '')
+    .replace(/\(.*?\)/g, '')
+    .toLowerCase();
+}
+function nameSimilarity(a, b) {
+  a = normalizeForMatch(a); b = normalizeForMatch(b);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  // 완전 포함 관계면 매우 높은 점수(단, 너무 짧은 이름이 우연히 포함되는 경우 방지)
+  if (a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a))) return 0.95;
+  // 간단한 편집거리 기반 유사도(Dice coefficient, 2-gram)
+  const grams = s => { const g = new Set(); for (let i = 0; i < s.length - 1; i++) g.add(s.slice(i, i + 2)); return g; };
+  const ga = grams(a), gb = grams(b);
+  if (!ga.size || !gb.size) return 0;
+  let inter = 0; ga.forEach(g => { if (gb.has(g)) inter++; });
+  return (2 * inter) / (ga.size + gb.size);
+}
+async function matchTourContentIdStrict(lat, lng, placeName) {
+  if (!lat || !lng || !placeName) return null;
+  try {
+    const url = 'https://apis.data.go.kr/B551011/KorService1/locationBasedList1'
+      + '?serviceKey=' + TOUR_API_KEY
+      + '&numOfRows=10&pageNo=1&MobileOS=ETC&MobileApp=KStarMap&_type=json'
+      + '&mapX=' + lng + '&mapY=' + lat + '&radius=300&arrange=E';
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const items = data?.response?.body?.items?.item;
+    if (!items) return null;
+    const arr = Array.isArray(items) ? items : [items];
+    let best = null, bestScore = 0;
+    arr.forEach(it => {
+      const score = nameSimilarity(placeName, it.title || '');
+      if (score > bestScore) { bestScore = score; best = it; }
+    });
+    const STRICT_THRESHOLD = 0.92;
+    if (best && bestScore >= STRICT_THRESHOLD) return best.contentid || null;
+    return null;
+  } catch(e) { console.warn('tourContentId 매칭 실패', e); return null; }
+}
 async function adminApplyBulkAdd(lat, lng) {
   const item = _bulkAddQueue[_bulkAddIndex];
   if (!item) return;
@@ -4298,6 +4343,13 @@ async function adminApplyBulkAdd(lat, lng) {
       lat, lng,
       createdAt: serverTimestamp()
     };
+    const matchedContentId = await matchTourContentIdStrict(lat, lng, docData.placeName);
+    if (matchedContentId) {
+      docData.tourContentId = matchedContentId;
+      console.log('  📡 관광공사 실시간 사진 연결됨 (contentId ' + matchedContentId + ')');
+    } else {
+      console.log('  ⚪ 관광공사 매칭 없음 — 유사도가 충분히 높은 콘텐츠를 못 찾음(실시간 사진 없이 저장)');
+    }
     const ref = await addDoc(collection(db, 'pilgrimages'), docData);
     // 로컬 데이터에도 즉시 반영(새로고침 없이 지도에 바로 표시)
     if (_pilgrimData) _pilgrimData.push({ ...docData, _id: ref.id, createdAt: new Date() });
