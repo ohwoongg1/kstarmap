@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.29';
+const VERSION = 'map v2.6.30';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1391,21 +1391,29 @@ window.sharePost = async function(pid, title) {
   }
   const url = 'https://kstarmap.com/map.html?post=' + pid;
   const text = '⭐ KStarMap — ' + (title || '한류 성지 이야기');
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: text, text: text, url: url });
-    } catch(e) { if (e.name !== 'AbortError') showToast('공유 실패'); }
-  } else {
+  const copyFallback = async () => {
     try {
       await navigator.clipboard.writeText(text + '\n' + url);
       showToast('📋 링크가 복사되었어요!');
-    } catch(e) {
-      const t = document.createElement('textarea');
-      t.value = text + '\n' + url;
-      document.body.appendChild(t); t.select();
-      document.execCommand('copy'); document.body.removeChild(t);
-      showToast('📋 링크가 복사되었어요!');
+    } catch(e2) {
+      try {
+        const t = document.createElement('textarea');
+        t.value = text + '\n' + url;
+        document.body.appendChild(t); t.select();
+        document.execCommand('copy'); document.body.removeChild(t);
+        showToast('📋 링크가 복사되었어요!');
+      } catch(e3) { showToast('❌ 공유 실패: ' + (e3.message||e3)); }
     }
+  };
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: text, text: text, url: url });
+    } catch(e) {
+      if (e.name === 'AbortError') return;   // 사용자가 직접 취소한 경우만 조용히 종료
+      await copyFallback();                   // 공유 시트가 없거나 실패하면 링크 복사로 대체
+    }
+  } else {
+    await copyFallback();
   }
 };
 window.deleteBoardPost = async function(pid) {
