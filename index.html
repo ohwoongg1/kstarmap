@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.30';
+const VERSION = 'map v2.6.31';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1390,7 +1390,7 @@ window.sharePost = async function(pid, title) {
   if (!title && window._boardCache && window._boardCache[pid]) {
     title = window._boardCache[pid].title || '';
   }
-  const url = 'https://kstarmap.com/map.html?post=' + pid;
+  const url = 'https://kstarmap.com/post/' + pid + '/';
   const text = '⭐ KStarMap — ' + (title || '한류 성지 이야기');
   const copyFallback = async () => {
     try {

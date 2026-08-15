@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <!-- Google Analytics -->
@@ -13,60 +13,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>KStarMap · 통합지도</title>
 <meta name="description" content="한류 성지·맛집을 한 지도에서. 어디든 검색하고, 가본 곳을 사진으로 인증하세요.">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="KStarMap">
-<meta property="og:title" content="KStarMap · 통합지도">
-<meta property="og:description" content="좋아하는 드라마·배우가 다녀간 실제 성지를 지도에서 찾아보세요. 전 세계 한류 팬을 위한 K-드라마 성지 순례 지도.">
-<meta property="og:url" content="https://kstarmap.com/map.html">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="KStarMap · 통합지도">
-<meta name="twitter:description" content="좋아하는 드라마·배우가 다녀간 실제 성지를 지도에서 찾아보세요.">
-<link rel="canonical" href="https://kstarmap.com/map.html">
 <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services&autoload=false"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap');
   :root{
-    /* ?? oklch color system ?? */
-    --bg:oklch(1.00 0 0); --bg2:oklch(0.965 0.006 85); --white:oklch(1.00 0 0);
-    --app-bg:oklch(0.977 0.008 80);
-    --text:oklch(0.16 0.01 250); --text2:oklch(0.38 0.01 250); --text3:oklch(0.58 0.008 250);
-    --border:oklch(0.905 0.006 85); --border2:oklch(0.835 0.008 85);
-    --gold:oklch(0.62 0.155 65); --gold-bg:oklch(0.62 0.155 65 / 0.1);
-    --gold-soft:oklch(0.62 0.155 65 / 0.08);
-    --red:oklch(0.60 0.19 25); --blue:oklch(0.60 0.14 250); --amber:oklch(0.74 0.155 75);
-    --shadow:0 2px 12px oklch(0.16 0.01 250 / 0.10);
-    /* nav */
-    --nav-inactive:oklch(0.55 0.01 250);
-    --nav-active:oklch(0.62 0.155 65);
-    --nav-bg:oklch(1.00 0 0 / 0.85);
+    --bg:#ffffff; --bg2:#f5f4ef; --white:#ffffff;
+    --text:#1a1a1a; --text2:#4a4a48; --text3:#8a8a85;
+    --border:#e6e4dc; --border2:#cfcdc4;
+    --gold:#B5790F; --gold-bg:rgba(181,121,15,0.1);
+    --red:#E24B4A; --blue:#378ADD; --amber:#EF9F27;
+    --shadow:0 2px 10px rgba(0,0,0,0.12);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;overflow:hidden;font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--app-bg);color:var(--text)}
+  html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg2);color:var(--text)}
   #app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
-  #appMain{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;overflow:hidden}
-  #railNav{display:none}
-  @media (min-width:900px){
-    #app{flex-direction:row}
-    #railNav{display:flex;flex-direction:column;align-items:center;width:76px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);padding:14px 0;gap:4px;z-index:50}
-    #railNav .rail-logo{margin-bottom:14px}
-    #railNav .rail-item{width:60px;padding:9px 0;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text3);transition:background .15s,color .15s}
-    #railNav .rail-item:hover{background:var(--bg2)}
-    #railNav .rail-item.active{color:var(--gold);background:var(--gold-bg)}
-    #railNav .rail-item svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    #railNav .rail-item span{font-size:10.5px;font-weight:600}
-    .bottomnav{display:none}
-  }
   .bottomnav-fixed{flex-shrink:0}
 
   /* 상단바 */
-  .topbar{display:flex;align-items:center;gap:8px;padding:10px 14px 10px 14px;background:var(--bg);border-bottom:0.5px solid var(--border);flex-shrink:0;z-index:30}
-  .logo{display:flex;align-items:center;gap:6px;flex-shrink:0;text-decoration:none}
-  .logo-icon{width:28px;height:28px;flex-shrink:0}
-  .logo-text{font-size:16.5px;font-weight:800;letter-spacing:-0.3px;color:var(--text)}
-  .logo-text span{color:var(--gold)}
-  .searchbar{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--bg2);border-radius:24px;padding:9px 14px;border:1.5px solid transparent;transition:border-color .2s,background .2s,box-shadow .2s}
-  .searchbar svg{flex-shrink:0;color:var(--text3)}
-  .searchbar:focus-within{border-color:var(--gold);background:var(--white);box-shadow:0 0 0 3px var(--gold-soft)}
+  .topbar{display:flex;align-items:center;gap:6px;padding:10px 14px 10px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);flex-shrink:0;z-index:30}
+  .logo{display:flex;align-items:center;gap:5px;font-size:17px;font-weight:800;color:var(--gold);flex-shrink:0}
+  .searchbar{flex:1;min-width:0;display:flex;align-items:center;gap:7px;background:var(--bg2);border-radius:22px;padding:9px 12px;border:1px solid transparent}
+  .searchbar:focus-within{border-color:var(--gold);background:var(--white)}
   .searchbar input{flex:1;border:none;outline:none;background:none;font-size:14px;color:var(--text)}
   .searchbar input::placeholder{color:var(--text3)}
 
@@ -77,22 +43,11 @@
   .chip.off{opacity:0.4}
   .chip .dot{width:9px;height:9px;border-radius:50%}
   #contentBar::-webkit-scrollbar{display:none}
-  .filterbar-float{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:30;align-items:flex-end}
-  #homeRankingView{position:absolute;inset:0;background:var(--bg);z-index:40;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
-  #homeRankingView.show{display:block}
-  .hr-cat{padding:16px 16px 4px}
-  .hr-cat-title{font-size:15px;font-weight:800;display:flex;align-items:center;gap:6px;margin-bottom:2px}
-  .hr-cat-sub{font-size:11.5px;color:var(--text3);margin-bottom:10px}
-  .hr-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
-  .hr-card{flex:0 0 auto;width:132px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px;cursor:pointer}
-  .hr-rank{font-size:11px;font-weight:800;color:var(--gold)}
-  .hr-name{font-size:13px;font-weight:700;margin:4px 0 2px;line-height:1.3}
-  .hr-blurb{font-size:11px;color:var(--text2);line-height:1.4}
+  .filterbar-float{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:6px;z-index:15;align-items:flex-start}
   .filterbar-float .chip{background:rgba(255,255,255,0.92);backdrop-filter:blur(4px);box-shadow:0 1px 4px rgba(0,0,0,0.15);border:none}
   .filterbar-float .chip.off{opacity:0.55;background:rgba(255,255,255,0.7)}
-  .c-pill{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:6px 14px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease}
-  .c-pill:hover{border-color:var(--border2)}
-  .c-pill.on{background:var(--gold);border-color:var(--gold);color:#fff;box-shadow:0 2px 8px oklch(0.62 0.155 65 / 0.28)}
+  .c-pill{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:15px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text2);white-space:nowrap;cursor:pointer}
+  .c-pill.on{background:var(--gold);border-color:var(--gold);color:#fff}
 
   /* ═══ 코스 탭: 카드 ═══ */
   .cs-card{transition:transform .18s ease, box-shadow .18s ease}
@@ -159,19 +114,6 @@
 
   /* 지도 */
   #mapWrap{flex:1;position:relative;min-height:0}
-  /* PC 좌측 사이드 패널 (한류정보창고) — 모바일에서는 숨김 */
-  #sidePanel{display:none}
-  #sidePanelOpen{display:none}
-  @media (min-width:900px){
-    #mapWrap{display:flex}
-    #sidePanel{display:flex;flex-direction:column;width:480px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);z-index:30;transition:width .22s ease}
-    #sidePanel.collapsed{width:0;border-right:0;overflow:hidden}
-    #sidePanelHead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
-    #sidePanelToggle{background:var(--bg2);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;font-size:18px;color:var(--text2);cursor:pointer;line-height:1}
-    #sidePanelBody{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
-    #map{flex:1;min-width:0}
-    #sidePanelOpen.show{display:flex;align-items:center;justify-content:center;position:absolute;top:12px;left:12px;z-index:31;width:44px;height:44px;background:var(--bg);border:1px solid var(--border);border-radius:12px;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.12)}
-  }
   #map{width:100%;height:100%}
   .my-loc-btn{position:absolute;bottom:16px;right:14px;width:44px;height:44px;border-radius:50%;background:var(--white);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer;font-size:20px;z-index:20}
   .search-here-btn{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--white);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold);box-shadow:var(--shadow);cursor:pointer;z-index:20;display:none;align-items:center;gap:5px}
@@ -183,7 +125,7 @@
   #sheetTopBar{position:sticky;top:0;left:0;right:0;background:var(--bg);z-index:12;padding:8px 16px 0;margin:0 -16px;border-bottom:0.5px solid var(--border)}
   /* 스크롤 영역: 상단바가 이미 경계선을 가지므로 자체 선은 제거 */
   #sheetExtra{margin-top:14px}
-  .sheet-handle{display:none}
+  .sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 12px}
   /* 장소명도 상단에 고정 → 스크롤해도 어느 곳인지 항상 보임 */
   /* 상단바 안으로 들어왔으므로 자체 sticky 불필요.
      기존엔 sheetTopBar(sticky) + place-head(sticky top:44px)가 따로 붙어 있어
@@ -195,8 +137,8 @@
   .cert-btn{width:100%;margin-top:12px;padding:12px;background:var(--gold);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
   .place-close{position:absolute;top:8px;right:14px;width:32px;height:32px;border:none;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:15px;cursor:pointer;z-index:4}
 
-  /* 검색 결과 리스트: 필터 칩(오른쪽 위)과 안 겹치게 그 아래부터 시작 — 모바일·PC 공통 */
-  #searchResults{position:absolute;top:115px;left:0;right:0;bottom:0;background:var(--bg);overflow-y:auto;z-index:28;display:none}
+  /* 검색 결과 리스트 */
+  #searchResults{position:absolute;top:0;left:0;right:0;background:var(--bg);max-height:100%;overflow-y:auto;z-index:28;display:none}
   .sr-item{padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer}
   .sr-item:active{background:var(--bg2)}
   .sr-name{font-size:14px;font-weight:700;color:var(--text)}
@@ -227,8 +169,7 @@
   .bottomnav{display:flex;background:var(--bg);border-top:0.5px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);position:relative;z-index:40}
   .navtab{flex:1;text-align:center;padding:9px 0 8px;cursor:pointer;color:var(--text3)}
   .navtab.active{color:var(--gold)}
-  .navtab .ic{line-height:0;display:flex;align-items:center;justify-content:center}
-  .navtab .ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+  .navtab .ic{font-size:20px;line-height:1}
   .navtab .tx{font-size:10.5px;margin-top:3px;font-weight:600}
 
   /* 토스트 */
@@ -243,54 +184,20 @@
 <body>
 <div id="app">
 
-  <nav id="railNav">
-    <div class="rail-logo">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
-        <circle cx="16" cy="16" r="15" fill="var(--gold)"/>
-        <path d="M16 7l2.47 5.76L24.5 13.5l-4.5 4 1.27 6L16 20.5l-5.27 3 1.27-6-4.5-4 6.03-.74Z" fill="#fff"/>
-      </svg>
-    </div>
-    <div class="rail-item active" data-tab="map" onclick="railSwitch('map')"><svg viewBox="0 0 24 24"><path d="M9 2L3 5v17l6-3 6 3 6-3V2l-6 3-6-3z"/><path d="M9 2v17M15 5v17"/></svg><span>지도</span></div>
-    <div class="rail-item" data-tab="feed" onclick="railSwitch('feed')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>피드</span></div>
-    <div class="rail-item" data-tab="course" onclick="railSwitch('course')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z"/></svg><span>코스</span></div>
-    <div class="rail-item" data-tab="lang" onclick="openLangPicker()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg><span>언어</span></div>
-    <div class="rail-item" data-tab="my" onclick="railSwitch('my')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>내 공간</span></div>
-    <div class="rail-item" data-tab="more" onclick="openMoreMenu()"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>더보기</span></div>
-  </nav>
-
-  <div id="appMain">
   <div class="topbar">
-    <div class="logo" onclick="goHome()" style="cursor:pointer">
-      <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="16" cy="16" r="15" fill="oklch(0.62 0.155 65)"/>
-        <path d="M16 7l2.47 5.76L24.5 13.5l-4.5 4 1.27 6L16 20.5l-5.27 3 1.27-6-4.5-4 6.03-.74Z" fill="#fff"/>
-      </svg>
-      <div class="logo-text">K<span>Star</span>Map</div>
-    </div>
+    <div class="logo">⭐ KStar</div>
     <div class="searchbar">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span style="font-size:15px;color:var(--text3)">🔍</span>
       <input id="searchInput" type="text" placeholder="장소·주소 검색 (예: 중앙고등학교)" autocomplete="off">
       <span id="searchClear" style="display:none;font-size:16px;color:var(--text3);cursor:pointer">✕</span>
     </div>
-    <button id="langToggle" onclick="openMoreMenu()" style="flex-shrink:0;background:var(--gold);border:none;border-radius:10px;padding:7px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center" aria-label="메뉴"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button id="langToggle" onclick="openMoreMenu()" style="flex-shrink:0;background:#c0392b;border:1px solid #a93226;border-radius:8px;padding:6px 7px;font-size:14px;font-weight:700;color:#fff;cursor:pointer">☰</button>
   </div>
 
   <div id="contentBar" style="display:flex;gap:6px;padding:6px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none"></div>
 
   <div id="mapWrap">
-    <aside id="sidePanel">
-      <div id="sidePanelHead">
-        <span style="font-size:15px;font-weight:800;color:var(--text)">📚 한류정보창고</span>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer">글쓰기</button>
-          <button id="sidePanelToggle" onclick="toggleSidePanel()" title="접기" aria-label="접기">‹</button>
-        </div>
-      </div>
-      <div id="sidePanelBody"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>
-    </aside>
-    <button id="sidePanelOpen" onclick="toggleSidePanel()" title="한류정보창고 열기" aria-label="열기">📚</button>
     <div id="map"></div>
-    <div id="homeRankingView"></div>
     <div class="filterbar-float">
       <div class="chip" id="chipSearch" onclick="toggleFilter('search')"><span class="dot" style="background:var(--red)"></span>검색</div>
       <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
@@ -304,7 +211,7 @@
       <!-- 고정 영역: 손잡이·닫기·제목·버튼이 스크롤해도 항상 보인다.
            기존엔 손잡이·✕만 sticky라, 스크롤하면 내용 없는 흰 띠만 남아 어색했다. -->
       <div id="sheetTopBar">
-        <div id="sheetHandle" style="padding:0;text-align:center;flex-shrink:0">
+        <div id="sheetHandle" style="padding:10px 0 14px;cursor:grab;text-align:center;flex-shrink:0">
           <div class="sheet-handle" style="margin:0 auto"></div>
         </div>
         <button class="place-close" onclick="closePlaceSheet()">✕</button>
@@ -316,9 +223,9 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;padding-bottom:12px">
-          <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>가본곳 · 사진 올리기</span></button>
-          <button id="saveBtn" onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:54px" title="저장"><span id="saveBtnIcon" style="display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span id="saveBtnLabel" style="font-size:10px;font-weight:700">저장</span></button>
-          <button onclick="openNavigation()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:54px"><span style="display:flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></span><span id="navLabel" style="font-size:10px;font-weight:700">길찾기</span></button>
+          <button class="cert-btn" style="flex:1;margin-top:0" onclick="startCert()">📸 가본곳 · 사진 올리기</button>
+          <button id="saveBtn" onclick="toggleSavePlace()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px" title="저장"><span id="saveBtnIcon" style="font-size:18px">🔖</span><span id="saveBtnLabel" style="font-size:10px;font-weight:700">저장</span></button>
+          <button onclick="openNavigation()" style="flex-shrink:0;padding:8px 12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px"><span style="font-size:18px">🧭</span><span id="navLabel" style="font-size:10px;font-weight:700">길찾기</span></button>
         </div>
       </div>
       <!-- 스크롤 영역: 사진·설명·인증 -->
@@ -381,12 +288,11 @@
   </div>
 
   <div class="bottomnav">
-    <div class="navtab active" onclick="switchTab('map')"><div class="ic"><svg viewBox="0 0 24 24"><path d="M9 2L3 5v17l6-3 6 3 6-3V2l-6 3-6-3z"/><path d="M9 2v17M15 5v17"/></svg></div><div class="tx">지도</div></div>
-    <div class="navtab" onclick="switchTab('feed')"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div><div class="tx">피드</div></div>
-    <div class="navtab" onclick="switchTab('course')"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z"/></svg></div><div class="tx">코스</div></div>
-    <div class="navtab" onclick="openLangPicker()"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg></div><div class="tx">언어</div></div>
-    <div class="navtab" onclick="switchTab('my')"><div class="ic"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="tx">내 공간</div></div>
-  </div>
+    <div class="navtab active" onclick="switchTab('map')"><div class="ic">🗺️</div><div class="tx">지도</div></div>
+    <div class="navtab" onclick="switchTab('feed')"><div class="ic">📸</div><div class="tx">피드</div></div>
+    <div class="navtab" onclick="switchTab('course')"><div class="ic">🧭</div><div class="tx">코스</div></div>
+    <div class="navtab" onclick="openLangPicker()"><div class="ic">🌐</div><div class="tx">언어</div></div>
+    <div class="navtab" onclick="switchTab('my')"><div class="ic">👤</div><div class="tx">내 공간</div></div>
   </div>
 
 </div>
@@ -455,7 +361,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.31';
+const VERSION = 'map v1.9.59';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -472,7 +378,7 @@ const I18N = {
     search:'검색', pilgrim:'성지', rest:'맛집',
     hallyuSearch:'배우·드라마·그룹 검색', all:'전체',
     tabMap:'지도', tabFeed:'피드', tabSaved:'저장', tabMy:'내 공간',
-    certBtn:'가본곳 · 사진 올리기', save:'저장', nav:'길찾기',
+    certBtn:'📸 가본곳 · 사진 올리기', save:'저장', nav:'길찾기',
     thisCert:'📸 이곳의 인증', noCertHere:'아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!',
     expandHint:'위로 올리면 이곳의 인증을 볼 수 있어요',
     feedTitle:'📸 인증 피드', savedTitle:'🔖 가고싶어요',
@@ -496,7 +402,7 @@ const I18N = {
     search:'Search', pilgrim:'Spots', rest:'Food',
     hallyuSearch:'Search actor·drama·group', all:'All',
     tabMap:'Map', tabFeed:'Feed', tabSaved:'Saved', tabMy:'My Space',
-    certBtn:'I\'ve been here · Add photo', save:'Save', nav:'Directions',
+    certBtn:'📸 I\'ve been here · Add photo', save:'Save', nav:'Directions',
     thisCert:'📸 Visits here', noCertHere:'No visits yet.<br>Be the first to check in!',
     expandHint:'Swipe up to see visits here',
     feedTitle:'📸 Visit Feed', savedTitle:'🔖 Want to visit',
@@ -543,15 +449,9 @@ const LANG_LIST = [
 window.openMoreMenu = function() {
   const old = document.getElementById('moreSheet');
   if (old) old.remove();
-  if (!document.getElementById('moreSheetAnim')) {
-    const st = document.createElement('style');
-    st.id = 'moreSheetAnim';
-    st.textContent = '@keyframes moreSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes moreDimIn{from{opacity:0}to{opacity:1}}';
-    document.head.appendChild(st);
-  }
   const item = (icon, label, onclick) =>
-    '<button onclick="' + onclick + '" style="display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:none;border:none;border-bottom:0.5px solid var(--border);font-size:15px;color:var(--text);cursor:pointer;text-align:left">' +
-      '<span style="font-size:21px;width:26px;text-align:center;flex-shrink:0">' + icon + '</span>' +
+    '<button onclick="' + onclick + '" style="display:flex;align-items:center;gap:14px;width:100%;padding:16px;background:none;border:none;border-bottom:0.5px solid var(--border);font-size:15px;color:var(--text);cursor:pointer;text-align:left">' +
+      '<span style="font-size:22px;width:26px;text-align:center">' + icon + '</span>' +
       '<span style="flex:1;font-weight:600">' + label + '</span>' +
       '<span style="color:var(--text3);font-size:18px">›</span>' +
     '</button>';
@@ -559,21 +459,21 @@ window.openMoreMenu = function() {
   sheet.id = 'moreSheet';
   sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;align-items:center';
   sheet.innerHTML =
-    '<div onclick="document.getElementById(\'moreSheet\').remove()" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);animation:moreDimIn .2s ease"></div>' +
-    '<div style="position:relative;background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;max-height:75vh;overflow-y:auto;padding-bottom:calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,0.12);animation:moreSheetUp .26s cubic-bezier(.25,.46,.45,.94)">' +
+    '<div onclick="document.getElementById(\'moreSheet\').remove()" style="flex:1;background:rgba(0,0,0,0.4)"></div>' +
+    '<div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;box-sizing:border-box;max-height:75vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))">' +
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
-      '<div style="display:flex;align-items:center;padding:2px 12px 12px 18px">' +
-        '<div style="font-size:16px;font-weight:800;color:var(--text);flex:1">더보기</div>' +
+      '<div style="display:flex;align-items:center;padding:4px 8px 10px 16px">' +
+        '<div style="font-size:16px;font-weight:800;color:var(--text);flex:1">☰ 더보기</div>' +
         '<button onclick="document.getElementById(\'moreSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
       item('📖', '사용 설명서', "location.href='guide.html'") +
       item('📚', '한류정보창고', "document.getElementById('moreSheet').remove();openBoard()") +
+      item('😂', '한류 웃음창고', "document.getElementById('moreSheet').remove();openFunBoard()") +
       item('✉️', '개발자에게 의견', "document.getElementById('moreSheet').remove();openDevFeedback()") +
       item('🌐', '언어 선택', "document.getElementById('moreSheet').remove();openLangPicker()") +
       '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 성지 지도</div>' +
     '</div>';
   document.body.appendChild(sheet);
-  sheet.addEventListener('touchmove', function(e){ if (!e.target.closest('[style*="overflow-y"]')) e.preventDefault(); }, {passive:false});
 };
 
 // ── 개발자에게 의견 (Firebase 저장) ──
@@ -621,16 +521,11 @@ window.openFunBoard = async function() {
   if (old) old.remove();
   const sheet = document.createElement('div');
   sheet.id = 'funBoardSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3);overscroll-behavior:none;overflow:hidden';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
   const inner = document.createElement('div');
   inner.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   sheet.appendChild(inner);
   document.body.appendChild(sheet);
-  // iOS 뷰포트 바운스 방지
-  sheet.addEventListener('touchmove', function(e){
-    var sc = document.getElementById('funSwipeWrap') || document.getElementById('funBoardList');
-    if (!sc || !sc.contains(e.target)) { e.preventDefault(); return; }
-  }, {passive:false});
   inner.innerHTML =
     '<div style="position:relative;display:flex;align-items:center;gap:8px;padding:10px 16px;z-index:2">' +
       '<button onclick="document.getElementById(\'funBoardSheet\').remove();setTimeout(openMoreMenu,0)" style="background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer">←</button>' +
@@ -638,7 +533,7 @@ window.openFunBoard = async function() {
       '<button onclick="funToggleView()" title="목록/재생 전환" style="background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:9px;padding:7px 10px;font-size:14px;cursor:pointer">📋</button>' +
       '<button onclick="openFunBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
-    '<div id="funSwipeWrap" style="flex:1;min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
+    '<div id="funSwipeWrap" style="flex:1;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
   inner.style.cssText += 'background:#000;';
   _loadFunSwipe();
 };
@@ -647,11 +542,11 @@ window.funToggleView = function() {
   const swipeWrap = document.getElementById('funSwipeWrap');
   const listWrap = document.getElementById('funBoardList');
   if (swipeWrap) {
-    swipeWrap.outerHTML = '<div id="funBoardList" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg)"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
+    swipeWrap.outerHTML = '<div id="funBoardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
     if (sheetInner) sheetInner.style.background = 'var(--bg)';
     loadFunBoardList();
   } else if (listWrap) {
-    listWrap.outerHTML = '<div id="funSwipeWrap" style="flex:1;min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
+    listWrap.outerHTML = '<div id="funSwipeWrap" style="flex:1;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#000"><div style="height:100%;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px">불러오는 중...</div></div>';
     if (sheetInner) sheetInner.style.background = '#000';
     _loadFunSwipe();
   }
@@ -735,7 +630,7 @@ window.openFunBoardWrite = function(editPost) {
   const w = document.createElement('div');
   w.id = 'funBoardWrite';
   w.dataset.editId = editPost ? editPost.id : '';
-  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3);overscroll-behavior:none;overflow:hidden';
+  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
   const wi = document.createElement('div');
   wi.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   w.appendChild(wi);
@@ -748,7 +643,7 @@ window.openFunBoardWrite = function(editPost) {
       '<div style="font-size:16px;font-weight:800;flex:1">'+headerLabel+'</div>' +
       '<button onclick="submitFunPost()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">'+submitLabel+'</button>' +
     '</div>' +
-    '<div style="flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">' +
+    '<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">' +
       '<input id="funTitle" placeholder="제목 (선택사항)" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
       '<textarea id="funBody" placeholder="유튜브 숏츠 링크를 넣으면 자동으로 영상이 보여집니다!" style="width:100%;flex:1;min-height:200px;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
@@ -772,13 +667,11 @@ window.submitFunPost = async function() {
     if (editId) {
       await updateDoc(doc(db, 'funboard', editId), { title, body, updatedAt: serverTimestamp() });
       showToast('✅ 수정됐어요');
-      pingIndexNow('https://kstarmap.com/map.html');
     } else {
       await addDoc(collection(db,'funboard'), { title, body,
         uid: window.currentUser.uid, userName: window.currentUser.displayName||'익명',
         createdAt: serverTimestamp() });
       showToast('✅ 등록됐어요');
-      pingIndexNow('https://kstarmap.com/map.html');
     }
     document.getElementById('funBoardWrite').remove();
     loadFunBoardList();
@@ -818,28 +711,11 @@ window.deleteFunPost = async function(pid) {
   } catch(e){showToast('실패:'+e.message);}
 };
 window.openBoard = async function() {
-  // 홈 랭킹 화면이 떠 있으면 먼저 치워야 게시판이 그 뒤에 가려지지 않음(특히 PC)
-  if (window.hideHomeRanking) hideHomeRanking();
-  // PC(넓은 화면): 가운데 모달 대신 왼쪽 사이드 패널로 처리
-  if (window.innerWidth >= 900) {
-    // 사이드 패널은 지도 영역 안에 있으므로, 다른 탭(피드/코스/내공간)이면 지도 탭으로 먼저 전환
-    if (_currentView !== 'map') railSwitch('map');
-    const panel = document.getElementById('sidePanel');
-    const openBtn = document.getElementById('sidePanelOpen');
-    if (panel) {
-      panel.classList.remove('collapsed');
-      if (openBtn) openBtn.classList.remove('show');
-      if (map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 240);
-    }
-    initSidePanel();       // 아직 로드 안 됐으면 로드
-    loadBoardList();       // 최신 글로 갱신
-    return;
-  }
   const old = document.getElementById('boardSheet');
   if (old) old.remove();
   const sheet = document.createElement('div');
   sheet.id = 'boardSheet';
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3);overscroll-behavior:none;overflow:hidden';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
   const inner = document.createElement('div');
   inner.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   sheet.appendChild(inner);
@@ -850,33 +726,15 @@ window.openBoard = async function() {
       '<div style="font-size:16px;font-weight:800;flex:1">📚 한류정보창고</div>' +
       '<button onclick="openBoardWrite()" style="background:var(--gold);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer">글쓰기</button>' +
     '</div>' +
-    '<div id="boardList" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
+    '<div id="boardList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"><div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div></div>';
   document.body.appendChild(sheet);
-  // iOS 뷰포트 바운스 방지 (placeSheet과 동일 패턴)
-  sheet.addEventListener('touchmove', function(e){
-    var list = document.getElementById('boardList');
-    if (!list || !list.contains(e.target)) { e.preventDefault(); return; }
-  }, {passive:false});
   loadBoardList();
 };
-// 현재 어떤 게시판 화면을 보고 있는지 추적 — 수정 완료 후 원래 있던 화면으로 되돌아가기 위함
-let _boardCurrentView = 'main';
-function reloadBoardCurrentView() {
-  if (_boardCurrentView === 'scene') return openSceneCollection();
-  if (_boardCurrentView === 'food') return openFoodCollection();
-  if (_boardCurrentView === 'shop') return openShoppingCollection();
-  if (_boardCurrentView === 'person') return openPersonCollection();
-  return loadBoardList();
-}
 async function loadBoardList() {
-  _boardCurrentView = 'main';
-  // 게시판 모달이 열려 있으면 그 안의 목록을, 아니면 사이드 패널의 목록을 사용
-  const sheet = document.getElementById('boardSheet');
-  const list = (sheet && sheet.querySelector('#boardList')) || document.getElementById('boardList');
-  if (!list) return;
+  const list = document.getElementById('boardList');
   try {
     const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-    const snap = await getDocs(query(collection(db, 'board'), orderBy('createdAt', 'desc'), limit(1000)));
+    const snap = await getDocs(query(collection(db, 'board'), orderBy('createdAt', 'desc'), limit(50)));
     const posts = [];
     snap.forEach(d => posts.push({ id: d.id, ...d.data() }));
     if (!posts.length) {
@@ -893,7 +751,7 @@ async function loadBoardList() {
       let bodyTxt=bodyRaw.replace(ytRe,(m,id)=>{ytIds.push(id);return '';}).trim();
       const mapTitles=[]; bodyTxt=bodyTxt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';}).trim();
       const placeTags=[]; bodyTxt=bodyTxt.replace(/\[성지:([^\]]+)\]/g,(m,t)=>{placeTags.push(t.trim());return '';}).trim();
-      bodyTxt=bodyTxt.replace(/\[맛집\]/g,'').replace(/\[쇼핑\]/g,'').replace(/\[인물\]/g,'').trim();
+      bodyTxt=bodyTxt.replace(/\[맛집\]/g,'').trim();
       const preview=bodyTxt.length>100?escB(bodyTxt.slice(0,100))+'...':escB(bodyTxt), full=escB(bodyTxt);
       const mkThumb=id=>
         '<div class="yt-thumb" data-yt="'+id+'" onclick="boardPlayVideo(this)" style="position:relative;border-radius:10px;overflow:hidden;margin-top:8px;cursor:pointer;background:#000">'+
@@ -913,15 +771,12 @@ async function loadBoardList() {
       const badge=p.pinned?'<span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>':'';
       const pinBtn=isAdmin?'<button onclick="toggleBoardPin(\''+p.id+'\','+!!p.pinned+')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">'+(p.pinned?'언피닝':'📌 고정')+'</button>':'';
       const editBtn=canEdit?'<button onclick="editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:0">수정</button>':'';
-      const quickMapBtn = placeTags.length ? (()=>{ const parts=placeTags[0].split(':'); const pn=parts[0].trim(); const tt=parts[1]?parts[1].trim():''; return '<button onclick="event.stopPropagation();boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:0">📍 지도에서 보기</button>'; })() : '';
       const bg=p.pinned?'background:var(--gold-bg);':'';
-      const expandable = (bodyTxt.length>100||ytIds.length>1||mapTitles.length);
-      const clickAttr = expandable ? ' onclick="boardToggle(this)" style="cursor:pointer;' : ' style="';
       return '<div data-post="'+p.id+'" style="padding:15px 18px;border-bottom:1px solid var(--border);'+bg+(p.pinned?'display:flex;align-items:flex-start;gap:10px':'')+'">'+
         (p.pinned?'<span style="font-size:20px;flex-shrink:0">📌</span><div style="flex:1">':'')+ 
-        '<div'+clickAttr+'font-size:15px;font-weight:700;margin-bottom:5px;word-break:break-word;overflow-wrap:anywhere">'+badge+escB(p.title||'')+'</div>'+
-        '<div class="board-preview"'+clickAttr+'font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;margin-bottom:6px">'+preview+'</div>'+
-        '<div class="board-full"'+clickAttr+'font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;margin-bottom:6px;display:none">'+full+'</div>'+
+        '<div style="font-size:15px;font-weight:700;margin-bottom:5px">'+badge+escB(p.title||'')+'</div>'+
+        '<div class="board-preview" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px">'+preview+'</div>'+
+        '<div class="board-full" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;display:none">'+full+'</div>'+
         (p.pinned?'':'<div class="board-yt-first">'+ytFirst+'</div>')+
         ytMore+
         '<div class="board-extra" style="display:none">'+(p.pinned?ytFirst:'')+ytRest+'</div>'+
@@ -931,7 +786,6 @@ async function loadBoardList() {
           '<div style="display:flex;gap:6px;align-items:center">'+
             ((bodyTxt.length>100||ytIds.length>1||mapTitles.length)?'<button class="board-more-btn" onclick="boardToggle(this)" style="font-size:12px;color:#c0392b;font-weight:800;border:none;background:none;cursor:pointer;padding:0">더 보기</button>':'')+
             '<button onclick="event.stopPropagation();sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:0">📤 공유</button>'+
-            quickMapBtn+
             pinBtn+
             editBtn+
             (canDel?'<button onclick="deleteBoardPost(\''+p.id+'\')" style="font-size:11px;color:#ef4444;border:none;background:none;cursor:pointer;padding:0">삭제</button>':'')+
@@ -940,7 +794,7 @@ async function loadBoardList() {
       (p.pinned?'</div>':'')+
       '</div>';
     }).join('');
-    const sceneCount = posts.filter(p=>(p.placeTags||[]).length>0 && !(p.body||'').includes('[맛집]') && !(p.body||'').includes('[쇼핑]') && !(p.body||'').includes('[인물]')).length;
+    const sceneCount = posts.filter(p=>(p.placeTags||[]).length>0 && !(p.body||'').includes('[맛집]')).length;
     const sceneEntry = '<div onclick="openSceneCollection()" style="padding:15px 18px;border-bottom:2px solid var(--gold);background:var(--gold-bg);cursor:pointer;display:flex;align-items:center;gap:10px">' +
       '<span style="font-size:20px">🎬</span>' +
       '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:var(--gold)"><span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>명장면 모음</div>' +
@@ -952,26 +806,12 @@ async function loadBoardList() {
       '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:#e67e22"><span style="font-size:10px;background:#e67e22;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>맛집칼럼</div>' +
       '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">한류 성지 주변 숨은 맛집, 직접 먹어보고 쓰는 리얼 후기<br>미슐랭부터 동네 한 끼까지 — 성지순례 맛집 가이드!<br>현재 <b>'+foodCount+'편</b>의 맛집 칼럼이 등록되어 있습니다.</div></div>' +
       '<span style="font-size:14px;color:#e67e22">→</span></div>';
-    const shopCount = posts.filter(p=>(p.body||'').includes('[쇼핑]')).length;
-    const shopEntry = '<div onclick="openShoppingCollection()" style="padding:15px 18px;border-bottom:2px solid #9b59b6;background:#f8f3fb;cursor:pointer;display:flex;align-items:center;gap:10px">' +
-      '<span style="font-size:20px">🛍️</span>' +
-      '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:#9b59b6"><span style="font-size:10px;background:#9b59b6;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>쇼핑창고</div>' +
-      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">한국 오면 뭘 사야 할지, 어디를 가야 할지 막막할 때<br>진짜 도움 되는 쇼핑 정보와 장소만 골라서 소개합니다<br>현재 <b>'+shopCount+'편</b>의 쇼핑 정보가 등록되어 있습니다.</div></div>' +
-      '<span style="font-size:14px;color:#9b59b6">→</span></div>';
-    const personCount = posts.filter(p=>(p.body||'').includes('[인물]')).length;
-    const personEntry = '<div onclick="openPersonCollection()" style="padding:15px 18px;border-bottom:2px solid #2563eb;background:#eff5ff;cursor:pointer;display:flex;align-items:center;gap:10px">' +
-      '<span style="font-size:20px">🌟</span>' +
-      '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:#2563eb"><span style="font-size:10px;background:#2563eb;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>인기연예인</div>' +
-      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">내가 좋아하는 그 배우, 어떻게 여기까지 왔을까<br>데뷔 비하인드부터 커리어 스토리, 관련 성지까지 한눈에<br>현재 <b>'+personCount+'편</b>의 인물 스토리가 등록되어 있습니다.</div></div>' +
-      '<span style="font-size:14px;color:#2563eb">→</span></div>';
-    list.innerHTML = personEntry + sceneEntry + foodEntry + shopEntry + list.innerHTML;
+    list.innerHTML = sceneEntry + foodEntry + list.innerHTML;
   } catch(e) {
     list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
   }
 }
-
 window.openSceneCollection = async function() {
-  _boardCurrentView = 'scene';
   const list = document.getElementById('boardList');
   if (!list) return;
   list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
@@ -981,23 +821,25 @@ window.openSceneCollection = async function() {
   '</div>';
   try {
     const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
+    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(200)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
-      .filter(p => Array.isArray(p.placeTags) && p.placeTags.length > 0 && !(p.body||'').includes('[맛집]') && !(p.body||'').includes('[쇼핑]') && !(p.body||'').includes('[인물]'));
-    window._boardCache = window._boardCache || {};
-    posts.forEach(p=>{ window._boardCache[p.id] = p; });
+      .filter(p => Array.isArray(p.placeTags) && p.placeTags.length > 0 && !(p.body||'').includes('[맛집]'));
     if (!posts.length) {
       list.innerHTML = header + '<div style="padding:60px;text-align:center;color:var(--text3);font-size:13px">아직 등록된 명장면이 없어요.</div>';
       return;
     }
     const escC = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const rows = posts.map(p => {
-      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
+      const preview = bodyClean.length>70 ? escC(bodyClean.slice(0,70))+'...' : escC(bodyClean);
+      const place = (p.placeTags||[])[0] || '';
+      return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
+        '<div onclick="openBoardStory(\''+p.id+'\')">' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escC(p.title||'')+'</div>' +
+        (place?'<div style="font-size:11.5px;color:var(--gold);font-weight:700;margin-bottom:4px">📍 '+escC(place)+'</div>':'') +
+        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
-        (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
-        (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
     }).join('');
     list.innerHTML = header + rows;
@@ -1006,7 +848,6 @@ window.openSceneCollection = async function() {
   }
 };
 window.openFoodCollection = async function() {
-  _boardCurrentView = 'food';
   const list = document.getElementById('boardList');
   if (!list) return;
   list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
@@ -1016,18 +857,15 @@ window.openFoodCollection = async function() {
   '</div>';
   try {
     const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
+    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(200)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
       .filter(p => (p.body||'').includes('[맛집]'));
-    window._boardCache = window._boardCache || {};
-    posts.forEach(p=>{ window._boardCache[p.id] = p; });
     if (!posts.length) {
       list.innerHTML = header + '<div style="padding:60px;text-align:center;color:var(--text3);font-size:13px">아직 등록된 맛집칼럼이 없어요.</div>';
       return;
     }
     const escF = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const rows = posts.map(p => {
-      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[맛집\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
       const preview = bodyClean.length>70 ? escF(bodyClean.slice(0,70))+'...' : escF(bodyClean);
@@ -1039,94 +877,6 @@ window.openFoodCollection = async function() {
         (place?'<div style="font-size:11.5px;color:#e67e22;font-weight:700;margin-bottom:4px">📍 '+escF(place)+'</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
-        (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
-        (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
-      '</div>';
-    }).join('');
-    list.innerHTML = header + rows;
-  } catch(e) {
-    list.innerHTML = header + '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
-  }
-};
-window.openShoppingCollection = async function() {
-  _boardCurrentView = 'shop';
-  const list = document.getElementById('boardList');
-  if (!list) return;
-  list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
-  const header = '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)">' +
-    '<button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>' +
-    '<div style="font-size:15px;font-weight:800">🛍️ 쇼핑창고</div>' +
-  '</div>';
-  try {
-    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
-    const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
-      .filter(p => (p.body||'').includes('[쇼핑]'));
-    window._boardCache = window._boardCache || {};
-    posts.forEach(p=>{ window._boardCache[p.id] = p; });
-    if (!posts.length) {
-      list.innerHTML = header + '<div style="padding:60px;text-align:center;color:var(--text3);font-size:13px">아직 등록된 쇼핑 정보가 없어요.</div>';
-      return;
-    }
-    const escS = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const rows = posts.map(p => {
-      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
-      const bodyClean = (p.body||'').replace(/\[쇼핑\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
-        .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
-      const preview = bodyClean.length>70 ? escS(bodyClean.slice(0,70))+'...' : escS(bodyClean);
-      const placeTags = (p.body||'').match(/\[성지:([^\]]+)\]/g);
-      const place = placeTags ? placeTags[0].slice(4,-1).split(':')[0].trim() : '';
-      return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
-        '<div onclick="openBoardStory(\''+p.id+'\')">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escS(p.title||'')+'</div>' +
-        (place?'<div style="font-size:11.5px;color:#9b59b6;font-weight:700;margin-bottom:4px">📍 '+escS(place)+'</div>':'') +
-        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
-        '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
-        (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
-        (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
-      '</div>';
-    }).join('');
-    list.innerHTML = header + rows;
-  } catch(e) {
-    list.innerHTML = header + '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
-  }
-};
-window.openPersonCollection = async function() {
-  _boardCurrentView = 'person';
-  const list = document.getElementById('boardList');
-  if (!list) return;
-  list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
-  const header = '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)">' +
-    '<button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>' +
-    '<div style="font-size:15px;font-weight:800">🌟 인기연예인</div>' +
-  '</div>';
-  try {
-    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-    const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
-    const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
-      .filter(p => (p.body||'').includes('[인물]'));
-    window._boardCache = window._boardCache || {};
-    posts.forEach(p=>{ window._boardCache[p.id] = p; });
-    if (!posts.length) {
-      list.innerHTML = header + '<div style="padding:60px;text-align:center;color:var(--text3);font-size:13px">아직 등록된 인물 스토리가 없어요.</div>';
-      return;
-    }
-    const escP = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const rows = posts.map(p => {
-      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
-      const bodyClean = (p.body||'').replace(/\[인물\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
-        .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
-      const preview = bodyClean.length>70 ? escP(bodyClean.slice(0,70))+'...' : escP(bodyClean);
-      const spotCount = (p.placeTags||[]).length;
-      const place = (p.placeTags||[])[0] || '';
-      return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
-        '<div onclick="openBoardStory(\''+p.id+'\')">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escP(p.title||'')+'</div>' +
-        (spotCount?'<div style="font-size:11.5px;color:#2563eb;font-weight:700;margin-bottom:4px">📍 관련 성지 '+spotCount+'곳</div>':'') +
-        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
-        '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
-        (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
-        (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
     }).join('');
     list.innerHTML = header + rows;
@@ -1141,7 +891,7 @@ window.openBoardWrite = function(editPost) {
   const w = document.createElement('div');
   w.id = 'boardWrite';
   w.dataset.editId = editPost ? editPost.id : '';
-  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3);overscroll-behavior:none;overflow:hidden';
+  w.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;justify-content:center;background:rgba(0,0,0,0.3)';
   const wi = document.createElement('div');
   wi.style.cssText = 'background:var(--bg);display:flex;flex-direction:column;width:100%;max-width:620px;height:100%;';
   w.appendChild(wi);
@@ -1156,15 +906,9 @@ window.openBoardWrite = function(editPost) {
     '</div>' +
     '<div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:10px">' +
       '<input id="boardTitle" placeholder="제목" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
-      '<textarea id="boardBody" placeholder="한류 정보를 공유해 주세요. ★ 유튜브 링크 = 영상 자동 임베드 / [지도:작품명] = 지도 버튼 생성 / [성지:장소명:작품명] = 개별 위치 버튼 / [맛집] [쇼핑] [인물] = 카테고리 태그" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+      '<textarea id="boardBody" placeholder="한류 정보를 공유해 주세요. ★ 유튜브 링크 = 영상 자동 임베드 / [지도:작품명] = 지도 버튼 생성" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
   document.body.appendChild(w);
-  // iOS 뷰포트 바운스 방지
-  w.addEventListener('touchmove', function(e){
-    var inp = e.target.closest('input,textarea');
-    if (inp) return; // input/textarea 스크롤 허용
-    e.preventDefault();
-  }, {passive:false});
   if (editPost) {
     document.getElementById('boardTitle').value = editPost.title || '';
     document.getElementById('boardBody').value = editPost.body || '';
@@ -1175,79 +919,6 @@ window.editBoardPost = function(pid) {
   if (!p) { showToast('글 정보를 찾을 수 없어요'); return; }
   openBoardWrite(p);
 };
-// ── IndexNow: 새 콘텐츠 발행 시 네이버(+빙 등)에 즉시 알림 ──
-// searchadvisor.naver.com에 키 파일(bb888033e136aa1d8a4e0c5d37d5fc18.txt)을 사이트 루트에 올려둔 상태여야 동작함
-const INDEXNOW_KEY = 'bb888033e136aa1d8a4e0c5d37d5fc18';
-// 한국관광공사 TourAPI(공공데이터포털) — 실시간 호출용. PhotoGalleryService1과 detailImage2는 파라미터 문제로 계속 실패해서
-// 가장 표준적이고 널리 쓰이는 detailCommon2(콘텐츠ID 상세정보의 firstimage/firstimage2 필드)로 교체함.
-const TOUR_API_KEY = '1841b269a603176ed99db0c0ab7f40a30a71ab76aed77c4e1da671ffa3468e82';
-async function fetchLiveTourPhotos(contentId) {
-  if (!contentId) return [];
-  const urls = [];
-  try {
-    const url = 'https://apis.data.go.kr/B551011/KorService2/detailCommon2'
-      + '?serviceKey=' + TOUR_API_KEY
-      + '&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=KStarMap&_type=json'
-      + '&contentId=' + encodeURIComponent(contentId);
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      const header = data?.response?.header;
-      if (!header || header.resultCode === '0000' || header.resultCode === '00') {
-        const items = data?.response?.body?.items?.item;
-        const it = Array.isArray(items) ? items[0] : items;
-        if (it) {
-          // firstimage2는 firstimage의 썸네일 버전(같은 사진, URL만 다름)이라 중복 방지를 위해 firstimage만 사용
-          if (it.firstimage) urls.push(String(it.firstimage).replace(/^http:\/\//, 'https://'));
-        }
-        if (!urls.length) console.log('[실시간사진 디버그] detailCommon2 원본 응답(사진 없음):', JSON.stringify(data));
-      } else {
-        console.log('[실시간사진 디버그] detailCommon2 API 오류:', header.resultCode, header.resultMsg);
-      }
-    } else {
-      console.log('[실시간사진 디버그] detailCommon2 HTTP 오류:', res.status);
-    }
-  } catch(e) { console.warn('TourAPI 실시간 조회 실패(detailCommon2)', e); }
-  // 서브 이미지가 더 있으면 보너스로 추가 시도(실패해도 위 결과는 유지)
-  try {
-    const url2 = 'https://apis.data.go.kr/B551011/KorService2/detailImage2'
-      + '?serviceKey=' + TOUR_API_KEY
-      + '&numOfRows=8&pageNo=1&MobileOS=ETC&MobileApp=KStarMap&_type=json'
-      + '&contentId=' + encodeURIComponent(contentId) + '&imageYN=Y&subImageYN=Y';
-    const res2 = await fetch(url2);
-    if (res2.ok) {
-      const data2 = await res2.json();
-      const header2 = data2?.response?.header;
-      if (!header2 || header2.resultCode === '0000' || header2.resultCode === '00') {
-        const items2 = data2?.response?.body?.items?.item;
-        const arr2 = Array.isArray(items2) ? items2 : (items2 ? [items2] : []);
-        arr2.forEach(it => {
-          const u = it.originimgurl && String(it.originimgurl).replace(/^http:\/\//, 'https://');
-          if (u && !urls.includes(u)) urls.push(u);
-        });
-      }
-    }
-  } catch(e) {}
-  return urls;
-}
-// 실시간 사진 썸네일 클릭 시 메인화면(대표사진 영역)에 반영
-window.setLiveTourPhotoMain = function(mainPhotoId, idx) {
-  const photos = (window._liveTourPhotoCache || {})[mainPhotoId];
-  const mainBox = document.getElementById(mainPhotoId);
-  if (!photos || !photos[idx] || !mainBox) return;
-  const u = photos[idx].replace(/</g,'&lt;').replace(/"/g,'&quot;');
-  const label = (window.isEn && window.isEn()) ? 'Korea Tourism Org. (Live)' : '한국관광공사 (실시간)';
-  mainBox.innerHTML = '<div style="margin:-4px -16px 12px;position:relative"><img src="' + u + '" style="width:100%;height:180px;object-fit:cover" loading="lazy">' +
-    '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + label + '</span></div>';
-};
-function pingIndexNow(url) {
-  try {
-    const endpoint = 'https://api.indexnow.org/indexnow?url=' + encodeURIComponent(url) +
-      '&key=' + INDEXNOW_KEY + '&keyLocation=' + encodeURIComponent('https://kstarmap.com/' + INDEXNOW_KEY + '.txt');
-    fetch(endpoint, { mode: 'no-cors' }).catch(() => {}); // 실패해도 사용자 흐름엔 영향 없도록 무시
-  } catch(e) {}
-}
-
 window.submitBoardPost = async function() {
   const title = document.getElementById('boardTitle').value.trim();
   const body = document.getElementById('boardBody').value.trim();
@@ -1262,8 +933,6 @@ window.submitBoardPost = async function() {
         updatedAt: serverTimestamp()
       });
       showToast('✅ 글이 수정됐어요');
-      pingIndexNow('https://kstarmap.com/map.html');
-      _boardTitleCache = null;
     } else {
       await addDoc(collection(db, 'board'), {
         title, body,
@@ -1273,11 +942,9 @@ window.submitBoardPost = async function() {
         createdAt: serverTimestamp()
       });
       showToast('✅ 글이 등록됐어요');
-      pingIndexNow('https://kstarmap.com/map.html');
-      _boardTitleCache = null;
     }
     document.getElementById('boardWrite').remove();
-    reloadBoardCurrentView();
+    loadBoardList();
   } catch(e) { showToast((editId?'수정':'등록')+' 실패: ' + (e.message||e)); }
 };
 window.openBoardStory = function(postId) {
@@ -1298,11 +965,11 @@ window.openBoardStory = function(postId) {
       let txt=body.replace(ytRe,(m,id)=>{ytIds.push(id);return '';});
       const mapTitles=[]; txt=txt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';});
       const placeTags=[]; txt=txt.replace(/\[성지:([^\]]+)\]/g,(m,t)=>{placeTags.push(t.trim());return '';}).trim();
-      txt=txt.replace(/\[맛집\]/g,'').replace(/\[쇼핑\]/g,'').replace(/\[인물\]/g,'').trim();
+      txt=txt.replace(/\[맛집\]/g,'').trim();
       const mapHtml=placeTags.length
         ? placeTags.map(pt=>{const parts=pt.split(':');const pn=parts[0].trim();const tt=parts[1]?parts[1].trim():'';return '<button onclick="boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\''+')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escS(pn)+' 지도에서 보기</button>';}).join('')
         : mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escS(t)+' 촬영지 전체보기</button>').join('');
-      const ytHtml=ytIds.map((id,i)=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+(i===0?'?autoplay=1':'')+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
+      const ytHtml=ytIds.map(id=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+'?autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
       list.innerHTML='<div style="padding:18px">'+
         '<div style="display:flex;gap:8px;margin-bottom:14px"><button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>'+
         '<button onclick="sharePost(\''+postId+'\')" style="background:#3b82f6;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">📤 공유</button></div>'+
@@ -1367,9 +1034,7 @@ window.boardToggle = function(btn) {
   full.style.display = isOpen ? 'none' : '';
   if (extra) extra.style.display = isOpen ? 'none' : '';
   if (extraMap) extraMap.style.display = isOpen ? 'none' : '';
-  // "더 보기/접기" 라벨은 항상 실제 더보기 버튼에만 반영 (제목/본문 클릭으로 들어와도 안전)
-  const moreBtn = card ? card.querySelector('.board-more-btn') : null;
-  if (moreBtn) moreBtn.textContent = isOpen ? '더 보기' : '접기';
+  btn.textContent = isOpen ? '더 보기' : '접기';
 };
 window.boardPlayVideo = function(el) {
   const id = el.getAttribute('data-yt');
@@ -1389,31 +1054,23 @@ window.sharePost = async function(pid, title) {
   if (!title && window._boardCache && window._boardCache[pid]) {
     title = window._boardCache[pid].title || '';
   }
-  const url = 'https://kstarmap.com/post/' + pid + '/';
+  const url = 'https://kstarmap.com/?post=' + pid;
   const text = '⭐ KStarMap — ' + (title || '한류 성지 이야기');
-  const copyFallback = async () => {
-    try {
-      await navigator.clipboard.writeText(text + '\n' + url);
-      showToast('📋 링크가 복사되었어요!');
-    } catch(e2) {
-      try {
-        const t = document.createElement('textarea');
-        t.value = text + '\n' + url;
-        document.body.appendChild(t); t.select();
-        document.execCommand('copy'); document.body.removeChild(t);
-        showToast('📋 링크가 복사되었어요!');
-      } catch(e3) { showToast('❌ 공유 실패: ' + (e3.message||e3)); }
-    }
-  };
   if (navigator.share) {
     try {
       await navigator.share({ title: text, text: text, url: url });
-    } catch(e) {
-      if (e.name === 'AbortError') return;   // 사용자가 직접 취소한 경우만 조용히 종료
-      await copyFallback();                   // 공유 시트가 없거나 실패하면 링크 복사로 대체
-    }
+    } catch(e) { if (e.name !== 'AbortError') showToast('공유 실패'); }
   } else {
-    await copyFallback();
+    try {
+      await navigator.clipboard.writeText(text + '\n' + url);
+      showToast('📋 링크가 복사되었어요!');
+    } catch(e) {
+      const t = document.createElement('textarea');
+      t.value = text + '\n' + url;
+      document.body.appendChild(t); t.select();
+      document.execCommand('copy'); document.body.removeChild(t);
+      showToast('📋 링크가 복사되었어요!');
+    }
   }
 };
 window.deleteBoardPost = async function(pid) {
@@ -1454,7 +1111,7 @@ window.openLangPicker = function() {
       '<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto"></div>' +
       '<div style="display:flex;align-items:center;padding:4px 8px 10px 16px">' +
         '<div style="font-size:16px;font-weight:800;color:var(--text);flex:1">🌐 ' + (isEn()?'Language':'언어 선택') + '</div>' +
-        '<button onclick="document.getElementById(\'langSheet\').remove()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
+        '<button onclick="document.getElementById(\'langSheet\').remove();setTimeout(openMoreMenu,0)" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
       rows +
       '<div style="font-size:11px;color:var(--text3);text-align:center;padding:14px 16px 4px">' +
@@ -1500,23 +1157,12 @@ function setGoogTransCookie(val) {
 // 앱 UI는 항상 한국어 원문. 저장된 언어는 구글 번역 쿠키로 자동 적용됨.
 // 나갔다 와서 쿠키가 사라졌으면 localStorage 언어로 복원 → 새로고침해서 그 언어로 다시 뜸.
 (function restoreLangCookie() {
-  let saved = localStorage.getItem('kstar_display_lang');
-  // 첫 방문(설정한 적 없음): 기본 언어를 영어로. 이후엔 사용자가 고른 언어를 기억함.
-  if (!saved) {
-    saved = 'en';
-    localStorage.setItem('kstar_display_lang', 'en');
-  }
-  if (saved === 'ko') return;
+  const saved = localStorage.getItem('kstar_display_lang');
+  if (!saved || saved === 'ko') return;
   const l = LANG_LIST.find(x => x.code === saved);
   if (!l || !l.google) return;
   const hasCookie = document.cookie.indexOf('googtrans=') !== -1;
   if (!hasCookie) {
-    // 쿠키 쓰기가 막힌 환경(인앱 브라우저·쿠키 차단 설정 등)에서
-    // 새로고침을 반복하지 않도록 세션당 1회만 시도
-    let alreadyTried = false;
-    try { alreadyTried = sessionStorage.getItem('kstar_lang_reload_tried') === '1'; } catch(e) {}
-    if (alreadyTried) return;
-    try { sessionStorage.setItem('kstar_lang_reload_tried', '1'); } catch(e) {}
     setGoogTransCookie('/ko/' + l.google);
     location.reload();   // 쿠키 복원 후 새로고침 → 저장한 언어로 표시
   }
@@ -1546,8 +1192,8 @@ function applyLangToUI() {
     tabs[3].textContent = isEn() ? 'Language' : '언어';
     tabs[4].textContent = t('tabMy');
   }
-  // 시트 버튼 (SVG 아이콘 유지 — 안쪽 span 텍스트만 교체)
-  const certLabel = document.querySelector('#placeSheet .cert-btn span');
+  // 시트 버튼
+  const certLabel = document.querySelector('#placeSheet .cert-btn');
   if (certLabel) certLabel.textContent = t('certBtn');
   const navLabel = document.getElementById('navLabel');
   if (navLabel) navLabel.textContent = t('nav');
@@ -1611,8 +1257,6 @@ function initMap() {
     level: 5
   });
   window._map = map;
-  // 첫 진입 시 지도 대신 홈 랭킹 화면부터 보여줌(지도는 뒤에서 정상 초기화됨)
-  if (_showHomeRanking) showHomeRanking();
 
   // 카카오 로컬 검색 서비스 (SDK 로드 완료 후 생성)
   ps = new kakao.maps.services.Places();
@@ -1624,17 +1268,7 @@ function initMap() {
     renderRestPinsInView();
   });
   // 지도 빈 곳 탭 → 시트 닫기 (단, 핀을 방금 눌러 연 경우는 무시)
-  kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
-    // 콘솔 대량 성지 추가 모드: 클릭한 좌표로 큐의 다음 항목 저장
-    if (_bulkAddQueue && _bulkAddIndex < _bulkAddQueue.length && mouseEvent && mouseEvent.latLng) {
-      adminApplyBulkAdd(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng());
-      return;
-    }
-    // 관리자 위치 이동 모드: 클릭한 좌표로 성지 옮기기
-    if (_movePlaceMode && mouseEvent && mouseEvent.latLng) {
-      adminApplyMovePlace(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng());
-      return;
-    }
+  kakao.maps.event.addListener(map, 'click', function() {
     if (Date.now() - _lastPinTap < 400) return;   // 핀 탭 직후의 지도 click은 무시
     closePlaceSheet();
     // 검색 핀은 유지 (지우지 않음) — 검색 결과를 계속 볼 수 있게
@@ -1732,10 +1366,6 @@ async function loadAllData() {
 // ── 핀 렌더 (뷰포트 기반) ──
 // content를 실제 DOM 엘리먼트로 생성 → 클릭 리스너 직접 연결(안정적)
 let _lastPinTap = 0;
-let _movePlaceMode = null;   // 관리자 위치 이동 모드: { pid, name }
-let _bulkAddQueue = null;    // 콘솔 대량 성지 추가 모드: [{placeName,title,...}, ...]
-let _bulkAddIndex = 0;
-let _bulkAddDone = [];       // 완료된 항목 이름 기록(로그용)
 function makePinEl(color, icon, handler, highlight, sizeOverride) {
   const el = document.createElement('div');
   const size = sizeOverride || (highlight ? 36 : 26);
@@ -1777,16 +1407,6 @@ function passHallyuFilter(d) {
   }
   return true;
 }
-// 맛집(restaurants 컬렉션)용 필터: celeb 필드로 판단.
-// 작품(title) 필터는 맛집엔 해당 사항이 없으므로 숨김 처리.
-function passRestHallyuFilter(d) {
-  if (!_hallyuFilter) return true;
-  if (_hallyuFilter.type === 'actor') {
-    const celeb = (d.celeb || '').replace(/\s/g,'').toLowerCase();
-    return celeb.includes(_hallyuFilter.value);
-  }
-  return false;
-}
 
 function renderPilgrimPinsInView() {
   if (!map) return;
@@ -1805,11 +1425,9 @@ function renderPilgrimPinsInView() {
     if (!b.contain(pos)) continue;
     if (count++ > 200) break;
     const icon = d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺';
-    // 관광공사 실시간 사진 매칭 여부를 핀 색깔로 바로 구분(빨강=매칭됨, 파랑=매칭 안 됨)
-    const pinColor = d.tourContentId ? '#E24B4A' : '#378ADD';
     // 필터/작품칩이 걸려있으면 그 핀을 강조
     const highlight = !!(_hallyuFilter || _contentFilter || _hallyuFocus);
-    const el = makePinEl(pinColor, icon, () => {
+    const el = makePinEl('#378ADD', icon, () => {
       // 같은 좌표에 여러 작품이 있으면 선택 팝업
       const sameSpot = _pilgrimData.filter(p => p.lat === d.lat && p.lng === d.lng && p.placeName === d.placeName);
       if (sameSpot.length > 1) {
@@ -1883,7 +1501,6 @@ window.clearHallyuFilter = function() {
   _hallyuFilter = null;
   _hallyuFocus = null;
   renderPilgrimPinsInView();
-  renderRestPinsInView();
   showToast('필터 해제');
 };
 function renderActiveFilterChip() { updateContentBar(); }
@@ -1918,7 +1535,7 @@ window.openHallyuSearch = function() {
         '<input id="hallyuInput" type="text" placeholder="' + (isEn() ? 'Search artist, drama, movie' : '배우·드라마·영화·그룹명 검색') + '" autocomplete="off" style="flex:1;border:none;outline:none;background:none;font-size:14px;color:var(--text)">' +
       '</div>' +
     '</div>' +
-    '<div id="hallyuResults" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch">' +
+    '<div id="hallyuResults" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">' +
       '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px"><div style="font-size:34px;margin-bottom:10px">🎬</div>' + t('hallyuPlaceholder') + '</div>' +
     '</div>';
   document.body.appendChild(v);
@@ -1948,56 +1565,36 @@ function doHallyuSearch(q) {
            norm(d.placeName) + '|' + norm(actors) + '|' + norm(d.addr) + '|' + norm(d.addr_en);
   };
   const matched = _pilgrimData.filter(d => blobOf(d).includes(lq));
-  // 맛집(restaurants 컬렉션)도 같이 검색: celeb/name/area/comment
-  const restBlobOf = d => norm(d.celeb) + '|' + norm(d.name) + '|' + norm(d.area) + '|' + norm(d.comment) + '|' + norm(d.address);
-  const restMatched = _restData.filter(d => restBlobOf(d).includes(lq));
-  if (!matched.length && !restMatched.length) {
+  if (!matched.length) {
     box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">' + t('noResult') + '</div>';
     return;
   }
-  // 검색어가 배우명과 매칭되는지 (actors 또는 맛집 celeb에 포함) → 배우 필터 항목
+  // 검색어가 배우명과 매칭되는지 (actors에 포함) → 배우 필터 항목
   const actorMatched = matched.filter(d => {
     const actors = (Array.isArray(d.actors) ? d.actors.join('') : (d.actors||'')).replace(/\s/g,'').toLowerCase();
     return actors.includes(lq);
   });
-  const celebRestMatched = restMatched.filter(d => (d.celeb||'').replace(/\s/g,'').toLowerCase().includes(lq));
-  // 실제 배우/셀럽 이름 찾기 (표시용)
+  // 실제 배우 이름 찾기 (표시용)
   let actorLabel = q;
   for (const d of actorMatched) {
     const arr = Array.isArray(d.actors) ? d.actors : [];
     const found = arr.find(a => a.replace(/\s/g,'').toLowerCase().includes(lq));
     if (found) { actorLabel = found; break; }
   }
-  if (actorLabel === q && celebRestMatched.length) actorLabel = celebRestMatched[0].celeb || q;
 
-  let html = '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">' + (matched.length + restMatched.length) + (isEn() ? ' spots found' : '곳을 찾았어요') + '</div>';
+  let html = '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">' + matched.length + (isEn() ? ' spots found' : '곳의 성지를 찾았어요') + '</div>';
 
-  // ★ 배우 필터 항목 (맨 위, 강조) — 성지+맛집 합산
-  if (actorMatched.length || celebRestMatched.length) {
-    const total = actorMatched.length + celebRestMatched.length;
+  // ★ 배우 필터 항목 (맨 위, 강조)
+  if (actorMatched.length) {
     html += '<div onclick="applyActorFilter(\'' + lq + '\',\'' + actorLabel.replace(/'/g,"\\'") + '\')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;background:var(--gold-bg)">' +
       '<div style="width:44px;height:44px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">⭐</div>' +
       '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:var(--gold)">' + actorLabel.replace(/</g,'&lt;') + ' ' + t('allSpots') + '</div>' +
-      '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + t('hallyuHint') + ' ' + total + (isEn()?' spots':'곳') + '</div></div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + t('hallyuHint') + ' ' + actorMatched.length + (isEn()?' spots':'곳') + '</div></div>' +
       '<span style="color:var(--gold);font-size:13px;font-weight:700;flex-shrink:0">' + (isEn()?'Filter ›':'필터 ›') + '</span>' +
     '</div>';
   }
 
-  // 🍽️ 맛집 개별 리스트 (이름별로 하나씩, celeb 매칭분 우선 정렬)
-  if (restMatched.length) {
-    const sortedRest = [...restMatched].sort((a,b) => (celebRestMatched.includes(b)?1:0) - (celebRestMatched.includes(a)?1:0));
-    html += sortedRest.map(d => {
-      const safe = s => String(s||'').replace(/'/g,"\\'");
-      return '<div onclick="closeHallyuSearchAndOpenRest(\'' + d._id + '\')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer">' +
-        '<div style="width:44px;height:44px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🍽️</div>' +
-        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text)">' + safe(d.name).replace(/</g,'&lt;') + '</div>' +
-        '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + (d.celeb ? '⭐ '+safe(d.celeb).replace(/</g,'&lt;')+' · ' : '') + (d.area||d.cat||'') + '</div></div>' +
-        '<span style="color:var(--text3);font-size:13px;flex-shrink:0">›</span>' +
-      '</div>';
-    }).join('');
-  }
-
-  // 작품별 그룹핑 (성지)
+  // 작품별 그룹핑
   const byTitle = {};
   matched.forEach(d => { const t = d.title || '기타'; (byTitle[t] = byTitle[t] || []).push(d); });
   const groups = Object.entries(byTitle).sort((a,b) => b[1].length - a[1].length);
@@ -2016,23 +1613,6 @@ function doHallyuSearch(q) {
   }).join('');
   box.innerHTML = html;
 }
-
-// 검색 결과에서 맛집 하나 클릭 → 검색창 닫고 지도에서 바로 상세 열기
-window.closeHallyuSearchAndOpenRest = function(id) {
-  const d = _restData.find(r => r._id === id);
-  if (!d) return;
-  document.getElementById('hallyuSearch')?.remove();
-  switchTabTo('map');
-  try {
-    map.setCenter(new kakao.maps.LatLng(d.lat, d.lng));
-    map.setLevel(5);
-  } catch(e) {}
-  openPlaceSheet({
-    name: d.name, sub: d.cat + (d.area?' · '+d.area:'') + (d.celeb?' · '+d.celeb:''),
-    lat: d.lat, lng: d.lng, color: 'var(--amber)', type: 'rest', raw: d
-  });
-  setTimeout(() => { renderPilgrimPinsInView(); renderRestPinsInView(); }, 300);
-};
 
 // 배우 필터 적용
 window.applyActorFilter = function(lq, label) {
@@ -2053,10 +1633,7 @@ function finishHallyuFilter(label) {
   document.getElementById('chipPilgrim')?.classList.remove('off');
   renderActiveFilterChip();
   const list = _pilgrimData.filter(d => d.lat && d.lng && passHallyuFilter(d));
-  const restList = _restData.filter(d => d.lat && d.lng && passRestHallyuFilter(d));
-  if (!list.length && !restList.length) { showToast('해당 성지가 없어요'); return; }
-  // 거리/화면판단은 성지+맛집 합쳐서 계산 (성지가 없고 맛집만 있는 셀럽도 정상 동작하도록)
-  const combined = [...list, ...restList];
+  if (!list.length) { showToast('해당 성지가 없어요'); return; }
 
   // 현재 지도 중심 기준 (명동 검색해서 보고 있으면 명동 유지)
   let cLat, cLng;
@@ -2064,32 +1641,32 @@ function finishHallyuFilter(label) {
   catch(e) { cLat = myLat; cLng = myLng; }
   const dist = (d, la, ln) => { const a=(d.lat-la)*111, b=(d.lng-ln)*88; return Math.sqrt(a*a+b*b); };
 
-  // 지금 보고 있는 화면 안에 필터 성지/맛집이 있으면 → 지도 안 움직이고 필터만
+  // 지금 보고 있는 화면 안에 필터 성지가 있으면 → 지도 안 움직이고 필터만
   let inView = [];
   try {
     const b = map.getBounds();
-    inView = combined.filter(d => b.contain(new kakao.maps.LatLng(d.lat, d.lng)));
+    inView = list.filter(d => b.contain(new kakao.maps.LatLng(d.lat, d.lng)));
   } catch(e) {}
   if (inView.length) {
-    showToast(label + ' ' + inView.length + '곳 (이 지역)');
-    setTimeout(() => { renderPilgrimPinsInView(); renderRestPinsInView(); }, 100);
+    showToast(label + ' 성지 ' + inView.length + '곳 (이 지역)');
+    setTimeout(() => renderPilgrimPinsInView(), 100);
     return;
   }
 
-  // 화면에 없으면 → 현재 지도 중심에서 가장 가까운 곳으로
-  const sorted = [...combined].sort((x,y) => dist(x,cLat,cLng) - dist(y,cLat,cLng));
+  // 화면에 없으면 → 현재 지도 중심에서 가장 가까운 성지로
+  const sorted = [...list].sort((x,y) => dist(x,cLat,cLng) - dist(y,cLat,cLng));
   const nearest = sorted[0];
   if (dist(nearest,cLat,cLng) <= 30) {
     const n = sorted.filter(d => dist(d,cLat,cLng) <= 30).length;
     map.setCenter(new kakao.maps.LatLng(cLat, cLng));
     map.setLevel(n > 1 ? 6 : 5);
-    showToast('이 근처 ' + label + ' ' + n + '곳');
+    showToast('이 근처 ' + label + ' 성지 ' + n + '곳');
   } else {
     map.setCenter(new kakao.maps.LatLng(nearest.lat, nearest.lng));
     map.setLevel(6);
-    showToast('가장 가까운 ' + label + '로 이동');
+    showToast('가장 가까운 ' + label + ' 성지로 이동');
   }
-  setTimeout(() => { renderPilgrimPinsInView(); renderRestPinsInView(); }, 300);
+  setTimeout(() => renderPilgrimPinsInView(), 300);
 }
 
 // 검색 결과 작품 선택 → 내 주변 우선으로 표시
@@ -2134,11 +1711,10 @@ function renderRestPinsInView() {
   clearMarkers(_restMarkers);
   if (!_filters.rest) return;
   const b = map.getBounds();
-  if (!_hallyuFilter && map.getLevel() > 10) return;
+  if (map.getLevel() > 10) return;
   let count = 0;
   for (const d of _restData) {
     if (!d.lat || !d.lng) continue;
-    if (!passRestHallyuFilter(d)) continue;
     const pos = new kakao.maps.LatLng(d.lat, d.lng);
     if (!b.contain(pos)) continue;
     if (count++ > 200) break;
@@ -2361,13 +1937,10 @@ function openPlaceSheet(place) {
       const addr = raw.addr || raw.address || raw.area || '';
       // 사진: tourImages(배열) 우선 → 여러 장 슬라이드, 없으면 tourImage(1장)
      const tourImgs = window.visibleTourImgs ? window.visibleTourImgs(raw) : (Array.isArray(raw.tourImages) ? raw.tourImages.filter(Boolean).map(u => String(u).replace(/^http:\/\//, 'https://')) : []);
-      const mainPhotoId = 'mainPhoto_' + Date.now();
-      let hasMainPhoto = false;
       if (tourImgs.length >= 2) {
-        hasMainPhoto = true;
         const slides = tourImgs.map(u => '<img src="' + esc(u) + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:cover;height:200px" loading="lazy">').join('');
         const dots = tourImgs.map((_,i)=>'<span class="tdot" style="width:6px;height:6px;border-radius:50%;background:' + (i===0?'#fff':'rgba(255,255,255,0.5)') + ';transition:background .2s"></span>').join('');
-        html += '<div id="' + mainPhotoId + '" class="tour-gallery" style="margin:-4px -16px 12px;position:relative">' +
+        html += '<div class="tour-gallery" style="margin:-4px -16px 12px;position:relative">' +
             '<div class="tour-track" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">' + slides + '</div>' +
             '<button onclick="tourGallerySlide(this,-1)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:none;border-radius:50%;background:rgba(0,0,0,0.4);color:#fff;font-size:20px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;padding:0">\u2039</button>' +
             '<button onclick="tourGallerySlide(this,1)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:none;border-radius:50%;background:rgba(0,0,0,0.4);color:#fff;font-size:20px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;padding:0">\u203a</button>' +
@@ -2376,13 +1949,9 @@ function openPlaceSheet(place) {
             '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span>' +
           '</div>';
       } else if (tourImgs.length === 1 || (raw.tourImage && tourPhotoTrusted(raw) && !(raw.hiddenImages||[]).includes(raw.tourImage))) {
-        hasMainPhoto = true;
         const imgUrl = tourImgs[0] || String(raw.tourImage).replace(/^http:\/\//, 'https://');
-        html += '<div id="' + mainPhotoId + '" style="margin:-4px -16px 12px;position:relative"><img src="' + esc(imgUrl) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
+        html += '<div style="margin:-4px -16px 12px;position:relative"><img src="' + esc(imgUrl) + '" style="width:100%;height:180px;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
           '<span style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:9px;padding:2px 7px;border-radius:5px">' + (isEn()?'Korea Tourism Org.':'한국관광공사') + '</span></div>';
-      } else {
-        // 대표사진이 아직 없음 — 실시간 사진이 오면 여기를 채운다
-        html += '<div id="' + mainPhotoId + '"></div>';
       }
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
         '<span style="background:' + badgeColor + ';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px">' + badge + '</span>' +
@@ -2390,26 +1959,6 @@ function openPlaceSheet(place) {
       if (actors) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🎭 ' + esc(actors) + '</div>';
       if (addr) html += '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">📍 ' + esc(addr) + '</div>';
       if (story) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--gold);border-radius:6px;padding:10px 12px">' + esc(story) + '</div>';
-      // 관광공사 TourAPI 실시간 사진 조회 (저장된 사진과 별개로, 그 순간 API를 직접 호출)
-      if (raw.tourContentId) {
-        const liveId = 'livePhotos_' + Date.now();
-        html += '<div id="' + liveId + '" style="margin-top:10px"></div>';
-        (async () => {
-          const photos = await fetchLiveTourPhotos(raw.tourContentId);
-          console.log('[실시간사진] ' + (raw.placeName||'') + ' contentId=' + raw.tourContentId + ' → ' + photos.length + '장');
-          const box = document.getElementById(liveId);
-          if (!box || !photos.length) return;
-          window._liveTourPhotoCache = window._liveTourPhotoCache || {};
-          window._liveTourPhotoCache[mainPhotoId] = photos;
-          const escU = u => u.replace(/</g,'&lt;').replace(/"/g,'&quot;');
-          // 대표사진이 원래 없던 자리면, 실시간 사진 중 첫 장을 메인화면에 바로 채운다
-          if (!hasMainPhoto) window.setLiveTourPhotoMain(mainPhotoId, 0);
-          box.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">📡 ' + (isEn()?'Live from Korea Tourism Org. — tap a photo to set as main':'한국관광공사 실시간 사진 — 눌러서 메인화면에 표시') + '</div>' +
-            '<div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">' +
-            photos.map((u,i) => '<img src="' + escU(u) + '" onclick="setLiveTourPhotoMain(\'' + mainPhotoId + '\',' + i + ')" style="width:84px;height:84px;object-fit:cover;border-radius:8px;flex:0 0 auto;cursor:pointer" loading="lazy">').join('') +
-            '</div>';
-        })();
-      }
       const _dispLang = (window.localStorage && localStorage.getItem('kstar_display_lang')) || 'ko';
       const _isEnDisp = _dispLang !== 'ko';
       const _mt = (_isEnDisp && raw.title_en) ? raw.title_en : (raw.title || '');
@@ -2423,7 +1972,7 @@ function openPlaceSheet(place) {
         const _eq = encodeURIComponent(_q);
         const _yt = 'https://www.youtube.com/results?search_query=' + _eq;
         const _gg = 'https://www.google.com/search?q=' + _eq;
-        // 명장면 블로그 연결 — 관련 글을 최대 3개까지 목록으로, 더 있으면 "더보기"로 나머지 펼침
+        // 명장면 블로그 연결
         const _pnClean = (raw.placeName||'').replace(/\s/g,'');
         if (_pnClean) {
           const storyBtnId = 'storyBtn_' + Date.now();
@@ -2433,24 +1982,14 @@ function openPlaceSheet(place) {
               const {db,collection,getDocs,query,where}=window._mapDB;
               const snap=await getDocs(query(collection(db,'board'),where('placeTags','array-contains',raw.placeName||'')));
               if(snap.empty) return;
-              const box=document.getElementById(storyBtnId);
-              if(!box) return;
-              const posts = snap.docs.map(d => ({ id:d.id, title:d.data().title||'명장면 보기', createdAt: d.data().createdAt }));
-              posts.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));  // 색인 없이 클라이언트에서 최신순 정렬
-              const escT = t => String(t).replace(/</g,'&lt;').replace(/'/g,"\\'");
-              const rowHtml = p => '<button onclick="openBoardStory(\''+p.id+'\')" style="display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;border:1px solid var(--gold);border-radius:10px;padding:11px 13px;background:var(--gold-bg);cursor:pointer;margin-bottom:6px">'+
+              const post=snap.docs[0]; const pd=post.data();
+              const btn=document.getElementById(storyBtnId);
+              if(!btn) return;
+              btn.style.display='';
+              btn.innerHTML='<button onclick="openBoardStory(\''+post.id+'\')" style="display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;border:1px solid var(--gold);border-radius:10px;padding:11px 13px;background:var(--gold-bg);cursor:pointer">'+
                 '<span style="font-size:16px">📖</span>'+
-                '<span style="flex:1;font-size:13px;color:var(--gold);font-weight:700;text-align:left">'+escT(p.title)+'</span>'+
+                '<span style="flex:1;font-size:13px;color:var(--gold);font-weight:700;text-align:left">'+(pd.title||'명장면 보기')+'</span>'+
                 '<span style="font-size:11px;color:var(--text3)">→</span></button>';
-              const shown = posts.slice(0,3), rest = posts.slice(3);
-              let innerHtml = shown.map(rowHtml).join('');
-              if (rest.length) {
-                const moreId = storyBtnId + '_more';
-                innerHtml += '<button onclick="document.getElementById(\''+moreId+'\').style.display=\'block\';this.remove()" style="width:100%;text-align:center;font-size:12px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0">더보기 (' + rest.length + '개 더) ▾</button>' +
-                  '<div id="'+moreId+'" style="display:none">' + rest.map(rowHtml).join('') + '</div>';
-              }
-              box.innerHTML = innerHtml;
-              box.style.display='';
             }catch(e){}
           })();
         }
@@ -2507,9 +2046,6 @@ function openPlaceSheet(place) {
   sheet.style.transform = '';   // 이전에 남은 인라인 transform(예: translateY로 아래로 밀림) 제거 → .show가 정상 적용되게
   sheet.dataset.expanded = '0';
   sheet.classList.add('show');
-  // 성지 카드가 떠 있는 동안엔 검색·성지·맛집 칩을 지도처럼 뒤로 숨겨 안 보이게
-  const fbar = document.querySelector('.filterbar-float');
-  if (fbar) fbar.style.display = 'none';
   // 상단(핸들·✕·장소명)이 항상 보이도록 스크롤 최상단 고정
   // 사진 등 콘텐츠가 뒤늦게 로드되며 레이아웃이 밀리는 경우까지 커버
   sheet.scrollTop = 0;
@@ -2611,9 +2147,6 @@ window.closePlaceSheet = function() {
   sheet.style.maxHeight = '';
   sheet.dataset.expanded = '0';
   _selectedPlace = null;
-  // 카드가 닫히면 칩바 다시 표시
-  const fbar = document.querySelector('.filterbar-float');
-  if (fbar) fbar.style.display = '';
 };
 
 // 시트 펼침/접힘 토글 (탭·프로그램 호출용). 스와이프는 아래 setupSheetDrag가 담당
@@ -2693,8 +2226,60 @@ function collapseSheet() {
     sheet.dataset.expanded = '0';
   }
 
-  // 손잡이를 이용한 드래그/탭 확장 기능은 혼란을 유발해 제거함 (2026-08).
-  // 시트는 이제 ✕ 버튼으로만 닫고, 펼치기는 본문의 "더보기" 텍스트 링크(toggleSheetExpand)로만 동작함.
+  handle.addEventListener('touchstart', e => {
+    // ✕ 버튼에서 시작한 터치는 드래그 아님(닫기 전용)
+    if (e.target && e.target.closest && e.target.closest('.place-close')) return;
+    startY = lastY = e.touches[0].clientY;
+    startH = sheet.getBoundingClientRect().height;
+    dragging = true; velocity = 0; moved = false;
+    sheet.style.transition = 'none';
+    sheet.style.maxHeight = 'none';   // 드래그 중엔 62vh 상한 해제(크게 열 수 있게)
+  }, {passive:true});
+
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const y = e.touches[0].clientY;
+    velocity = lastY - y; lastY = y;
+    if (Math.abs(y - startY) > 6) moved = true;
+    // 손가락 따라 실시간 높이 (위로 끌면 커지고 아래로 내리면 작아짐)
+    const newH = Math.min(Math.max(startH + (startY - y), MIN_H), maxH());
+    sheet.style.height = newH + 'px';
+  }, {passive:true});
+
+  document.addEventListener('touchend', (e) => {
+    if (!dragging) return;
+    dragging = false;
+    // ✕ 위에서 끝난 순수 탭은 닫기 로직에 맡김
+    if (!moved && e && e.target && e.target.closest && e.target.closest('.place-close')) return;
+    const curH = sheet.getBoundingClientRect().height;
+    // 거의 안 움직였으면(탭) 펼침/접힘 토글
+    if (!moved) {
+      const expanded = sheet.dataset.expanded === '1';
+      if (expanded) {
+        collapseToAuto();
+      } else {
+        snapTo(midH(), true);
+      }
+      return;
+    }
+    // 스와이프: 속도 우선, 아니면 가까운 지점으로 snap
+    if (velocity > 8) snapTo(maxH(), true);            // 빠르게 위로 → 크게
+    else if (velocity < -8) collapseToAuto();          // 빠르게 아래로 → 접힘
+    else {
+      // 3지점 중 가까운 곳: 접힘(MIN_H)·중간(midH)·크게(maxH)
+      const pts = [MIN_H, midH(), maxH()];
+      const nearest = pts.reduce((a,b) => Math.abs(a-curH) < Math.abs(b-curH) ? a : b);
+      if (nearest === MIN_H) collapseToAuto();
+      else snapTo(nearest, true);
+    }
+  });
+
+  // 데스크톱: 핸들 클릭으로 토글 (터치 기기는 위 로직이 처리)
+  handle.addEventListener('click', e => {
+    if (e.target && e.target.closest && e.target.closest('.place-close')) return;
+    if ('ontouchstart' in window) return;
+    toggleSheetExpand();
+  });
 
   // 본문 스크롤이 지도로 전파되지 않게 (index.html과 동일)
   sheet.addEventListener('touchstart', e => { sheet._ty = e.touches[0].clientY; sheet._st = sheet.scrollTop; }, {passive:true});
@@ -2758,8 +2343,10 @@ window.toggleSavePlace = function() {
 };
 function updateSaveBtnUI(saved) {
   const btn = document.getElementById('saveBtn');
+  const icon = document.getElementById('saveBtnIcon');
   const label = document.getElementById('saveBtnLabel');
-  // 아이콘은 SVG로 고정(텍스트 덮어쓰지 않음) — 저장 상태는 버튼 배경색으로 표시
+  // 아이콘: 저장 시 채운 북마크, 아니면 빈 북마크 (텍스트는 안 건드림 → 구글 번역 유지)
+  if (icon) icon.textContent = saved ? '🔖' : '🔖';
   if (btn) {
     if (saved) {
       btn.style.background = 'var(--gold)';
@@ -3618,33 +3205,6 @@ window.toggleFilter = function(type) {
 
 // ── 하단 탭 (지도 외는 다음 단계) ──
 let _currentView = 'map';
-// ── PC 좌측 세로 네비게이션 ──
-window.railSwitch = function(tab) {
-  switchTab(tab);
-  document.querySelectorAll('#railNav .rail-item').forEach(el => {
-    el.classList.toggle('active', el.getAttribute('data-tab') === tab);
-  });
-};
-// ── PC 좌측 사이드 패널 (한류정보창고) ──
-let _sidePanelReady = false;
-window.toggleSidePanel = function() {
-  const panel = document.getElementById('sidePanel');
-  const openBtn = document.getElementById('sidePanelOpen');
-  if (!panel) return;
-  const collapsed = panel.classList.toggle('collapsed');
-  if (openBtn) openBtn.classList.toggle('show', collapsed);
-  if (map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 240);
-};
-function initSidePanel() {
-  // 넓은 화면일 때만 사이드 패널에 게시판을 로드
-  if (window.innerWidth < 900) return;
-  const body = document.getElementById('sidePanelBody');
-  if (!body || _sidePanelReady) return;
-  _sidePanelReady = true;
-  // loadBoardList가 찾는 #boardList 컨테이너를 사이드 패널 안에 마련
-  body.innerHTML = '<div id="boardList" style="min-height:100%"></div>';
-  loadBoardList();
-}
 function showView(view) {
   _currentView = view;
   document.getElementById('mapWrap').style.display = (view === 'map') ? 'flex' : 'none';
@@ -3677,19 +3237,8 @@ window.switchTab = function(tab) {
     if (window.closePlaceSheet) closePlaceSheet();
     hideSearchResults();
     switchTabTo('map');
-    if (wasMap) {
-      // 이미 지도 탭에 있는 상태에서 다시 누르면:
-      // 홈 랭킹 화면이 떠 있으면 → 실제 지도로 전환, 실제 지도를 보고 있으면 → 홈 랭킹 화면으로 복귀
-      if (_showHomeRanking) {
-        hideHomeRanking();
-        if (map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 40);
-      } else {
-        showHomeRanking();
-      }
-      return;
-    }
-    // 다른 탭에서 지도 탭으로 넘어온 경우 relayout 한 번 더 (먹통 방지)
-    if (map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 40);
+    // 이미 지도에 있었으면 relayout 한 번 더 (먹통 방지)
+    if (wasMap && map) setTimeout(() => { try { map.relayout(); } catch(e){} }, 40);
     return;
   }
   switchTabTo(tab);
@@ -3720,222 +3269,6 @@ window.onAuthChanged = function(user) {
 })();
 
 // ── 시작 ──
-// ── 홈 랭킹 화면 (지도 탭 첫 진입 화면) ──
-// 실사용 데이터(조회수·인증·저장)가 쌓이기 전까지는 큐레이션 순위로 시작.
-// location/food/shopping: 실제 등록된 성지/맛집 이름과 매칭해 지도로 바로 연결.
-// actor/drama/movie/music: 한류정보창고 글 제목과 매칭해 해당 글로 연결(없으면 준비중 안내).
-let _showHomeRanking = true;
-let _boardTitleCache = null; // 인물/드라마/영화/음악 카드 클릭 시 제목 검색용 캐시 (최초 1회만 서버에서 읽고 재사용)
-// 카테고리별로 매칭에 요구할 게시글 태그 (예: 드라마 랭킹은 [드라마] 태그 있는 글만 찾음 — 배우 소개글에 드라마명이 우연히 들어있어도 안 걸리게)
-const HOME_CATEGORY_TAG = { actor:'인물', drama:'드라마', movie:'영화', music:'음악' };
-const HOME_PLACE_TAG = { location: null, food:'맛집', shopping:'쇼핑' };
-const HOME_RANKINGS = {
-  location: { icon:'📍', label:'인기촬영지', sub:'드라마 속 그 장소, 실제로 가보기', linkType:'place', items:[
-    {name:'도깨비 방파제', blurb:'공유·김고은의 명장면, 강릉 주문진'},
-    {name:'BTS 버스정류장', blurb:'BTS 앨범 재킷 촬영지, 아미들의 순례지'},
-    {name:'카페 몽테드', blurb:'선재 업고 튀어 촬영지, 수원 행궁동'},
-    {name:'일영역', blurb:'봄날 뮤직비디오 촬영지'},
-    {name:'서울대학교 폐수영장', blurb:'화양연화·봄날 촬영지'},
-    {name:'잠실종합운동장', blurb:'BTS 월드투어 개막 무대'},
-    {name:'광화문광장', blurb:'BTS 완전체 컴백쇼 무대'},
-    {name:'고척스카이돔', blurb:'BTS 최초 국내 돔 콘서트'},
-  ]},
-  actor: { icon:'🌟', label:'인기연예인', sub:'데뷔부터 지금까지, 그 사람의 이야기', linkType:'post', items:[
-    {name:'아이유', blurb:'가난한 연습생에서 국민 여동생까지'},
-    {name:'김수현', blurb:'한류 정상급 배우의 성장기'},
-    {name:'박서준', blurb:'이태원클라쓰 이후의 행보'},
-    {name:'뷔(BTS)', blurb:'대구 소년에서 세계적 아이돌로'},
-    {name:'지수(BLACKPINK)', blurb:'YG 연습생부터 블랙핑크까지'},
-    {name:'변우석', blurb:'선재 업고 튀어로 폭발한 스타성'},
-    {name:'김혜윤', blurb:'아역부터 로코퀸까지'},
-    {name:'송강', blurb:'스위트홈에서 스타덤으로'},
-  ]},
-  drama: { icon:'📺', label:'인기드라마', sub:'전 세계가 본 K-드라마', linkType:'post', items:[
-    {name:'선재 업고 튀어', blurb:'2024년 최고 화제작'},
-    {name:'사랑의 불시착', blurb:'전 세계가 사랑한 로맨스'},
-    {name:'도깨비', blurb:'K-드라마 신드롬의 시작'},
-    {name:'이상한 변호사 우영우', blurb:'전 세계 넷플릭스 1위'},
-    {name:'폭싹 속았수다', blurb:'2025년 넷플릭스 글로벌 히트작'},
-    {name:'이태원클라쓰', blurb:'청춘 복수극의 정석'},
-    {name:'눈물의 여왕', blurb:'김수현·김지원 재벌 로맨스'},
-    {name:'오징어 게임', blurb:'넷플릭스 역대 최고 흥행작'},
-  ]},
-  movie: { icon:'🎬', label:'인기영화', sub:'세계가 인정한 한국 영화', linkType:'post', items:[
-    {name:'기생충', blurb:'아카데미 작품상 수상작'},
-    {name:'극한직업', blurb:'천만 관객 코미디, 수원왕갈비통닭 신드롬'},
-    {name:'부산행', blurb:'K-좀비 장르의 시작'},
-    {name:'헤어질 결심', blurb:'칸이 인정한 박찬욱'},
-    {name:'미나리', blurb:'아카데미 여우조연상 수상작'},
-    {name:'베테랑', blurb:'황정민표 통쾌한 액션'},
-  ]},
-  music: { icon:'🎵', label:'인기음악', sub:'전 세계를 흔든 K-pop 히트곡', linkType:'post', items:[
-    {name:'Dynamite', blurb:'한국 가수 최초 빌보드 핫100 1위'},
-    {name:'봄날', blurb:'BTS가 부르는 그리움의 노래'},
-    {name:'DNA', blurb:'BTS를 세계로 알린 곡'},
-    {name:'Butter', blurb:'역대 최다 동시 시청자 기록'},
-    {name:'붐바야', blurb:'블랙핑크 데뷔곡'},
-    {name:'휘파람', blurb:'데뷔 13일 만에 1위'},
-    {name:'불장난', blurb:'블랙핑크 신인 최초 3관왕'},
-    {name:'IDOL', blurb:'니키 미나즈와의 콜라보'},
-  ]},
-  food: { icon:'🍲', label:'인기맛집', sub:'그 지역을 대표하는 진짜 노포', linkType:'place', items:[
-    {name:'안일옥', blurb:'경기도 최고령, 100년 국밥집'},
-    {name:'이문설농탕', blurb:'대한민국 현존 최고(最古) 식당'},
-    {name:'우래옥', blurb:'서울 3대 평양냉면'},
-    {name:'삼백집', blurb:'전주 콩나물국밥 원조'},
-    {name:'고복수평양냉면', blurb:'실향민 3대가 이어온 냉면'},
-    {name:'인하찹쌀순대', blurb:'부천 40년 순대국밥'},
-    {name:'신승반점', blurb:'짜장면 원조 공화춘의 진짜 혈통'},
-  ]},
-  shopping: { icon:'🛍️', label:'인기쇼핑지역', sub:'한국 오면 꼭 가봐야 할 곳', linkType:'place', items:[
-    {name:'올리브영 명동타운', blurb:'외국인 매출 95%, K뷰티 성지'},
-    {name:'다이소 명동역점', blurb:'즉시환급 가능한 관광객 특화점'},
-    {name:'오프뷰티 명동스퀘어점', blurb:'화장품 최대 90% 할인 아울렛'},
-    {name:'CU 홍대상상점', blurb:'라면 225종, 라면 라이브러리'},
-    {name:'남대문시장', blurb:'600년 전통, 흥정이 통하는 시장'},
-    {name:'동대문시장', blurb:'낮시장·밤시장이 다른 도매의 성지'},
-    {name:'아트박스 명동길점', blurb:'올다아무의 마지막 한 글자'},
-  ]},
-};
-function renderHomeRanking() {
-  const box = document.getElementById('homeRankingView');
-  if (!box) return;
-  let html = '<div style="padding:18px 16px 6px;display:flex;align-items:center;justify-content:space-between">' +
-    '<div><div style="font-size:19px;font-weight:900">⭐ KStarMap</div>' +
-    '<div style="font-size:12px;color:var(--text3);margin-top:2px">K-드라마·K-팝 성지 지도 · 지금 가장 인기 있는 것들</div></div>' +
-    '<button onclick="hideHomeRanking()" style="background:var(--gold);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap">🗺️ 지도 바로가기</button>' +
-  '</div>';
-  Object.entries(HOME_RANKINGS).forEach(([key, cat]) => {
-    html += '<div class="hr-cat"><div class="hr-cat-title">' + cat.icon + ' ' + cat.label + '</div>' +
-      '<div class="hr-cat-sub">' + cat.sub + '</div>' +
-      '<div class="hr-row">' +
-      cat.items.map((it, i) => '<div class="hr-card" onclick="homeRankingGo(\'' + key + '\',\'' + it.name.replace(/'/g,"\\'") + '\')">' +
-        '<div class="hr-rank">' + (i+1) + '위</div>' +
-        '<div class="hr-name">' + it.name.replace(/</g,'&lt;') + '</div>' +
-        '<div class="hr-blurb">' + it.blurb.replace(/</g,'&lt;') + '</div>' +
-      '</div>').join('') +
-      '<div class="hr-card" onclick="openBoard()" style="display:flex;align-items:center;justify-content:center;text-align:center;color:var(--gold);font-weight:700;font-size:13px;background:var(--gold-bg);border:1px dashed var(--gold)">더 많은 자료를<br>원하시면?<br>→ 한류정보창고</div>' +
-      '</div></div>';
-  });
-  html += '<div style="height:24px"></div>';
-  box.innerHTML = html;
-}
-// 로고 클릭 → 어디서든 홈 랭킹 화면으로 복귀
-window.goHome = function() {
-  if (window.closePlaceSheet) closePlaceSheet();
-  if (window.hideSearchResults) hideSearchResults();
-  // 모바일: 한류정보창고가 별도 풀스크린 오버레이(#boardSheet)라 지도 탭 전환만으로는 안 닫힘 → 명시적으로 제거
-  // (재생 중이던 유튜브 iframe도 DOM에서 사라지면서 함께 정지됨)
-  const boardSheet = document.getElementById('boardSheet');
-  if (boardSheet) boardSheet.remove();
-  // PC: 사이드 패널도 접고, 안에 있던 콘텐츠(재생 중이던 영상 포함)를 비워서 완전히 정지
-  const sidePanel = document.getElementById('sidePanel');
-  if (sidePanel) sidePanel.classList.add('collapsed');
-  const sidePanelBody = document.getElementById('sidePanelBody');
-  if (sidePanelBody) sidePanelBody.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오는 중...</div>';
-  _sidePanelReady = false;
-  const sidePanelOpenBtn = document.getElementById('sidePanelOpen');
-  if (sidePanelOpenBtn) sidePanelOpenBtn.classList.add('show');
-  switchTabTo('map');
-  showHomeRanking();
-};
-window.showHomeRanking = function() {
-  _showHomeRanking = true;
-  const box = document.getElementById('homeRankingView');
-  if (box) { if (!box.innerHTML) renderHomeRanking(); box.classList.add('show'); }
-  prefetchBoardTitleCache();
-};
-window.hideHomeRanking = function() {
-  _showHomeRanking = false;
-  const box = document.getElementById('homeRankingView');
-  if (box) box.classList.remove('show');
-};
-window.homeRankingGo = function(category, name) {
-  hideHomeRanking();
-  switchTabTo('map');
-  const cat = HOME_RANKINGS[category];
-  if (cat && cat.linkType === 'place') {
-    const pg = (typeof _pilgrimData !== 'undefined' ? _pilgrimData : []).find(d => d.placeName === name);
-    const rt = (typeof _restData !== 'undefined' ? _restData : []).find(d => d.name === name);
-    try {
-      clearMarkers(_searchMarkers);   // 이전에 찍어둔 핀이 있으면 정리
-      if (pg) {
-        const pos = new kakao.maps.LatLng(pg.lat, pg.lng);
-        const el = makePinEl('#E24B4A', '📍', () => {
-          openPlaceSheet({ name: pg.placeName, sub: (pg.title||'') + (pg.area?' · '+pg.area:''), lat: pg.lat, lng: pg.lng, color: 'var(--gold)', type: 'pilgrim', raw: pg });
-        }, true, 42);
-        const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 20 });
-        ov.setMap(map);
-        _searchMarkers.push(ov);
-        map.setCenter(pos); map.setLevel(5);
-        openPlaceOrStory(pg.placeName, { name: pg.placeName, sub: (pg.title||'') + (pg.area?' · '+pg.area:''), lat: pg.lat, lng: pg.lng, color: 'var(--gold)', type: 'pilgrim', raw: pg }, HOME_PLACE_TAG[category]);
-      } else if (rt) {
-        const pos = new kakao.maps.LatLng(rt.lat, rt.lng);
-        const el = makePinEl('#E24B4A', '📍', () => {
-          openPlaceSheet({ name: rt.name, sub: (rt.cat||'') + (rt.area?' · '+rt.area:''), lat: rt.lat, lng: rt.lng, color: 'var(--amber)', type: 'rest', raw: rt });
-        }, true, 42);
-        const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 20 });
-        ov.setMap(map);
-        _searchMarkers.push(ov);
-        map.setCenter(pos); map.setLevel(5);
-        openPlaceOrStory(rt.name, { name: rt.name, sub: (rt.cat||'') + (rt.area?' · '+rt.area:''), lat: rt.lat, lng: rt.lng, color: 'var(--amber)', type: 'rest', raw: rt }, HOME_PLACE_TAG[category]);
-      } else {
-        document.getElementById('searchInput').value = name;
-        doSearch(name);
-      }
-    } catch(e) { console.warn('homeRankingGo place', e); }
-  } else {
-    // 카드 이름에 괄호로 소속 그룹을 붙인 경우(예: 뷔(BTS))가 있어 — 실제 글 제목엔 괄호가 없으니 제거하고 검색
-    const cleanName = name.replace(/\s*\([^)]*\)\s*$/, '');
-    if (window.openBoardPostByTitle) openBoardPostByTitle(cleanName, HOME_CATEGORY_TAG[category]);
-  }
-};
-// 촬영지/맛집/쇼핑 랭킹 카드 클릭 시: 이 장소를 다루는 한류정보창고 심층글(placeTags에 이 장소명이 태그된 글)이 있으면
-// 잠깐 로딩 후 바로 그 글로 전환하고, 없으면 기존처럼 장소 정보카드를 보여준다.
-async function openPlaceOrStory(placeName, sheetArgs, requiredTag) {
-  showToast('불러오는 중...');
-  try {
-    const { db, collection, getDocs, query, where } = window._mapDB;
-    const snap = await getDocs(query(collection(db,'board'), where('placeTags','array-contains', placeName || '')));
-    const docs = snap.docs.slice().sort((a,b) => (b.data().createdAt?.seconds||0) - (a.data().createdAt?.seconds||0));  // 색인 없이 클라이언트에서 최신순 정렬
-    let match = null;
-    docs.forEach(d => {
-      if (match) return;
-      const body = d.data().body || '';
-      if (!requiredTag || body.includes('['+requiredTag+']')) match = d.id;
-    });
-    if (match) { openBoardStory(match); return; }
-  } catch(e) { console.warn('openPlaceOrStory', e); }
-  openPlaceSheet(sheetArgs);
-}
-// 제목이 일치하고, requiredTag가 있으면 그 태그도 포함하는 글만 찾아서 열기 (없으면 준비중 안내)
-// requiredTag로 카테고리를 한정하는 이유: 예) 배우 소개글 제목에 드라마명이 우연히 들어있어도, 드라마 랭킹에서는 [드라마] 태그 있는 글만 찾도록 해서 잘못 연결되는 걸 막음
-window.openBoardPostByTitle = async function(nameHint, requiredTag) {
-  try {
-    const list = await getBoardTitleCache();
-    const match = list.find(d => (d.title||'').includes(nameHint) && (!requiredTag || d.tags.includes(requiredTag)));
-    if (match) { openBoardStory(match.id); return; }
-    showToast('📝 "' + nameHint + '" 콘텐츠는 준비 중이에요. 곧 채워드릴게요!');
-  } catch(e) { console.error(e); showToast('불러오기 실패'); }
-};
-// 게시글 목록을 한 번만 서버에서 읽어 캐시해두고 재사용 (홈 랭킹 카드 클릭 시 즉시 반응하도록)
-async function getBoardTitleCache(forceRefresh) {
-  if (_boardTitleCache && !forceRefresh) return _boardTitleCache;
-  const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-  const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(300)));
-  _boardTitleCache = snap.docs.map(d => {
-    const body = d.data().body || '';
-    const tags = (body.match(/\[(인물|드라마|영화|음악|맛집|쇼핑)\]/g) || []).map(t => t.slice(1,-1));
-    return { id: d.id, title: d.data().title || '', tags };
-  });
-  return _boardTitleCache;
-}
-// 홈 랭킹 화면이 뜨는 시점에 미리 백그라운드로 캐시를 데워둠 → 실제 카드 클릭 시 지연 없이 바로 열림
-function prefetchBoardTitleCache() {
-  if (_boardTitleCache) return;
-  getBoardTitleCache().catch(() => {});
-}
-
 function boot() {
   if (window.kakao && window.kakao.maps) {
     kakao.maps.load(initMap);
@@ -3945,11 +3278,6 @@ function boot() {
 }
 boot();
 applyLangToUI();
-// PC 좌측 사이드 패널(한류정보창고) 로드 — DB 준비될 때까지 대기
-(function initSidePanelWhenReady(){
-  if (window._mapDB && window.innerWidth >= 900) { initSidePanel(); return; }
-  if (window.innerWidth >= 900) setTimeout(initSidePanelWhenReady, 150);
-})();
 // 첫 방문 환영 팝업 (지도 뜨고 잠깐 뒤)
 setTimeout(showWelcomePopup, 900);
 console.log(VERSION);
@@ -4211,7 +3539,7 @@ window.goCourseStop = function(cid, idx) {
   const c = _courses.find(x => x.id === cid);
   if (!c || !c.stops || !c.stops[idx]) return;
   const s = c.stops[idx];
-  const pg = (_pilgrimData || []).find(p => p._id === s.placeId);
+  const pg = (window._pilgrimData || []).find(p => p._id === s.placeId);
   switchTab('map');
   setTimeout(() => {
     if (window.map) {
@@ -4247,246 +3575,7 @@ window.courseRoute = function(cid, idx) {
 
 /* ═══════════════ 관리자: 성지 사진 편집 ═══════════════ */
 const ADMIN_UIDS = ['cFssXopeh2aWJwghO9DaJXhsZx82'];
-window.adminStartMovePlace = function(pid, name) {
-  if (!window.isAdmin()) return;
-  _movePlaceMode = { pid, name };
-  closePlaceSheet();
-  // 안내 배너 표시
-  let banner = document.getElementById('moveBanner');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = 'moveBanner';
-    banner.style.cssText = 'position:fixed;top:60px;left:8px;right:8px;z-index:29;background:#378ADD;color:#fff;padding:10px 14px;text-align:center;font-size:12.5px;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;gap:10px;border-radius:10px;flex-wrap:wrap';
-    document.body.appendChild(banner);
-  }
-  banner.innerHTML = '📍 "' + name + '" — 지도에서 새 위치를 클릭하세요' +
-    '<button onclick="adminCancelMovePlace()" style="background:rgba(255,255,255,0.25);border:0;color:#fff;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">취소</button>';
-  banner.style.display = 'flex';
-};
-window.adminCancelMovePlace = function() {
-  _movePlaceMode = null;
-  const banner = document.getElementById('moveBanner');
-  if (banner) banner.style.display = 'none';
-};
-async function adminApplyMovePlace(lat, lng) {
-  const mode = _movePlaceMode;
-  if (!mode) return;
-  if (!confirm('"' + mode.name + '"를 이 위치로 옮길까요?\n' + lat.toFixed(6) + ', ' + lng.toFixed(6))) return;
-  try {
-    const { db, doc, updateDoc } = window._mapDB;
-    await updateDoc(doc(db, 'pilgrimages', mode.pid), { lat, lng });
-    // 로컬 데이터도 갱신
-    if (_pilgrimData) {
-      const idx = _pilgrimData.findIndex(p => p._id === mode.pid);
-      if (idx >= 0) { _pilgrimData[idx].lat = lat; _pilgrimData[idx].lng = lng; }
-    }
-    showToast('✅ 위치를 옮겼어요');
-    adminCancelMovePlace();
-    renderPilgrimPinsInView();
-    map.setCenter(new kakao.maps.LatLng(lat, lng));
-  } catch(e) {
-    showToast('이동 실패: ' + (e.message||e));
-  }
-}
 window.isAdmin = () => !!window.currentUser && ADMIN_UIDS.includes(window.currentUser.uid);
-
-// ── 콘솔 대량 성지 추가 도구 ──
-// 사용법(브라우저 콘솔, 관리자 로그인 상태에서):
-//   adminBulkAddPilgrims([
-//     { placeName:'CJ ENM센터', title:'BTS', mediaType:'artist',
-//       addr:'서울 마포구 상암동', story:'FAKE LOVE 첫 방송 무대(M COUNTDOWN 573회)',
-//       actors:['방탄소년단'] },
-//     { placeName:'잠실종합운동장', title:'BTS', mediaType:'artist',
-//       addr:'서울 송파구 잠실동', story:'Love Yourself 월드투어 서울 콘서트(2018.8.25~26)' },
-//   ])
-// 화면엔 아무것도 뜨지 않음(지도 검색 방해 안 함) — 진행 상황은 전부 콘솔에 출력됨.
-// 지도에서 해당 위치를 순서대로 클릭만 하면 자동 저장 후 다음 항목으로 넘어감.
-// 건너뛰려면 콘솔에 adminSkipBulkAdd(), 중단하려면 adminCancelBulkAdd() 입력.
-// 한 곳만 추가할 때 (배열 없이 바로 객체 하나만):
-//   adminAddPilgrim({ placeName:'장소명', title:'작품명', mediaType:'drama', addr:'서울 ○○구', story:'설명' })
-// 웃음창고(funboard) 전체 삭제용 콘솔 도구 — 관리자 로그인 상태에서 adminDeleteAllFunboard() 실행
-// ── 기존 성지 9,574곳에 tourContentId 일괄 매칭(브라우저 콘솔용, 서비스 계정 키 불필요) ──
-// 사용법: kstarmap.com에서 관리자 계정으로 로그인 → F12 콘솔 → adminBackfillTourContentIds() 입력
-// 이미 tourContentId가 있는 곳은 자동으로 건너뜀 → 몇 번을 실행해도 안전, 하루 트래픽 한도에 걸리면
-// 멈추고 안내가 뜨니 다음날 다시 adminBackfillTourContentIds() 실행하면 이어서 진행됨.
-// 한 번에 처리할 개수를 지정하려면 adminBackfillTourContentIds(500) 처럼 인자를 넣으면 됨(기본 900).
-window.adminBackfillTourContentIds = async function(limit) {
-  if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
-  const max = limit || 900;   // 개발계정 하루 1,000건 한도 안에서 안전하게
-  const { db, collection, getDocs, doc, updateDoc } = window._mapDB;
-  console.log('▶ pilgrimages 목록을 불러오는 중... (9,574건이라 몇 초 걸릴 수 있어요)');
-  const snap = await getDocs(collection(db, 'pilgrimages'));
-  const docs = snap.docs;
-  console.log('총 ' + docs.length + '건 로드 완료. tourContentId 없는 곳부터 매칭 시작 (이번 실행 최대 ' + max + '건)...');
-  let matched = 0, alreadyDone = 0, failed = 0, checked = 0, quotaStop = false;
-  for (const d of docs) {
-    const data = d.data();
-    if (data.tourContentId) { alreadyDone++; continue; }
-    if (checked >= max) break;
-    if (!data.lat || !data.lng || !data.placeName) { console.log('⏭ 좌표/이름 없음: ' + d.id); continue; }
-    checked++;
-    const contentId = await matchTourContentIdStrict(data.lat, data.lng, data.placeName);
-    if (contentId) {
-      await updateDoc(doc(db, 'pilgrimages', d.id), { tourContentId: contentId });
-      matched++;
-      console.log('✅ (' + checked + '/' + max + ') ' + data.placeName + ' → contentId ' + contentId);
-    } else {
-      failed++;
-      console.log('⚪ (' + checked + '/' + max + ') ' + data.placeName + ' — 매칭 없음(건너뜀)');
-    }
-    await new Promise(r => setTimeout(r, 350));   // 트래픽 과다 방지
-  }
-  console.log('──────────────');
-  console.log('이미 매칭됨: ' + alreadyDone + '건 / 이번에 새로 매칭: ' + matched + '건 / 매칭 없음: ' + failed + '건');
-  if (checked >= max) console.log('이번 실행 한도(' + max + '건)에 도달했어요. adminBackfillTourContentIds() 다시 실행하면 이어서 진행됩니다.');
-  else console.log('✅ 전체 완료! 더 이상 처리할 곳이 없어요.');
-};
-window.adminDeleteAllFunboard = async function() {
-  if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
-  try {
-    const { db, collection, getDocs, deleteDoc, doc } = window._mapDB;
-    const snap = await getDocs(collection(db, 'funboard'));
-    if (!snap.docs.length) { console.log('삭제할 웃음창고 글이 없습니다.'); return; }
-    console.log('총 ' + snap.docs.length + '건 삭제를 시작합니다...');
-    let done = 0;
-    for (const d of snap.docs) {
-      await deleteDoc(doc(db, 'funboard', d.id));
-      done++;
-      console.log('삭제됨 (' + done + '/' + snap.docs.length + '): ' + d.id);
-    }
-    console.log('✅ 웃음창고 전체 삭제 완료 (' + done + '건)');
-  } catch(e) { console.error('삭제 중 오류', e); }
-};
-window.adminAddPilgrim = function(item) {
-  if (!item || typeof item !== 'object') { console.warn('장소 정보 객체를 넣어주세요.'); return; }
-  window.adminBulkAddPilgrims([item]);
-};
-window.adminBulkAddPilgrims = function(list) {
-  if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
-  if (!Array.isArray(list) || !list.length) { console.warn('빈 목록입니다.'); return; }
-  _bulkAddQueue = list;
-  _bulkAddIndex = 0;
-  _bulkAddDone = [];
-  closePlaceSheet();
-  adminCancelMovePlace();
-  console.log('▶ 총 ' + list.length + '곳 등록 시작. 지도를 순서대로 클릭하세요.');
-  logBulkAddNext();
-};
-function logBulkAddNext() {
-  const item = _bulkAddQueue && _bulkAddQueue[_bulkAddIndex];
-  if (!item) return;
-  console.log('📍 (' + (_bulkAddIndex+1) + '/' + _bulkAddQueue.length + ') "' + (item.placeName||item.title||'') + '" — 지도를 클릭하세요  (건너뛰기: adminSkipBulkAdd() / 취소: adminCancelBulkAdd())');
-}
-window.adminSkipBulkAdd = function() {
-  if (!_bulkAddQueue) { console.warn('진행 중인 작업이 없습니다.'); return; }
-  console.log('⏭ 건너뜀: ' + (_bulkAddQueue[_bulkAddIndex].placeName||''));
-  _bulkAddIndex++;
-  if (_bulkAddIndex >= _bulkAddQueue.length) { adminFinishBulkAdd(); return; }
-  logBulkAddNext();
-};
-window.adminCancelBulkAdd = function() {
-  if (_bulkAddQueue && _bulkAddDone.length) console.log('중단됨. 완료: ' + _bulkAddDone.join(', '));
-  else console.log('중단됨.');
-  _bulkAddQueue = null; _bulkAddIndex = 0; _bulkAddBusy = false;
-};
-function adminFinishBulkAdd() {
-  console.log('✅ 전체 완료 (' + _bulkAddDone.length + '곳): ' + _bulkAddDone.join(', '));
-  showToast('✅ 성지 ' + _bulkAddDone.length + '곳 추가 완료');
-  _bulkAddQueue = null; _bulkAddIndex = 0;
-}
-// 좌표+이름으로 관광공사 콘텐츠를 찾아 tourContentId를 매칭한다.
-// 정확도를 최우선으로 함: 이름을 정규화한 뒤에도 유사도가 아주 높을 때만(기본 0.92) 매칭시킴.
-// 애매하면 그냥 null을 반환 — 잘못된 콘텐츠가 실시간 사진에 붙는 것보다, 안 붙는 게 낫다는 원칙.
-function normalizeForMatch(s) {
-  return String(s || '')
-    .replace(/[\s\-_·,\.]/g, '')
-    .replace(/\(.*?\)/g, '')
-    .toLowerCase();
-}
-function nameSimilarity(a, b) {
-  a = normalizeForMatch(a); b = normalizeForMatch(b);
-  if (!a || !b) return 0;
-  if (a === b) return 1;
-  // 완전 포함 관계면 매우 높은 점수(단, 너무 짧은 이름이 우연히 포함되는 경우 방지)
-  if (a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a))) return 0.95;
-  // 간단한 편집거리 기반 유사도(Dice coefficient, 2-gram)
-  const grams = s => { const g = new Set(); for (let i = 0; i < s.length - 1; i++) g.add(s.slice(i, i + 2)); return g; };
-  const ga = grams(a), gb = grams(b);
-  if (!ga.size || !gb.size) return 0;
-  let inter = 0; ga.forEach(g => { if (gb.has(g)) inter++; });
-  return (2 * inter) / (ga.size + gb.size);
-}
-async function matchTourContentIdStrict(lat, lng, placeName) {
-  if (!lat || !lng || !placeName) return null;
-  try {
-    const url = 'https://apis.data.go.kr/B551011/KorService2/locationBasedList2'
-      + '?serviceKey=' + TOUR_API_KEY
-      + '&numOfRows=10&pageNo=1&MobileOS=ETC&MobileApp=KStarMap&_type=json'
-      + '&mapX=' + lng + '&mapY=' + lat + '&radius=300&arrange=E';
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const header = data?.response?.header;
-    if (header && header.resultCode && header.resultCode !== '0000' && header.resultCode !== '00') return null;
-    const items = data?.response?.body?.items?.item;
-    if (!items) return null;
-    const arr = Array.isArray(items) ? items : [items];
-    let best = null, bestScore = 0;
-    arr.forEach(it => {
-      const score = nameSimilarity(placeName, it.title || '');
-      if (score > bestScore) { bestScore = score; best = it; }
-    });
-    const STRICT_THRESHOLD = 0.92;
-    if (best && bestScore >= STRICT_THRESHOLD) return best.contentid || null;
-    return null;
-  } catch(e) { console.warn('tourContentId 매칭 실패', e); return null; }
-}
-let _bulkAddBusy = false;
-async function adminApplyBulkAdd(lat, lng) {
-  if (_bulkAddBusy) { console.warn('⏳ 이전 항목을 아직 저장 중이에요. 잠깐 기다렸다가 다시 클릭해주세요.'); return; }
-  const item = _bulkAddQueue[_bulkAddIndex];
-  if (!item) return;
-  _bulkAddBusy = true;
-  try {
-    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
-    const docData = {
-      placeName: item.placeName || '',
-      title: item.title || '',
-      title_en: item.title_en || '',
-      mediaType: item.mediaType || 'drama',   // 'drama' | 'movie' | 'artist'
-      addr: item.addr || '',
-      addr_en: item.addr_en || '',
-      actors: item.actors || [],
-      story: item.story || '',
-      story_en: item.story_en || '',
-      area: item.area || '',
-      lat, lng,
-      createdAt: serverTimestamp()
-    };
-    const matchedContentId = await matchTourContentIdStrict(lat, lng, docData.placeName);
-    if (matchedContentId) {
-      docData.tourContentId = matchedContentId;
-      console.log('  📡 관광공사 실시간 사진 연결됨 (contentId ' + matchedContentId + ')');
-    } else {
-      console.log('  ⚪ 관광공사 매칭 없음 — 유사도가 충분히 높은 콘텐츠를 못 찾음(실시간 사진 없이 저장)');
-    }
-    const ref = await addDoc(collection(db, 'pilgrimages'), docData);
-    // 로컬 데이터에도 즉시 반영(새로고침 없이 지도에 바로 표시)
-    if (_pilgrimData) _pilgrimData.push({ ...docData, _id: ref.id, createdAt: new Date() });
-    renderPilgrimPinsInView();
-    _bulkAddDone.push(item.placeName || item.title || '');
-    console.log('✅ 저장됨 (' + (_bulkAddIndex+1) + '/' + _bulkAddQueue.length + '): ' + (item.placeName||'') + '  [' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ']');
-    pingIndexNow('https://kstarmap.com/map.html');
-    _bulkAddIndex++;
-    _bulkAddBusy = false;
-    if (_bulkAddIndex >= _bulkAddQueue.length) { adminFinishBulkAdd(); return; }
-    logBulkAddNext();
-  } catch(e) {
-    _bulkAddBusy = false;
-    console.error('저장 실패: ' + (e.message||e));
-    // 실패 시 같은 항목에서 재시도 가능하도록 인덱스 유지 (배너 없이 콘솔에만 표시)
-  }
-}
 
 // 성지의 모든 사진 후보 (tourImages 배열 + tourImage 단수 통합)
 window.allTourImgs = (raw) => {
@@ -4536,31 +3625,7 @@ window.renderAdminPanel = (raw) => {
       '<button onclick="adminAddImage(\'' + raw._id + '\')" style="padding:7px 14px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#B5790F;color:#fff;cursor:pointer">추가</button>' +
     '</div>' +
     '<div style="margin-top:6px"><label style="font-size:11px;color:var(--text3);cursor:pointer">📁 파일 업로드 <input type="file" accept="image/*" multiple onchange="adminUploadImages(\'' + raw._id + '\', this.files)" style="font-size:11px"></label></div>' +
-    '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(181,121,15,0.3)">' +
-      '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">📍 현재 좌표: ' + (raw.lat||0).toFixed(6) + ', ' + (raw.lng||0).toFixed(6) + '</div>' +
-      '<button onclick="adminStartMovePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#378ADD;color:#fff;cursor:pointer;margin-bottom:6px">📍 지도에서 위치 이동</button>' +
-      '<button onclick="adminDeletePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#EF4444;color:#fff;cursor:pointer">🗑️ 이 성지 삭제</button>' +
-    '</div>' +
   '</div>';
-};
-window.adminDeletePlace = async function(pid, name) {
-  if (!window.isAdmin()) return;
-  if (!confirm('"' + name + '"을(를) 정말 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) return;
-  if (!confirm('한 번 더 확인할게요 — "' + name + '"을(를) 완전히 삭제합니다. 진행할까요?')) return;
-  try {
-    const { db, doc, deleteDoc } = window._mapDB;
-    await deleteDoc(doc(db, 'pilgrimages', pid));
-    if (_pilgrimData) {
-      const idx = _pilgrimData.findIndex(p => p._id === pid);
-      if (idx >= 0) _pilgrimData.splice(idx, 1);
-    }
-    closePlaceSheet();
-    renderPilgrimPinsInView();
-    showToast('🗑️ "' + name + '" 삭제 완료');
-  } catch(e) {
-    console.error('삭제 실패: ' + (e.message||e));
-    showToast('❌ 삭제 실패: ' + (e.message||e));
-  }
 };
 
 async function adminRefresh(pid) {
@@ -4568,9 +3633,9 @@ async function adminRefresh(pid) {
   const snap = await getDoc(doc(db, 'pilgrimages', pid));
   if (!snap.exists()) return;
   const fresh = { ...snap.data(), _id: pid };
-  if (_pilgrimData) {
-    const idx = _pilgrimData.findIndex(p => p._id === pid);
-    if (idx >= 0) _pilgrimData[idx] = fresh;
+  if (window._pilgrimData) {
+    const idx = window._pilgrimData.findIndex(p => p._id === pid);
+    if (idx >= 0) window._pilgrimData[idx] = fresh;
   }
   if (window._selectedPlaceRef) {
     window._selectedPlaceRef.raw = fresh;
