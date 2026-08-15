@@ -455,7 +455,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.28';
+const VERSION = 'map v2.6.29';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2422,12 +2422,13 @@ function openPlaceSheet(place) {
           html += '<div id="'+storyBtnId+'" style="display:none;margin-top:10px"></div>';
           (async()=>{
             try {
-              const {db,collection,getDocs,query,where,orderBy}=window._mapDB;
-              const snap=await getDocs(query(collection(db,'board'),where('placeTags','array-contains',raw.placeName||''),orderBy('createdAt','desc')));
+              const {db,collection,getDocs,query,where}=window._mapDB;
+              const snap=await getDocs(query(collection(db,'board'),where('placeTags','array-contains',raw.placeName||'')));
               if(snap.empty) return;
               const box=document.getElementById(storyBtnId);
               if(!box) return;
-              const posts = snap.docs.map(d => ({ id:d.id, title:d.data().title||'명장면 보기' }));
+              const posts = snap.docs.map(d => ({ id:d.id, title:d.data().title||'명장면 보기', createdAt: d.data().createdAt }));
+              posts.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));  // 색인 없이 클라이언트에서 최신순 정렬
               const escT = t => String(t).replace(/</g,'&lt;').replace(/'/g,"\\'");
               const rowHtml = p => '<button onclick="openBoardStory(\''+p.id+'\')" style="display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;border:1px solid var(--gold);border-radius:10px;padding:11px 13px;background:var(--gold-bg);cursor:pointer;margin-bottom:6px">'+
                 '<span style="font-size:16px">📖</span>'+
@@ -3886,10 +3887,11 @@ window.homeRankingGo = function(category, name) {
 async function openPlaceOrStory(placeName, sheetArgs, requiredTag) {
   showToast('불러오는 중...');
   try {
-    const { db, collection, getDocs, query, where, orderBy } = window._mapDB;
-    const snap = await getDocs(query(collection(db,'board'), where('placeTags','array-contains', placeName || ''), orderBy('createdAt','desc')));
+    const { db, collection, getDocs, query, where } = window._mapDB;
+    const snap = await getDocs(query(collection(db,'board'), where('placeTags','array-contains', placeName || '')));
+    const docs = snap.docs.slice().sort((a,b) => (b.data().createdAt?.seconds||0) - (a.data().createdAt?.seconds||0));  // 색인 없이 클라이언트에서 최신순 정렬
     let match = null;
-    snap.forEach(d => {
+    docs.forEach(d => {
       if (match) return;
       const body = d.data().body || '';
       if (!requiredTag || body.includes('['+requiredTag+']')) match = d.id;
