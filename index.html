@@ -457,7 +457,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.32';
+const VERSION = 'map v2.6.33';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -997,6 +997,13 @@ window.openSceneCollection = async function() {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
+      const preview = bodyClean.length>70 ? escC(bodyClean.slice(0,70))+'...' : escC(bodyClean);
+      const place = (p.placeTags||[])[0] || '';
+      return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
+        '<div onclick="openBoardStory(\''+p.id+'\')">' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escC(p.title||'')+'</div>' +
+        (place?'<div style="font-size:11.5px;color:var(--gold);font-weight:700;margin-bottom:4px">📍 '+escC(place)+'</div>':'') +
+        '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
         (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
