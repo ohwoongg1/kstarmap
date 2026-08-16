@@ -457,7 +457,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.33';
+const VERSION = 'map v2.6.34';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1299,6 +1299,8 @@ window.openBoardStory = function(postId) {
       const snap = await getDoc(doc(db,'board',postId));
       if (!snap.exists()) return;
       const p = snap.data();
+      window._boardCache = window._boardCache || {};
+      window._boardCache[postId] = { id: postId, ...p };
       const list = document.getElementById('boardList');
       if (!list) return;
       const escS = v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1312,9 +1314,11 @@ window.openBoardStory = function(postId) {
         ? placeTags.map(pt=>{const parts=pt.split(':');const pn=parts[0].trim();const tt=parts[1]?parts[1].trim():'';return '<button onclick="boardPlaceLink(\''+pn.replace(/'/g,"\\'")+'\',\''+tt.replace(/'/g,"\\'")+'\''+')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">📍 '+escS(pn)+' 지도에서 보기</button>';}).join('')
         : mapTitles.map(t=>'<button onclick="boardMapLink(\''+t.replace(/'/g,"\\'")+'\')" style="display:block;width:100%;margin-top:8px;padding:11px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;text-align:center">🗺️ '+escS(t)+' 촬영지 전체보기</button>').join('');
       const ytHtml=ytIds.map((id,i)=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+(i===0?'?autoplay=1':'')+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
+      const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
+      const editBtnHtml = canEdit ? '<button onclick="editBoardPost(\''+postId+'\')" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">✏️ 수정</button>' : '';
       list.innerHTML='<div style="padding:18px">'+
         '<div style="display:flex;gap:8px;margin-bottom:14px"><button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>'+
-        '<button onclick="sharePost(\''+postId+'\')" style="background:#3b82f6;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">📤 공유</button></div>'+
+        '<button onclick="sharePost(\''+postId+'\')" style="background:#3b82f6;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">📤 공유</button>'+editBtnHtml+'</div>'+
         '<div style="font-size:16px;font-weight:800;margin-bottom:10px">'+escS(p.title||'')+'</div>'+
         '<div style="font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap">'+escS(txt)+'</div>'+
         ytHtml+mapHtml+'</div>';
