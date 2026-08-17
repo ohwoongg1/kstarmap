@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.34';
+const VERSION = 'map v2.6.35';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -994,7 +994,7 @@ window.openSceneCollection = async function() {
     const escC = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const rows = posts.map(p => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
-      const bodyClean = (p.body||'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
+      const bodyClean = (p.body||'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
       const preview = bodyClean.length>70 ? escC(bodyClean.slice(0,70))+'...' : escC(bodyClean);
       const place = (p.placeTags||[])[0] || '';
@@ -1036,7 +1036,7 @@ window.openFoodCollection = async function() {
     const escF = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const rows = posts.map(p => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
-      const bodyClean = (p.body||'').replace(/\[맛집\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
+      const bodyClean = (p.body||'').replace(/\[맛집\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
       const preview = bodyClean.length>70 ? escF(bodyClean.slice(0,70))+'...' : escF(bodyClean);
       const placeTags = (p.body||'').match(/\[성지:([^\]]+)\]/g);
@@ -1079,7 +1079,7 @@ window.openShoppingCollection = async function() {
     const escS = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const rows = posts.map(p => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
-      const bodyClean = (p.body||'').replace(/\[쇼핑\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
+      const bodyClean = (p.body||'').replace(/\[쇼핑\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
       const preview = bodyClean.length>70 ? escS(bodyClean.slice(0,70))+'...' : escS(bodyClean);
       const placeTags = (p.body||'').match(/\[성지:([^\]]+)\]/g);
@@ -1122,7 +1122,7 @@ window.openPersonCollection = async function() {
     const escP = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const rows = posts.map(p => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
-      const bodyClean = (p.body||'').replace(/\[인물\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'')
+      const bodyClean = (p.body||'').replace(/\[인물\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
       const preview = bodyClean.length>70 ? escP(bodyClean.slice(0,70))+'...' : escP(bodyClean);
       const spotCount = (p.placeTags||[]).length;
@@ -1164,9 +1164,44 @@ window.openBoardWrite = function(editPost) {
     '</div>' +
     '<div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:10px">' +
       '<input id="boardTitle" placeholder="제목" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;background:var(--bg2);color:var(--text)">' +
-      '<textarea id="boardBody" placeholder="한류 정보를 공유해 주세요. ★ 유튜브 링크 = 영상 자동 임베드 / [지도:작품명] = 지도 버튼 생성 / [성지:장소명:작품명] = 개별 위치 버튼 / [맛집] [쇼핑] [인물] = 카테고리 태그" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<label style="display:flex;align-items:center;gap:5px;padding:7px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;font-size:12.5px;color:var(--text2);cursor:pointer">📷 사진 삽입<input id="bodyPhotoInput" type="file" accept="image/*" multiple style="display:none"></label>' +
+        '<span id="bodyPhotoStatus" style="font-size:11.5px;color:var(--text3)"></span>' +
+      '</div>' +
+      '<textarea id="boardBody" placeholder="한류 정보를 공유해 주세요. ★ 유튜브 링크 = 영상 자동 임베드 / [지도:작품명] = 지도 버튼 생성 / [성지:장소명:작품명] = 개별 위치 버튼 / [맛집] [쇼핑] [인물] = 카테고리 태그 / 사진은 커서를 원하는 자리에 두고 위 '사진 삽입' 버튼을 누르면 그 자리에 들어가요" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
   document.body.appendChild(w);
+  const bodyTa = document.getElementById('boardBody');
+  const photoInput = document.getElementById('bodyPhotoInput');
+  const photoStatus = document.getElementById('bodyPhotoStatus');
+  let _lastCursorPos = 0;
+  bodyTa.addEventListener('keyup', () => { _lastCursorPos = bodyTa.selectionStart; });
+  bodyTa.addEventListener('click', () => { _lastCursorPos = bodyTa.selectionStart; });
+  photoInput.addEventListener('change', async () => {
+    if (!window.currentUser) { showToast('🔒 로그인이 필요해요'); return; }
+    const files = Array.from(photoInput.files || []);
+    if (!files.length) return;
+    const { storage, storageRef, uploadBytes, getDownloadURL } = window._mapStorage;
+    let pos = _lastCursorPos;
+    for (let i = 0; i < files.length; i++) {
+      photoStatus.textContent = '업로드 중… ' + (i+1) + '/' + files.length;
+      try {
+        const blob = await resizeImage(files[i], 1280);
+        const path = 'board/' + window.currentUser.uid + '/' + Date.now() + '_' + i + '.jpg';
+        const snap = await uploadBytes(storageRef(storage, path), blob, {contentType:'image/jpeg'});
+        const url = await getDownloadURL(snap.ref);
+        const token = '\n[사진:' + url + ']\n';
+        const cur = bodyTa.value;
+        bodyTa.value = cur.slice(0, pos) + token + cur.slice(pos);
+        pos += token.length;
+      } catch(e) { console.warn('사진 업로드 실패', e); showToast('❌ 사진 업로드 실패'); }
+    }
+    photoStatus.textContent = '✅ 삽입 완료';
+    bodyTa.selectionStart = bodyTa.selectionEnd = pos;
+    bodyTa.focus();
+    photoInput.value = '';
+    setTimeout(() => { photoStatus.textContent = ''; }, 2000);
+  });
   // iOS 뷰포트 바운스 방지
   w.addEventListener('touchmove', function(e){
     var inp = e.target.closest('input,textarea');
@@ -1306,6 +1341,9 @@ window.openBoardStory = function(postId) {
       const ytRe=/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
       const body=p.body||''; const ytIds=[];
       let txt=body.replace(ytRe,(m,id)=>{ytIds.push(id);return '';});
+      // 본문 중 [사진:URL] 토큰은 원래 위치 그대로 인라인 이미지로 바꾼다(escape 전 플레이스홀더로 치환 후 나중에 되돌림)
+      const inlinePhotos=[];
+      txt=txt.replace(/\[사진:([^\]]+)\]/g,(m,url)=>{inlinePhotos.push(url.trim());return '@@PHOTO'+(inlinePhotos.length-1)+'@@';});
       const mapTitles=[]; txt=txt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';});
       const placeTags=[]; txt=txt.replace(/\[성지:([^\]]+)\]/g,(m,t)=>{placeTags.push(t.trim());return '';}).trim();
       txt=txt.replace(/\[맛집\]/g,'').replace(/\[쇼핑\]/g,'').replace(/\[인물\]/g,'').trim();
@@ -1315,11 +1353,15 @@ window.openBoardStory = function(postId) {
       const ytHtml=ytIds.map((id,i)=>'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-top:8px"><iframe src="https://www.youtube.com/embed/'+id+(i===0?'?autoplay=1':'')+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen allow="autoplay;encrypted-media" loading="lazy"></iframe></div>').join('');
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const editBtnHtml = canEdit ? '<button onclick="editBoardPost(\''+postId+'\')" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">✏️ 수정</button>' : '';
+      let bodyHtml = escS(txt);
+      inlinePhotos.forEach((url, i) => {
+        bodyHtml = bodyHtml.replace('@@PHOTO'+i+'@@', '<img src="'+escS(url)+'" style="width:100%;border-radius:12px;display:block;margin:4px 0" loading="lazy">');
+      });
       list.innerHTML='<div style="padding:18px">'+
         '<div style="display:flex;gap:8px;margin-bottom:14px"><button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>'+
         '<button onclick="sharePost(\''+postId+'\')" style="background:#3b82f6;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">📤 공유</button>'+editBtnHtml+'</div>'+
         '<div style="font-size:16px;font-weight:800;margin-bottom:10px">'+escS(p.title||'')+'</div>'+
-        '<div style="font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap">'+escS(txt)+'</div>'+
+        '<div style="font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap">'+bodyHtml+'</div>'+
         ytHtml+mapHtml+'</div>';
     } catch(e){ console.error(e); }
   }, 400);
