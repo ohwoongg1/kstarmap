@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.35';
+const VERSION = 'map v2.6.36';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1168,7 +1168,7 @@ window.openBoardWrite = function(editPost) {
         '<label style="display:flex;align-items:center;gap:5px;padding:7px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;font-size:12.5px;color:var(--text2);cursor:pointer">📷 사진 삽입<input id="bodyPhotoInput" type="file" accept="image/*" multiple style="display:none"></label>' +
         '<span id="bodyPhotoStatus" style="font-size:11.5px;color:var(--text3)"></span>' +
       '</div>' +
-      '<textarea id="boardBody" placeholder="한류 정보를 공유해 주세요. ★ 유튜브 링크 = 영상 자동 임베드 / [지도:작품명] = 지도 버튼 생성 / [성지:장소명:작품명] = 개별 위치 버튼 / [맛집] [쇼핑] [인물] = 카테고리 태그 / 사진은 커서를 원하는 자리에 두고 위 '사진 삽입' 버튼을 누르면 그 자리에 들어가요" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
+      '<textarea id="boardBody" placeholder="한류 정보를 공유해 주세요. ★ 유튜브 링크 = 영상 자동 임베드 / [지도:작품명] = 지도 버튼 생성 / [성지:장소명:작품명] = 개별 위치 버튼 / [맛집] [쇼핑] [인물] = 카테고리 태그 / 사진은 커서를 원하는 자리에 두고 위 사진 삽입 버튼을 누르면 그 자리에 들어가요" style="width:100%;flex:1;padding:12px;border:1px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
     '</div>';
   document.body.appendChild(w);
   const bodyTa = document.getElementById('boardBody');
