@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.38';
+const VERSION = 'map v2.6.39';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -3053,7 +3053,7 @@ window.doLogout = function() {
 
 // 내 인증 크게 보기 (여러 장 캐러셀 + 정보)
 window.viewCert = function(certId, fromPlaceList) {
-  const c = window._myCerts && window._myCerts[certId];
+  const c = (window._myCerts && window._myCerts[certId]) || (fromPlaceList && window._placeCerts && window._placeCerts[certId]);
   if (!c) return;
   const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
   if (!photos.length) return;
@@ -3097,7 +3097,7 @@ window.tourGallerySlide = function(btn, dir) {
 window.certViewSlide = function(dir) {
   const track = document.getElementById('certViewTrack');
   if (!track) return;
-  const c = window._myCerts && window._myCerts[window._certViewerCurrentId];
+  const c = (window._myCerts && window._myCerts[window._certViewerCurrentId]) || (window._certViewerFromPlaceList && window._placeCerts && window._placeCerts[window._certViewerCurrentId]);
   const photos = c ? ((c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : [])) : [];
   const atEnd = dir > 0 && window._certViewerPhotoIdx >= photos.length - 1;
   const atStart = dir < 0 && window._certViewerPhotoIdx <= 0;
