@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.36';
+const VERSION = 'map v2.6.37';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2653,19 +2653,9 @@ async function loadPlaceCerts() {
       if (th) th.textContent = t('thisCert');
       return;
     }
-    // 헤더에 인증 개수 표시 (접힌 상태에서도 인증 존재를 알 수 있게)
+    // 헤더에 인증 개수 표시
     const th = document.getElementById('thisCertTitle');
     if (th) th.textContent = t('thisCert') + ' ' + certs.length;
-    // 접힌 상태면 자동으로 펼치지 않고, '눌러서 보기' 안내를 sheetCerts 자리에 표시
-    const sheetEl = document.getElementById('placeSheet');
-    _autoExpandOnCerts = false;
-    if (sheetEl && sheetEl.dataset.expanded !== '1') {
-      // 접힘: 썸네일 대신 안내 버튼 (누르면 펼쳐짐)
-      box.innerHTML = '<div onclick="toggleSheetExpand()" style="cursor:pointer;text-align:center;padding:16px 0;color:var(--gold);font-size:13px;font-weight:700">' +
-        (isEn() ? ('📸 ' + certs.length + ' visit' + (certs.length>1?'s':'') + ' · tap to view') : ('📸 이곳의 인증 ' + certs.length + '개 · 눌러서 보기')) +
-        '</div>';
-      return;
-    }
     box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' +
       certs.map(c => {
         const ph = (c.photoURLs && c.photoURLs[0]) || c.photoURL || '';
@@ -3176,6 +3166,7 @@ window.startCert = function() {
         '<span id="certPickInner" style="text-align:center;color:var(--text3);font-size:13px"><span style="font-size:34px;display:block;margin-bottom:6px">📷</span>탭해서 사진 추가 (최대 10장)</span>' +
         '<input id="certFileInput" type="file" accept="image/*" multiple style="display:none">' +
       '</label>' +
+      '<label style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:11px;cursor:pointer;font-size:12.5px;color:var(--text2)">📸 카메라로 바로 촬영<input id="certCameraInput" type="file" accept="image/*" capture="environment" style="display:none"></label>' +
       '<div id="certThumbs" style="display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px"></div>' +
       '<textarea id="certComment" placeholder="' + t('comment') + '" maxlength="200" style="width:100%;margin-top:12px;padding:11px 12px;border:1px solid var(--border);border-radius:11px;font-size:14px;resize:none;height:70px;box-sizing:border-box;font-family:inherit"></textarea>' +
       '<button id="certSubmitBtn" disabled onclick="submitCert()" style="width:100%;margin-top:12px;padding:14px;background:var(--border2);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">' + t('post') + '</button>' +
@@ -3186,6 +3177,13 @@ window.startCert = function() {
     const picked = Array.from(inp.files || []);
     for (const f of picked) { if (_certFiles.length >= MAX_CERT_PHOTOS) break; _certFiles.push(f); }
     inp.value = '';
+    renderCertThumbs();
+  });
+  const camInp = document.getElementById('certCameraInput');
+  camInp.addEventListener('change', () => {
+    const picked = Array.from(camInp.files || []);
+    for (const f of picked) { if (_certFiles.length >= MAX_CERT_PHOTOS) break; _certFiles.push(f); }
+    camInp.value = '';
     renderCertThumbs();
   });
 };
