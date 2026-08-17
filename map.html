@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.37';
+const VERSION = 'map v2.6.38';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2647,6 +2647,7 @@ async function loadPlaceCerts() {
     });
     window._placeCerts = {};
     certs.forEach(c => { window._placeCerts[c.id] = c; });
+    window._placeCertOrder = certs.map(c => c.id);
     if (!certs.length) {
       box.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">아직 이곳의 인증이 없어요.<br>첫 인증을 남겨보세요!</div>';
       const th = document.getElementById('thisCertTitle');
@@ -2673,7 +2674,7 @@ window.viewPlaceCert = function(certId) {
   if (!c) return;
   window._myCerts = window._myCerts || {};
   window._myCerts[certId] = c;
-  viewCert(certId);
+  viewCert(certId, true);
 };
 window.closePlaceSheet = function() {
   const sheet = document.getElementById('placeSheet');
@@ -3051,13 +3052,17 @@ window.doLogout = function() {
 };
 
 // 내 인증 크게 보기 (여러 장 캐러셀 + 정보)
-window.viewCert = function(certId) {
+window.viewCert = function(certId, fromPlaceList) {
   const c = window._myCerts && window._myCerts[certId];
   if (!c) return;
   const photos = (c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : []);
   if (!photos.length) return;
+  window._certViewerCurrentId = certId;
+  window._certViewerFromPlaceList = !!fromPlaceList;
+  window._certViewerPhotoIdx = 0;
   const esc = s => (s||'').replace(/</g,'&lt;');
-  const multi = photos.length > 1;
+  const navList = (fromPlaceList && window._placeCertOrder) ? window._placeCertOrder : null;
+  const multi = photos.length > 1 || (navList && navList.length > 1);
   const slides = photos.map(u => '<img src="' + u + '" style="width:100%;flex:0 0 100%;scroll-snap-align:center;object-fit:contain;max-height:70vh">').join('');
   const old = document.getElementById('certViewer');
   if (old) old.remove();
@@ -3065,7 +3070,7 @@ window.viewCert = function(certId) {
   v.id = 'certViewer';
   v.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.94);display:flex;flex-direction:column;justify-content:center';
   const arrows = multi ? '<button onclick="event.stopPropagation();certViewSlide(-1)" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,0.2);color:#fff;font-size:22px;cursor:pointer;z-index:2">‹</button><button onclick="event.stopPropagation();certViewSlide(1)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,0.2);color:#fff;font-size:22px;cursor:pointer;z-index:2">›</button>' : '';
-  const counter = multi ? '<div id="certViewCounter" style="position:absolute;top:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);color:#fff;font-size:13px;padding:4px 12px;border-radius:12px">1 / ' + photos.length + '</div>' : '';
+  const counter = photos.length > 1 ? '<div id="certViewCounter" style="position:absolute;top:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);color:#fff;font-size:13px;padding:4px 12px;border-radius:12px">1 / ' + photos.length + '</div>' : '';
   v.innerHTML =
     '<button onclick="document.getElementById(\'certViewer\').remove()" style="position:absolute;top:14px;right:14px;width:36px;height:36px;border:none;border-radius:50%;background:rgba(255,255,255,0.2);color:#fff;font-size:18px;cursor:pointer;z-index:3">✕</button>' +
     counter +
@@ -3074,11 +3079,12 @@ window.viewCert = function(certId) {
     ((window.currentUser && c.uid === window.currentUser.uid) ? '<button onclick="deleteCertFromViewer(\'' + c.id + '\')" style="margin-top:12px;padding:8px 16px;background:rgba(255,80,80,0.2);border:1px solid rgba(255,80,80,0.5);border-radius:8px;color:#ff6b6b;font-size:13px;font-weight:700;cursor:pointer">🗑️ ' + (isEn()?'Delete':'삭제') + '</button>' : '') +
     '</div>';
   document.body.appendChild(v);
-  if (multi) {
+  if (photos.length > 1) {
     const track = document.getElementById('certViewTrack');
     const counterEl = document.getElementById('certViewCounter');
     track.addEventListener('scroll', () => {
       const idx = Math.round(track.scrollLeft / track.clientWidth);
+      window._certViewerPhotoIdx = idx;
       if (counterEl) counterEl.textContent = (idx+1) + ' / ' + photos.length;
     }, {passive:true});
   }
@@ -3091,6 +3097,18 @@ window.tourGallerySlide = function(btn, dir) {
 window.certViewSlide = function(dir) {
   const track = document.getElementById('certViewTrack');
   if (!track) return;
+  const c = window._myCerts && window._myCerts[window._certViewerCurrentId];
+  const photos = c ? ((c.photoURLs && c.photoURLs.length) ? c.photoURLs : (c.photoURL ? [c.photoURL] : [])) : [];
+  const atEnd = dir > 0 && window._certViewerPhotoIdx >= photos.length - 1;
+  const atStart = dir < 0 && window._certViewerPhotoIdx <= 0;
+  if ((atEnd || atStart) && window._certViewerFromPlaceList && window._placeCertOrder && window._placeCertOrder.length > 1) {
+    const order = window._placeCertOrder;
+    const curPos = order.indexOf(window._certViewerCurrentId);
+    if (curPos === -1) return;
+    const nextPos = (curPos + dir + order.length) % order.length;
+    viewCert(order[nextPos], true);
+    return;
+  }
   track.scrollBy({ left: dir * track.clientWidth, behavior: 'smooth' });
 };
 // 크게보기에서 인증 삭제
