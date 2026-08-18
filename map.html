@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.39';
+const VERSION = 'map v2.6.40';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -869,32 +869,14 @@ function reloadBoardCurrentView() {
   if (_boardCurrentView === 'person') return openPersonCollection();
   return loadBoardList();
 }
-async function loadBoardList() {
-  _boardCurrentView = 'main';
-  // 게시판 모달이 열려 있으면 그 안의 목록을, 아니면 사이드 패널의 목록을 사용
-  const sheet = document.getElementById('boardSheet');
-  const list = (sheet && sheet.querySelector('#boardList')) || document.getElementById('boardList');
-  if (!list) return;
-  try {
-    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-    const snap = await getDocs(query(collection(db, 'board'), orderBy('createdAt', 'desc'), limit(1000)));
-    const posts = [];
-    snap.forEach(d => posts.push({ id: d.id, ...d.data() }));
-    if (!posts.length) {
-      list.innerHTML = '<div style="padding:60px 24px;text-align:center;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">📝</div>아직 글이 없어요.<br>첫 글을 남겨보세요!</div>';
-      return;
-    }
-    posts.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
-    window._boardCache = {};
-    posts.forEach(p=>{ window._boardCache[p.id] = p; });
-    const ytRe=/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
-    list.innerHTML = posts.map(p => {
+function renderBoardCard(p) {
+      const ytRe=/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canDel=isAdmin||isOwner, canEdit=isOwner||isAdmin;
       const bodyRaw=p.body||'', ytIds=[];
       let bodyTxt=bodyRaw.replace(ytRe,(m,id)=>{ytIds.push(id);return '';}).trim();
       const mapTitles=[]; bodyTxt=bodyTxt.replace(/\[지도:([^\]]+)\]/g,(m,t)=>{mapTitles.push(t.trim());return '';}).trim();
       const placeTags=[]; bodyTxt=bodyTxt.replace(/\[성지:([^\]]+)\]/g,(m,t)=>{placeTags.push(t.trim());return '';}).trim();
-      bodyTxt=bodyTxt.replace(/\[맛집\]/g,'').replace(/\[쇼핑\]/g,'').replace(/\[인물\]/g,'').trim();
+      bodyTxt=bodyTxt.replace(/\[맛집\]/g,'').replace(/\[쇼핑\]/g,'').replace(/\[인물\]/g,'').replace(/\[사진:[^\]]+\]/g,'').trim();
       const preview=bodyTxt.length>100?escB(bodyTxt.slice(0,100))+'...':escB(bodyTxt), full=escB(bodyTxt);
       const mkThumb=id=>
         '<div class="yt-thumb" data-yt="'+id+'" onclick="boardPlayVideo(this)" style="position:relative;border-radius:10px;overflow:hidden;margin-top:8px;cursor:pointer;background:#000">'+
@@ -930,7 +912,7 @@ async function loadBoardList() {
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'+
           '<div style="font-size:11px;color:var(--text3)">'+escB(p.userName||'익명')+' · '+timeAgoB(p.createdAt)+'</div>'+
           '<div style="display:flex;gap:6px;align-items:center">'+
-            ((bodyTxt.length>100||ytIds.length>1||mapTitles.length)?'<button class="board-more-btn" onclick="boardToggle(this)" style="font-size:12px;color:#c0392b;font-weight:800;border:none;background:none;cursor:pointer;padding:0">더 보기</button>':'')+
+            (expandable?'<button class="board-more-btn" onclick="boardToggle(this)" style="font-size:12px;color:#c0392b;font-weight:800;border:none;background:none;cursor:pointer;padding:0">더 보기</button>':'')+
             '<button onclick="event.stopPropagation();sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:0">📤 공유</button>'+
             quickMapBtn+
             pinBtn+
@@ -940,7 +922,45 @@ async function loadBoardList() {
         '</div>'+
       (p.pinned?'</div>':'')+
       '</div>';
-    }).join('');
+}
+window.filterBoardSearch = function(val) {
+  const q = (val||'').trim().toLowerCase();
+  const cats = document.getElementById('boardCatCards');
+  const area = document.getElementById('boardPostsArea');
+  if (!area) return;
+  const all = Object.values(window._boardCache||{});
+  if (!q) {
+    if (cats) cats.style.display = '';
+    all.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+    area.innerHTML = all.map(renderBoardCard).join('');
+    return;
+  }
+  if (cats) cats.style.display = 'none';
+  const matched = all.filter(p => (p.title||'').toLowerCase().includes(q) || (p.body||'').toLowerCase().includes(q));
+  area.innerHTML = matched.length
+    ? matched.map(renderBoardCard).join('')
+    : '<div style="padding:40px 24px;text-align:center;color:var(--text3)">"'+escB(val)+'"에 대한 검색 결과가 없어요.</div>';
+};
+async function loadBoardList() {
+  _boardCurrentView = 'main';
+  // 게시판 모달이 열려 있으면 그 안의 목록을, 아니면 사이드 패널의 목록을 사용
+  const sheet = document.getElementById('boardSheet');
+  const list = (sheet && sheet.querySelector('#boardList')) || document.getElementById('boardList');
+  if (!list) return;
+  try {
+    const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
+    const snap = await getDocs(query(collection(db, 'board'), orderBy('createdAt', 'desc'), limit(1000)));
+    const posts = [];
+    snap.forEach(d => posts.push({ id: d.id, ...d.data() }));
+    if (!posts.length) {
+      list.innerHTML = '<div style="padding:60px 24px;text-align:center;color:var(--text3)"><div style="font-size:38px;margin-bottom:10px">📝</div>아직 글이 없어요.<br>첫 글을 남겨보세요!</div>';
+      return;
+    }
+    posts.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+    window._boardCache = {};
+    posts.forEach(p=>{ window._boardCache[p.id] = p; });
+    const ytRe=/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
+    const postsHtml = posts.map(renderBoardCard).join('');
     const sceneCount = posts.filter(p=>(p.placeTags||[]).length>0 && !(p.body||'').includes('[맛집]') && !(p.body||'').includes('[쇼핑]') && !(p.body||'').includes('[인물]')).length;
     const sceneEntry = '<div onclick="openSceneCollection()" style="padding:15px 18px;border-bottom:2px solid var(--gold);background:var(--gold-bg);cursor:pointer;display:flex;align-items:center;gap:10px">' +
       '<span style="font-size:20px">🎬</span>' +
@@ -965,7 +985,10 @@ async function loadBoardList() {
       '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:#2563eb"><span style="font-size:10px;background:#2563eb;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>인기연예인</div>' +
       '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">내가 좋아하는 그 배우, 어떻게 여기까지 왔을까<br>데뷔 비하인드부터 커리어 스토리, 관련 성지까지 한눈에<br>현재 <b>'+personCount+'편</b>의 인물 스토리가 등록되어 있습니다.</div></div>' +
       '<span style="font-size:14px;color:#2563eb">→</span></div>';
-    list.innerHTML = personEntry + sceneEntry + foodEntry + shopEntry + list.innerHTML;
+    const searchBarHtml = '<div style="padding:12px 18px;border-bottom:1px solid var(--border)">' +
+      '<input id="boardSearchInput" type="text" placeholder="🔍 제목·내용 검색" oninput="filterBoardSearch(this.value)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:11px;font-size:13.5px;font-family:inherit;background:var(--bg2);color:var(--text);box-sizing:border-box">' +
+    '</div>';
+    list.innerHTML = searchBarHtml + '<div id="boardCatCards">' + personEntry + sceneEntry + foodEntry + shopEntry + '</div>' + '<div id="boardPostsArea">' + postsHtml + '</div>';
   } catch(e) {
     list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">불러오기 실패<br><small>' + (e.message||'') + '</small></div>';
   }
