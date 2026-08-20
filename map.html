@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.40';
+const VERSION = 'map v2.6.42';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1719,6 +1719,11 @@ function initMap() {
       adminApplyBulkAdd(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng());
       return;
     }
+    // 콘솔 대량 맛집 추가 모드: 클릭한 좌표로 큐의 다음 항목 저장
+    if (_bulkAddRestQueue && _bulkAddRestIndex < _bulkAddRestQueue.length && mouseEvent && mouseEvent.latLng) {
+      adminApplyBulkAddRest(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng());
+      return;
+    }
     // 관리자 위치 이동 모드: 클릭한 좌표로 성지 옮기기
     if (_movePlaceMode && mouseEvent && mouseEvent.latLng) {
       adminApplyMovePlace(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng());
@@ -1840,6 +1845,9 @@ let _movePlaceMode = null;   // 관리자 위치 이동 모드: { pid, name }
 let _bulkAddQueue = null;    // 콘솔 대량 성지 추가 모드: [{placeName,title,...}, ...]
 let _bulkAddIndex = 0;
 let _bulkAddDone = [];       // 완료된 항목 이름 기록(로그용)
+let _bulkAddRestQueue = null; // 콘솔 대량 맛집 추가 모드: [{name,cat,...}, ...]
+let _bulkAddRestIndex = 0;
+let _bulkAddRestDone = [];
 function makePinEl(color, icon, handler, highlight, sizeOverride) {
   const el = document.createElement('div');
   const size = sizeOverride || (highlight ? 36 : 26);
@@ -4516,6 +4524,76 @@ window.adminAddPilgrim = function(item) {
   if (!item || typeof item !== 'object') { console.warn('장소 정보 객체를 넣어주세요.'); return; }
   window.adminBulkAddPilgrims([item]);
 };
+window.adminAddRest = function(item) {
+  window.adminBulkAddRest([item]);
+};
+window.adminBulkAddRest = function(list) {
+  if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
+  if (!Array.isArray(list) || !list.length) { console.warn('빈 목록입니다.'); return; }
+  _bulkAddRestQueue = list;
+  _bulkAddRestIndex = 0;
+  _bulkAddRestDone = [];
+  closePlaceSheet();
+  adminCancelMovePlace();
+  console.log('▶ 총 ' + list.length + '곳(맛집) 등록 시작. 지도를 순서대로 클릭하세요.');
+  logBulkAddRestNext();
+};
+function logBulkAddRestNext() {
+  const item = _bulkAddRestQueue && _bulkAddRestQueue[_bulkAddRestIndex];
+  if (!item) return;
+  console.log('🍚 (' + (_bulkAddRestIndex+1) + '/' + _bulkAddRestQueue.length + ') "' + (item.name||'') + '" — 지도를 클릭하세요  (건너뛰기: adminSkipBulkAddRest() / 취소: adminCancelBulkAddRest())');
+}
+window.adminSkipBulkAddRest = function() {
+  if (!_bulkAddRestQueue) { console.warn('진행 중인 작업이 없습니다.'); return; }
+  console.log('⏭ 건너뜀: ' + (_bulkAddRestQueue[_bulkAddRestIndex].name||''));
+  _bulkAddRestIndex++;
+  if (_bulkAddRestIndex >= _bulkAddRestQueue.length) { adminFinishBulkAddRest(); return; }
+  logBulkAddRestNext();
+};
+window.adminCancelBulkAddRest = function() {
+  if (_bulkAddRestQueue && _bulkAddRestDone.length) console.log('중단됨. 완료: ' + _bulkAddRestDone.join(', '));
+  else console.log('중단됨.');
+  _bulkAddRestQueue = null; _bulkAddRestIndex = 0; _bulkAddRestBusy = false;
+};
+function adminFinishBulkAddRest() {
+  console.log('✅ 전체 완료 (' + _bulkAddRestDone.length + '곳): ' + _bulkAddRestDone.join(', '));
+  showToast('✅ 맛집 ' + _bulkAddRestDone.length + '곳 추가 완료');
+  _bulkAddRestQueue = null; _bulkAddRestIndex = 0;
+}
+let _bulkAddRestBusy = false;
+async function adminApplyBulkAddRest(lat, lng) {
+  if (_bulkAddRestBusy) { console.warn('⏳ 이전 항목을 아직 저장 중이에요. 잠깐 기다렸다가 다시 클릭해주세요.'); return; }
+  const item = _bulkAddRestQueue[_bulkAddRestIndex];
+  if (!item) return;
+  _bulkAddRestBusy = true;
+  try {
+    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
+    const docData = {
+      name: item.name || '',
+      celeb: item.celeb || '',
+      category: item.category || item.cat || '한식',
+      area: item.area || '',
+      comment: item.comment || item.story || '',
+      address: item.address || item.addr || '',
+      phone: item.phone || item.tel || '',
+      lat, lng,
+      createdAt: serverTimestamp()
+    };
+    const ref = await addDoc(collection(db, 'restaurants'), docData);
+    if (_restData) _restData.push({ ...docData, _id: ref.id });
+    renderRestPinsInView();
+    _bulkAddRestDone.push(item.name || '');
+    console.log('✅ 저장됨 (' + (_bulkAddRestIndex+1) + '/' + _bulkAddRestQueue.length + '): ' + (item.name||'') + '  [' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ']');
+    pingIndexNow('https://kstarmap.com/map.html');
+    _bulkAddRestIndex++;
+    _bulkAddRestBusy = false;
+    if (_bulkAddRestIndex >= _bulkAddRestQueue.length) { adminFinishBulkAddRest(); return; }
+    logBulkAddRestNext();
+  } catch(e) {
+    _bulkAddRestBusy = false;
+    console.error('맛집 저장 실패', e);
+  }
+}
 window.adminBulkAddPilgrims = function(list) {
   if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
   if (!Array.isArray(list) || !list.length) { console.warn('빈 목록입니다.'); return; }
