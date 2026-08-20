@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.43';
+const VERSION = 'map v2.6.44';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2607,6 +2607,37 @@ function openPlaceSheet(place) {
       const comment = raw.comment || '';
       if (cat || celeb) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🍽️ ' + esc(cat) + (celeb?' · '+esc(celeb):'') + '</div>';
       if (comment) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px">' + esc(comment) + '</div>';
+      // 맛집칼럼 글 연결 — 성지와 동일한 방식으로 최대 3개 목록 + 더보기
+      const _rnClean = (raw.name||'').replace(/\s/g,'');
+      if (_rnClean) {
+        const storyBtnId = 'storyBtn_' + Date.now();
+        html += '<div id="'+storyBtnId+'" style="display:none;margin-top:10px"></div>';
+        (async()=>{
+          try {
+            const {db,collection,getDocs,query,where}=window._mapDB;
+            const snap=await getDocs(query(collection(db,'board'),where('placeTags','array-contains',raw.name||'')));
+            if(snap.empty) return;
+            const box=document.getElementById(storyBtnId);
+            if(!box) return;
+            const posts = snap.docs.map(d => ({ id:d.id, title:d.data().title||'글 보기', createdAt: d.data().createdAt }));
+            posts.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+            const escT = t => String(t).replace(/</g,'&lt;').replace(/'/g,"\\'");
+            const rowHtml = p => '<button onclick="openBoardStory(\''+p.id+'\')" style="display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;border:1px solid var(--amber);border-radius:10px;padding:11px 13px;background:rgba(232,163,61,0.1);cursor:pointer;margin-bottom:6px">'+
+              '<span style="font-size:16px">📖</span>'+
+              '<span style="flex:1;font-size:13px;color:var(--amber);font-weight:700;text-align:left">'+escT(p.title)+'</span>'+
+              '<span style="font-size:11px;color:var(--text3)">→</span></button>';
+            const shown = posts.slice(0,3), rest = posts.slice(3);
+            let innerHtml = shown.map(rowHtml).join('');
+            if (rest.length) {
+              const moreId = storyBtnId + '_more';
+              innerHtml += '<button onclick="document.getElementById(\''+moreId+'\').style.display=\'block\';this.remove()" style="width:100%;text-align:center;font-size:12px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0">더보기 (' + rest.length + '개 더) ▾</button>' +
+                '<div id="'+moreId+'" style="display:none">' + rest.map(rowHtml).join('') + '</div>';
+            }
+            box.innerHTML = innerHtml;
+            box.style.display='';
+          }catch(e){}
+        })();
+      }
     }
     // 주소·전화 공통 정보 (맛집=address/phone, 성지=addr/tel)
     const addr2 = (raw.addr || raw.address) || raw.area || '';
