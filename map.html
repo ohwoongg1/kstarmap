@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.42';
+const VERSION = 'map v2.6.43';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1404,17 +1404,30 @@ window.boardPlaceLink = function(placeName, titleHint) {
   if (!d) {
     d = _pilgrimData.find(p => (p.placeName||'') === placeName);
   }
+  if (!d) {
+    // 성지에 없으면 맛집(restaurants)에서도 찾아본다
+    const rt = (_restData||[]).find(r => (r.name||'') === placeName);
+    if (rt && rt.lat && rt.lng) d = { placeName: rt.name, title: rt.category||'', area: rt.area||'', lat: rt.lat, lng: rt.lng, _restRaw: rt };
+  }
   if (!d || !d.lat || !d.lng) { showToast('장소를 찾을 수 없어요'); return; }
   // 검색 결과 클릭과 똑같은 방식: 여기서 바로 전용 핀을 만들어서 지도에 찍는다.
   // (기존 성지 핀이 다시 그려지길 기다리는 방식은 타이밍 문제가 있어서 이 방식으로 대체)
+  const isRest = !!d._restRaw;
   const pos = new kakao.maps.LatLng(d.lat, d.lng);
-  const icon = d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺';
-  const el = makePinEl('#378ADD', icon, () => {
+  const icon = isRest ? '🍚' : (d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺');
+  const el = makePinEl(isRest ? '#E8A33D' : '#378ADD', icon, () => {
     try {
-      openPlaceSheet({
-        name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
-        lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
-      });
+      if (isRest) {
+        openPlaceSheet({
+          name: d.placeName, sub: (d._restRaw.category||'') + (d.area?' · '+d.area:''),
+          lat: d.lat, lng: d.lng, color: 'var(--amber)', type: 'rest', raw: d._restRaw
+        });
+      } else {
+        openPlaceSheet({
+          name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
+          lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
+        });
+      }
     } catch(e) {
       console.error('boardPlaceLink pin click error:', e);
       showToast('열기 실패: ' + (e.message||e));
@@ -2603,7 +2616,8 @@ function openPlaceSheet(place) {
     if (place.type !== 'pilgrim' && addr2) contact += '<div style="font-size:12px;color:var(--text3);margin-bottom:6px">📍 ' + esc(addr2) + '</div>';
     if (phone) contact += '<div style="font-size:12px;margin-bottom:6px">📞 <a href="tel:' + esc(String(phone).replace(/[^0-9+]/g,'')) + '" style="color:#185FA5;text-decoration:none">' + esc(phone) + '</a></div>';
     if (contact) html += '<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">' + contact + '</div>';
-    if (place.type === 'pilgrim' && window.renderAdminPanel) html += window.renderAdminPanel(place.raw || {});
+    if (place.type === 'pilgrim' && window.renderAdminPanel) html += window.renderAdminPanel(place.raw || {}, 'pilgrimages');
+    if (place.type === 'rest' && window.renderAdminPanel) html += window.renderAdminPanel(place.raw || {}, 'restaurants');
     window._selectedPlaceRef = place;
     info.innerHTML = html;
   }
@@ -4410,9 +4424,9 @@ window.courseRoute = function(cid, idx) {
 
 /* ═══════════════ 관리자: 성지 사진 편집 ═══════════════ */
 const ADMIN_UIDS = ['cFssXopeh2aWJwghO9DaJXhsZx82'];
-window.adminStartMovePlace = function(pid, name) {
+window.adminStartMovePlace = function(pid, name, coll) {
   if (!window.isAdmin()) return;
-  _movePlaceMode = { pid, name };
+  _movePlaceMode = { pid, name, coll: coll || 'pilgrimages' };
   closePlaceSheet();
   // 안내 배너 표시
   let banner = document.getElementById('moveBanner');
@@ -4437,15 +4451,23 @@ async function adminApplyMovePlace(lat, lng) {
   if (!confirm('"' + mode.name + '"를 이 위치로 옮길까요?\n' + lat.toFixed(6) + ', ' + lng.toFixed(6))) return;
   try {
     const { db, doc, updateDoc } = window._mapDB;
-    await updateDoc(doc(db, 'pilgrimages', mode.pid), { lat, lng });
+    await updateDoc(doc(db, mode.coll, mode.pid), { lat, lng });
     // 로컬 데이터도 갱신
-    if (_pilgrimData) {
-      const idx = _pilgrimData.findIndex(p => p._id === mode.pid);
-      if (idx >= 0) { _pilgrimData[idx].lat = lat; _pilgrimData[idx].lng = lng; }
+    if (mode.coll === 'restaurants') {
+      if (_restData) {
+        const idx = _restData.findIndex(p => p._id === mode.pid);
+        if (idx >= 0) { _restData[idx].lat = lat; _restData[idx].lng = lng; }
+      }
+      renderRestPinsInView();
+    } else {
+      if (_pilgrimData) {
+        const idx = _pilgrimData.findIndex(p => p._id === mode.pid);
+        if (idx >= 0) { _pilgrimData[idx].lat = lat; _pilgrimData[idx].lng = lng; }
+      }
+      renderPilgrimPinsInView();
     }
     showToast('✅ 위치를 옮겼어요');
     adminCancelMovePlace();
-    renderPilgrimPinsInView();
     map.setCenter(new kakao.maps.LatLng(lat, lng));
   } catch(e) {
     showToast('이동 실패: ' + (e.message||e));
@@ -4738,8 +4760,9 @@ window.visibleTourImgs = (raw) => {
   return list.map(u => String(u).replace(/^http:\/\//, 'https://'));
 };
 
-window.renderAdminPanel = (raw) => {
+window.renderAdminPanel = (raw, coll) => {
   if (!window.isAdmin() || !raw._id) return '';
+  coll = coll || 'pilgrimages';
   const all = window.allTourImgs(raw);
   const hidden = Array.isArray(raw.hiddenImages) ? raw.hiddenImages : [];
   const primary = raw.primaryImage || '';
@@ -4771,24 +4794,33 @@ window.renderAdminPanel = (raw) => {
     '<div style="margin-top:6px"><label style="font-size:11px;color:var(--text3);cursor:pointer">📁 파일 업로드 <input type="file" accept="image/*" multiple onchange="adminUploadImages(\'' + raw._id + '\', this.files)" style="font-size:11px"></label></div>' +
     '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(181,121,15,0.3)">' +
       '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">📍 현재 좌표: ' + (raw.lat||0).toFixed(6) + ', ' + (raw.lng||0).toFixed(6) + '</div>' +
-      '<button onclick="adminStartMovePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#378ADD;color:#fff;cursor:pointer;margin-bottom:6px">📍 지도에서 위치 이동</button>' +
-      '<button onclick="adminDeletePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#EF4444;color:#fff;cursor:pointer">🗑️ 이 성지 삭제</button>' +
+      '<button onclick="adminStartMovePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||raw.name||'') + '\',\'' + coll + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#378ADD;color:#fff;cursor:pointer;margin-bottom:6px">📍 지도에서 위치 이동</button>' +
+      '<button onclick="adminDeletePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||raw.name||'') + '\',\'' + coll + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#EF4444;color:#fff;cursor:pointer">🗑️ 이 ' + (coll==='restaurants'?'맛집':'성지') + ' 삭제</button>' +
     '</div>' +
   '</div>';
 };
-window.adminDeletePlace = async function(pid, name) {
+window.adminDeletePlace = async function(pid, name, coll) {
   if (!window.isAdmin()) return;
+  coll = coll || 'pilgrimages';
   if (!confirm('"' + name + '"을(를) 정말 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) return;
   if (!confirm('한 번 더 확인할게요 — "' + name + '"을(를) 완전히 삭제합니다. 진행할까요?')) return;
   try {
     const { db, doc, deleteDoc } = window._mapDB;
-    await deleteDoc(doc(db, 'pilgrimages', pid));
-    if (_pilgrimData) {
-      const idx = _pilgrimData.findIndex(p => p._id === pid);
-      if (idx >= 0) _pilgrimData.splice(idx, 1);
+    await deleteDoc(doc(db, coll, pid));
+    if (coll === 'restaurants') {
+      if (_restData) {
+        const idx = _restData.findIndex(p => p._id === pid);
+        if (idx >= 0) _restData.splice(idx, 1);
+      }
+      renderRestPinsInView();
+    } else {
+      if (_pilgrimData) {
+        const idx = _pilgrimData.findIndex(p => p._id === pid);
+        if (idx >= 0) _pilgrimData.splice(idx, 1);
+      }
+      renderPilgrimPinsInView();
     }
     closePlaceSheet();
-    renderPilgrimPinsInView();
     showToast('🗑️ "' + name + '" 삭제 완료');
   } catch(e) {
     console.error('삭제 실패: ' + (e.message||e));
