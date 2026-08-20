@@ -3970,6 +3970,37 @@ window.hideHomeRanking = function() {
   const box = document.getElementById('homeRankingView');
   if (box) box.classList.remove('show');
 };
+// 성지/맛집 이름으로 지도를 이동시키고 핀을 찍는다. 찾아서 이동시켰으면 true, 못 찾았으면 false.
+function centerMapOnPlace(placeName) {
+  if (!placeName) return false;
+  const pg = (typeof _pilgrimData !== 'undefined' ? _pilgrimData : []).find(d => d.placeName === placeName);
+  const rt = (typeof _restData !== 'undefined' ? _restData : []).find(d => d.name === placeName);
+  try {
+    clearMarkers(_searchMarkers);
+    if (pg) {
+      const pos = new kakao.maps.LatLng(pg.lat, pg.lng);
+      const el = makePinEl('#E24B4A', '📍', () => {
+        openPlaceSheet({ name: pg.placeName, sub: (pg.title||'') + (pg.area?' · '+pg.area:''), lat: pg.lat, lng: pg.lng, color: 'var(--gold)', type: 'pilgrim', raw: pg });
+      }, true, 42);
+      const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 20 });
+      ov.setMap(map);
+      _searchMarkers.push(ov);
+      map.setCenter(pos); map.setLevel(5);
+      return true;
+    } else if (rt) {
+      const pos = new kakao.maps.LatLng(rt.lat, rt.lng);
+      const el = makePinEl('#E24B4A', '📍', () => {
+        openPlaceSheet({ name: rt.name, sub: (rt.cat||'') + (rt.area?' · '+rt.area:''), lat: rt.lat, lng: rt.lng, color: 'var(--amber)', type: 'rest', raw: rt });
+      }, true, 42);
+      const ov = new kakao.maps.CustomOverlay({ position: pos, content: el, yAnchor: 1, zIndex: 20 });
+      ov.setMap(map);
+      _searchMarkers.push(ov);
+      map.setCenter(pos); map.setLevel(5);
+      return true;
+    }
+  } catch(e) { console.warn('centerMapOnPlace', e); }
+  return false;
+}
 window.homeRankingGo = function(category, name) {
   hideHomeRanking();
   switchTabTo('map');
@@ -4034,7 +4065,11 @@ window.openBoardPostByTitle = async function(nameHint, requiredTag) {
   try {
     const list = await getBoardTitleCache();
     const match = list.find(d => (d.title||'').includes(nameHint) && (!requiredTag || d.tags.includes(requiredTag)));
-    if (match) { openBoardStory(match.id); return; }
+    if (match) {
+      if (match.placeTags && match.placeTags.length) centerMapOnPlace(match.placeTags[0]);
+      openBoardStory(match.id);
+      return;
+    }
     showToast('📝 "' + nameHint + '" 콘텐츠는 준비 중이에요. 곧 채워드릴게요!');
   } catch(e) { console.error(e); showToast('불러오기 실패'); }
 };
@@ -4046,7 +4081,7 @@ async function getBoardTitleCache(forceRefresh) {
   _boardTitleCache = snap.docs.map(d => {
     const body = d.data().body || '';
     const tags = (body.match(/\[(인물|드라마|영화|음악|맛집|쇼핑)\]/g) || []).map(t => t.slice(1,-1));
-    return { id: d.id, title: d.data().title || '', tags };
+    return { id: d.id, title: d.data().title || '', tags, placeTags: d.data().placeTags || [] };
   });
   return _boardTitleCache;
 }
