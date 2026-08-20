@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.44';
+const VERSION = 'map v2.6.45';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2172,6 +2172,7 @@ window.applyTitleFilter = function(title) {
 // 필터 적용 후 지도로 (내 주변 우선)
 function finishHallyuFilter(label) {
   document.getElementById('hallyuSearch')?.remove();
+  hideHomeRanking();
   switchTabTo('map');
   _contentFilter = null;
   _filters.pilgrim = true;
@@ -2320,6 +2321,12 @@ function restorePreSearchView() {
 
 function doSearch(q) {
   capturePreSearchView();
+  // kstarmap 자체 데이터(성지+맛집)에서 먼저 "관련어" 찾기
+  const lq = q.replace(/\s/g,'').toLowerCase();
+  const norm = s => String(s||'').replace(/\s/g,'').toLowerCase();
+  const ownPilgrim = (_pilgrimData||[]).filter(d => norm(d.placeName).includes(lq)).slice(0, 5);
+  const ownRest = (_restData||[]).filter(d => norm(d.name).includes(lq)).slice(0, 5);
+  window._ownSearchMatches = [...ownPilgrim, ...ownRest];
   // 전국 검색: radius 제한 없이, 내 위치는 정렬 참고용으로만
   ps.keywordSearch(q, (data, status) => {
     if (status === kakao.maps.services.Status.OK) {
@@ -2330,14 +2337,41 @@ function doSearch(q) {
   }, { location: new kakao.maps.LatLng(myLat, myLng), size: 15, sort: kakao.maps.services.SortBy.ACCURACY });
 }
 
+window.pickOwnSearchMatch = function(i) {
+  const d = window._ownSearchMatches[i];
+  if (!d) return;
+  hideSearchResults();
+  document.getElementById('searchInput').blur();
+  clearMarkers(_searchMarkers);
+  hideHomeRanking();
+  const isRest = !d.placeName; // 성지엔 placeName, 맛집엔 name만 있음
+  const name = d.placeName || d.name;
+  centerMapOnPlace(name);
+  showToast('📍 ' + name);
+};
+
 function showSearchResults(items) {
   const box = document.getElementById('searchResults');
-  if (!items.length) {
+  const own = window._ownSearchMatches || [];
+  let ownHtml = '';
+  if (own.length) {
+    ownHtml = '<div style="padding:10px 14px 4px;font-size:11px;font-weight:700;color:var(--gold)">🔗 관련어</div>' +
+      own.map((d, i) => {
+        const isRest = !d.placeName;
+        const name = d.placeName || d.name;
+        const sub = isRest ? (d.category||d.cat||'') : (d.title||'');
+        return '<div class="sr-item" onclick="pickOwnSearchMatch(' + i + ')" style="background:var(--gold-bg)">' +
+          '<div class="sr-name">' + (isRest?'🍚 ':'📍 ') + esc(name) + '</div>' +
+          '<div class="sr-addr">' + esc(sub) + '</div>' +
+        '</div>';
+      }).join('');
+  }
+  if (!items.length && !own.length) {
     box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">' + t('noResult') + '</div>';
     box.style.display = 'block';
     return;
   }
-  box.innerHTML = items.map((it, i) =>
+  box.innerHTML = ownHtml + (items.length ? '<div style="padding:10px 14px 4px;font-size:11px;font-weight:700;color:var(--text3)">🔍 장소 검색결과</div>' : '') + items.map((it, i) =>
     '<div class="sr-item" onclick="pickSearchResult(' + i + ')">' +
       '<div class="sr-name">' + esc(it.place_name) + '</div>' +
       '<div class="sr-addr">' + esc(it.road_address_name || it.address_name || '') + '</div>' +
@@ -2403,6 +2437,7 @@ window.pickSearchResult = function(i) {
   hideSearchResults();
   document.getElementById('searchInput').blur();
   clearMarkers(_searchMarkers);
+  hideHomeRanking();
   _lastSearchPick = it;            // 복원용 저장
   if (!_filters.search) {          // 검색 레이어가 꺼져 있으면 켜줌
     _filters.search = true;
