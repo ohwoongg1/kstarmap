@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.40';
+const VERSION = 'map v2.6.45';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -1404,17 +1404,30 @@ window.boardPlaceLink = function(placeName, titleHint) {
   if (!d) {
     d = _pilgrimData.find(p => (p.placeName||'') === placeName);
   }
+  if (!d) {
+    // 성지에 없으면 맛집(restaurants)에서도 찾아본다
+    const rt = (_restData||[]).find(r => (r.name||'') === placeName);
+    if (rt && rt.lat && rt.lng) d = { placeName: rt.name, title: rt.category||'', area: rt.area||'', lat: rt.lat, lng: rt.lng, _restRaw: rt };
+  }
   if (!d || !d.lat || !d.lng) { showToast('장소를 찾을 수 없어요'); return; }
   // 검색 결과 클릭과 똑같은 방식: 여기서 바로 전용 핀을 만들어서 지도에 찍는다.
   // (기존 성지 핀이 다시 그려지길 기다리는 방식은 타이밍 문제가 있어서 이 방식으로 대체)
+  const isRest = !!d._restRaw;
   const pos = new kakao.maps.LatLng(d.lat, d.lng);
-  const icon = d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺';
-  const el = makePinEl('#378ADD', icon, () => {
+  const icon = isRest ? '🍚' : (d.mediaType === 'artist' ? '⭐' : d.mediaType === 'movie' ? '🎬' : '📺');
+  const el = makePinEl(isRest ? '#E8A33D' : '#378ADD', icon, () => {
     try {
-      openPlaceSheet({
-        name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
-        lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
-      });
+      if (isRest) {
+        openPlaceSheet({
+          name: d.placeName, sub: (d._restRaw.category||'') + (d.area?' · '+d.area:''),
+          lat: d.lat, lng: d.lng, color: 'var(--amber)', type: 'rest', raw: d._restRaw
+        });
+      } else {
+        openPlaceSheet({
+          name: (d.placeName || d.title) || '', sub: (d.title||'') + (d.area?' · '+d.area:''),
+          lat: d.lat, lng: d.lng, color: 'var(--blue)', type: 'pilgrim', raw: d
+        });
+      }
     } catch(e) {
       console.error('boardPlaceLink pin click error:', e);
       showToast('열기 실패: ' + (e.message||e));
@@ -1719,6 +1732,11 @@ function initMap() {
       adminApplyBulkAdd(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng());
       return;
     }
+    // 콘솔 대량 맛집 추가 모드: 클릭한 좌표로 큐의 다음 항목 저장
+    if (_bulkAddRestQueue && _bulkAddRestIndex < _bulkAddRestQueue.length && mouseEvent && mouseEvent.latLng) {
+      adminApplyBulkAddRest(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng());
+      return;
+    }
     // 관리자 위치 이동 모드: 클릭한 좌표로 성지 옮기기
     if (_movePlaceMode && mouseEvent && mouseEvent.latLng) {
       adminApplyMovePlace(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng());
@@ -1840,6 +1858,9 @@ let _movePlaceMode = null;   // 관리자 위치 이동 모드: { pid, name }
 let _bulkAddQueue = null;    // 콘솔 대량 성지 추가 모드: [{placeName,title,...}, ...]
 let _bulkAddIndex = 0;
 let _bulkAddDone = [];       // 완료된 항목 이름 기록(로그용)
+let _bulkAddRestQueue = null; // 콘솔 대량 맛집 추가 모드: [{name,cat,...}, ...]
+let _bulkAddRestIndex = 0;
+let _bulkAddRestDone = [];
 function makePinEl(color, icon, handler, highlight, sizeOverride) {
   const el = document.createElement('div');
   const size = sizeOverride || (highlight ? 36 : 26);
@@ -2151,6 +2172,7 @@ window.applyTitleFilter = function(title) {
 // 필터 적용 후 지도로 (내 주변 우선)
 function finishHallyuFilter(label) {
   document.getElementById('hallyuSearch')?.remove();
+  hideHomeRanking();
   switchTabTo('map');
   _contentFilter = null;
   _filters.pilgrim = true;
@@ -2299,6 +2321,12 @@ function restorePreSearchView() {
 
 function doSearch(q) {
   capturePreSearchView();
+  // kstarmap 자체 데이터(성지+맛집)에서 먼저 "관련어" 찾기
+  const lq = q.replace(/\s/g,'').toLowerCase();
+  const norm = s => String(s||'').replace(/\s/g,'').toLowerCase();
+  const ownPilgrim = (_pilgrimData||[]).filter(d => norm(d.placeName).includes(lq)).slice(0, 5);
+  const ownRest = (_restData||[]).filter(d => norm(d.name).includes(lq)).slice(0, 5);
+  window._ownSearchMatches = [...ownPilgrim, ...ownRest];
   // 전국 검색: radius 제한 없이, 내 위치는 정렬 참고용으로만
   ps.keywordSearch(q, (data, status) => {
     if (status === kakao.maps.services.Status.OK) {
@@ -2309,14 +2337,41 @@ function doSearch(q) {
   }, { location: new kakao.maps.LatLng(myLat, myLng), size: 15, sort: kakao.maps.services.SortBy.ACCURACY });
 }
 
+window.pickOwnSearchMatch = function(i) {
+  const d = window._ownSearchMatches[i];
+  if (!d) return;
+  hideSearchResults();
+  document.getElementById('searchInput').blur();
+  clearMarkers(_searchMarkers);
+  hideHomeRanking();
+  const isRest = !d.placeName; // 성지엔 placeName, 맛집엔 name만 있음
+  const name = d.placeName || d.name;
+  centerMapOnPlace(name);
+  showToast('📍 ' + name);
+};
+
 function showSearchResults(items) {
   const box = document.getElementById('searchResults');
-  if (!items.length) {
+  const own = window._ownSearchMatches || [];
+  let ownHtml = '';
+  if (own.length) {
+    ownHtml = '<div style="padding:10px 14px 4px;font-size:11px;font-weight:700;color:var(--gold)">🔗 관련어</div>' +
+      own.map((d, i) => {
+        const isRest = !d.placeName;
+        const name = d.placeName || d.name;
+        const sub = isRest ? (d.category||d.cat||'') : (d.title||'');
+        return '<div class="sr-item" onclick="pickOwnSearchMatch(' + i + ')" style="background:var(--gold-bg)">' +
+          '<div class="sr-name">' + (isRest?'🍚 ':'📍 ') + esc(name) + '</div>' +
+          '<div class="sr-addr">' + esc(sub) + '</div>' +
+        '</div>';
+      }).join('');
+  }
+  if (!items.length && !own.length) {
     box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">' + t('noResult') + '</div>';
     box.style.display = 'block';
     return;
   }
-  box.innerHTML = items.map((it, i) =>
+  box.innerHTML = ownHtml + (items.length ? '<div style="padding:10px 14px 4px;font-size:11px;font-weight:700;color:var(--text3)">🔍 장소 검색결과</div>' : '') + items.map((it, i) =>
     '<div class="sr-item" onclick="pickSearchResult(' + i + ')">' +
       '<div class="sr-name">' + esc(it.place_name) + '</div>' +
       '<div class="sr-addr">' + esc(it.road_address_name || it.address_name || '') + '</div>' +
@@ -2382,6 +2437,7 @@ window.pickSearchResult = function(i) {
   hideSearchResults();
   document.getElementById('searchInput').blur();
   clearMarkers(_searchMarkers);
+  hideHomeRanking();
   _lastSearchPick = it;            // 복원용 저장
   if (!_filters.search) {          // 검색 레이어가 꺼져 있으면 켜줌
     _filters.search = true;
@@ -2586,6 +2642,37 @@ function openPlaceSheet(place) {
       const comment = raw.comment || '';
       if (cat || celeb) html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">🍽️ ' + esc(cat) + (celeb?' · '+esc(celeb):'') + '</div>';
       if (comment) html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--bg2);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px">' + esc(comment) + '</div>';
+      // 맛집칼럼 글 연결 — 성지와 동일한 방식으로 최대 3개 목록 + 더보기
+      const _rnClean = (raw.name||'').replace(/\s/g,'');
+      if (_rnClean) {
+        const storyBtnId = 'storyBtn_' + Date.now();
+        html += '<div id="'+storyBtnId+'" style="display:none;margin-top:10px"></div>';
+        (async()=>{
+          try {
+            const {db,collection,getDocs,query,where}=window._mapDB;
+            const snap=await getDocs(query(collection(db,'board'),where('placeTags','array-contains',raw.name||'')));
+            if(snap.empty) return;
+            const box=document.getElementById(storyBtnId);
+            if(!box) return;
+            const posts = snap.docs.map(d => ({ id:d.id, title:d.data().title||'글 보기', createdAt: d.data().createdAt }));
+            posts.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+            const escT = t => String(t).replace(/</g,'&lt;').replace(/'/g,"\\'");
+            const rowHtml = p => '<button onclick="openBoardStory(\''+p.id+'\')" style="display:flex;align-items:center;gap:9px;width:100%;text-decoration:none;border:1px solid var(--amber);border-radius:10px;padding:11px 13px;background:rgba(232,163,61,0.1);cursor:pointer;margin-bottom:6px">'+
+              '<span style="font-size:16px">📖</span>'+
+              '<span style="flex:1;font-size:13px;color:var(--amber);font-weight:700;text-align:left">'+escT(p.title)+'</span>'+
+              '<span style="font-size:11px;color:var(--text3)">→</span></button>';
+            const shown = posts.slice(0,3), rest = posts.slice(3);
+            let innerHtml = shown.map(rowHtml).join('');
+            if (rest.length) {
+              const moreId = storyBtnId + '_more';
+              innerHtml += '<button onclick="document.getElementById(\''+moreId+'\').style.display=\'block\';this.remove()" style="width:100%;text-align:center;font-size:12px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0">더보기 (' + rest.length + '개 더) ▾</button>' +
+                '<div id="'+moreId+'" style="display:none">' + rest.map(rowHtml).join('') + '</div>';
+            }
+            box.innerHTML = innerHtml;
+            box.style.display='';
+          }catch(e){}
+        })();
+      }
     }
     // 주소·전화 공통 정보 (맛집=address/phone, 성지=addr/tel)
     const addr2 = (raw.addr || raw.address) || raw.area || '';
@@ -2595,7 +2682,8 @@ function openPlaceSheet(place) {
     if (place.type !== 'pilgrim' && addr2) contact += '<div style="font-size:12px;color:var(--text3);margin-bottom:6px">📍 ' + esc(addr2) + '</div>';
     if (phone) contact += '<div style="font-size:12px;margin-bottom:6px">📞 <a href="tel:' + esc(String(phone).replace(/[^0-9+]/g,'')) + '" style="color:#185FA5;text-decoration:none">' + esc(phone) + '</a></div>';
     if (contact) html += '<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">' + contact + '</div>';
-    if (place.type === 'pilgrim' && window.renderAdminPanel) html += window.renderAdminPanel(place.raw || {});
+    if (place.type === 'pilgrim' && window.renderAdminPanel) html += window.renderAdminPanel(place.raw || {}, 'pilgrimages');
+    if (place.type === 'rest' && window.renderAdminPanel) html += window.renderAdminPanel(place.raw || {}, 'restaurants');
     window._selectedPlaceRef = place;
     info.innerHTML = html;
   }
@@ -4402,9 +4490,9 @@ window.courseRoute = function(cid, idx) {
 
 /* ═══════════════ 관리자: 성지 사진 편집 ═══════════════ */
 const ADMIN_UIDS = ['cFssXopeh2aWJwghO9DaJXhsZx82'];
-window.adminStartMovePlace = function(pid, name) {
+window.adminStartMovePlace = function(pid, name, coll) {
   if (!window.isAdmin()) return;
-  _movePlaceMode = { pid, name };
+  _movePlaceMode = { pid, name, coll: coll || 'pilgrimages' };
   closePlaceSheet();
   // 안내 배너 표시
   let banner = document.getElementById('moveBanner');
@@ -4429,15 +4517,23 @@ async function adminApplyMovePlace(lat, lng) {
   if (!confirm('"' + mode.name + '"를 이 위치로 옮길까요?\n' + lat.toFixed(6) + ', ' + lng.toFixed(6))) return;
   try {
     const { db, doc, updateDoc } = window._mapDB;
-    await updateDoc(doc(db, 'pilgrimages', mode.pid), { lat, lng });
+    await updateDoc(doc(db, mode.coll, mode.pid), { lat, lng });
     // 로컬 데이터도 갱신
-    if (_pilgrimData) {
-      const idx = _pilgrimData.findIndex(p => p._id === mode.pid);
-      if (idx >= 0) { _pilgrimData[idx].lat = lat; _pilgrimData[idx].lng = lng; }
+    if (mode.coll === 'restaurants') {
+      if (_restData) {
+        const idx = _restData.findIndex(p => p._id === mode.pid);
+        if (idx >= 0) { _restData[idx].lat = lat; _restData[idx].lng = lng; }
+      }
+      renderRestPinsInView();
+    } else {
+      if (_pilgrimData) {
+        const idx = _pilgrimData.findIndex(p => p._id === mode.pid);
+        if (idx >= 0) { _pilgrimData[idx].lat = lat; _pilgrimData[idx].lng = lng; }
+      }
+      renderPilgrimPinsInView();
     }
     showToast('✅ 위치를 옮겼어요');
     adminCancelMovePlace();
-    renderPilgrimPinsInView();
     map.setCenter(new kakao.maps.LatLng(lat, lng));
   } catch(e) {
     showToast('이동 실패: ' + (e.message||e));
@@ -4516,6 +4612,76 @@ window.adminAddPilgrim = function(item) {
   if (!item || typeof item !== 'object') { console.warn('장소 정보 객체를 넣어주세요.'); return; }
   window.adminBulkAddPilgrims([item]);
 };
+window.adminAddRest = function(item) {
+  window.adminBulkAddRest([item]);
+};
+window.adminBulkAddRest = function(list) {
+  if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
+  if (!Array.isArray(list) || !list.length) { console.warn('빈 목록입니다.'); return; }
+  _bulkAddRestQueue = list;
+  _bulkAddRestIndex = 0;
+  _bulkAddRestDone = [];
+  closePlaceSheet();
+  adminCancelMovePlace();
+  console.log('▶ 총 ' + list.length + '곳(맛집) 등록 시작. 지도를 순서대로 클릭하세요.');
+  logBulkAddRestNext();
+};
+function logBulkAddRestNext() {
+  const item = _bulkAddRestQueue && _bulkAddRestQueue[_bulkAddRestIndex];
+  if (!item) return;
+  console.log('🍚 (' + (_bulkAddRestIndex+1) + '/' + _bulkAddRestQueue.length + ') "' + (item.name||'') + '" — 지도를 클릭하세요  (건너뛰기: adminSkipBulkAddRest() / 취소: adminCancelBulkAddRest())');
+}
+window.adminSkipBulkAddRest = function() {
+  if (!_bulkAddRestQueue) { console.warn('진행 중인 작업이 없습니다.'); return; }
+  console.log('⏭ 건너뜀: ' + (_bulkAddRestQueue[_bulkAddRestIndex].name||''));
+  _bulkAddRestIndex++;
+  if (_bulkAddRestIndex >= _bulkAddRestQueue.length) { adminFinishBulkAddRest(); return; }
+  logBulkAddRestNext();
+};
+window.adminCancelBulkAddRest = function() {
+  if (_bulkAddRestQueue && _bulkAddRestDone.length) console.log('중단됨. 완료: ' + _bulkAddRestDone.join(', '));
+  else console.log('중단됨.');
+  _bulkAddRestQueue = null; _bulkAddRestIndex = 0; _bulkAddRestBusy = false;
+};
+function adminFinishBulkAddRest() {
+  console.log('✅ 전체 완료 (' + _bulkAddRestDone.length + '곳): ' + _bulkAddRestDone.join(', '));
+  showToast('✅ 맛집 ' + _bulkAddRestDone.length + '곳 추가 완료');
+  _bulkAddRestQueue = null; _bulkAddRestIndex = 0;
+}
+let _bulkAddRestBusy = false;
+async function adminApplyBulkAddRest(lat, lng) {
+  if (_bulkAddRestBusy) { console.warn('⏳ 이전 항목을 아직 저장 중이에요. 잠깐 기다렸다가 다시 클릭해주세요.'); return; }
+  const item = _bulkAddRestQueue[_bulkAddRestIndex];
+  if (!item) return;
+  _bulkAddRestBusy = true;
+  try {
+    const { db, collection, addDoc, serverTimestamp } = window._mapDB;
+    const docData = {
+      name: item.name || '',
+      celeb: item.celeb || '',
+      category: item.category || item.cat || '한식',
+      area: item.area || '',
+      comment: item.comment || item.story || '',
+      address: item.address || item.addr || '',
+      phone: item.phone || item.tel || '',
+      lat, lng,
+      createdAt: serverTimestamp()
+    };
+    const ref = await addDoc(collection(db, 'restaurants'), docData);
+    if (_restData) _restData.push({ ...docData, _id: ref.id });
+    renderRestPinsInView();
+    _bulkAddRestDone.push(item.name || '');
+    console.log('✅ 저장됨 (' + (_bulkAddRestIndex+1) + '/' + _bulkAddRestQueue.length + '): ' + (item.name||'') + '  [' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ']');
+    pingIndexNow('https://kstarmap.com/map.html');
+    _bulkAddRestIndex++;
+    _bulkAddRestBusy = false;
+    if (_bulkAddRestIndex >= _bulkAddRestQueue.length) { adminFinishBulkAddRest(); return; }
+    logBulkAddRestNext();
+  } catch(e) {
+    _bulkAddRestBusy = false;
+    console.error('맛집 저장 실패', e);
+  }
+}
 window.adminBulkAddPilgrims = function(list) {
   if (!window.isAdmin()) { console.warn('관리자 계정으로 로그인 후 사용하세요.'); return; }
   if (!Array.isArray(list) || !list.length) { console.warn('빈 목록입니다.'); return; }
@@ -4660,8 +4826,9 @@ window.visibleTourImgs = (raw) => {
   return list.map(u => String(u).replace(/^http:\/\//, 'https://'));
 };
 
-window.renderAdminPanel = (raw) => {
+window.renderAdminPanel = (raw, coll) => {
   if (!window.isAdmin() || !raw._id) return '';
+  coll = coll || 'pilgrimages';
   const all = window.allTourImgs(raw);
   const hidden = Array.isArray(raw.hiddenImages) ? raw.hiddenImages : [];
   const primary = raw.primaryImage || '';
@@ -4693,24 +4860,33 @@ window.renderAdminPanel = (raw) => {
     '<div style="margin-top:6px"><label style="font-size:11px;color:var(--text3);cursor:pointer">📁 파일 업로드 <input type="file" accept="image/*" multiple onchange="adminUploadImages(\'' + raw._id + '\', this.files)" style="font-size:11px"></label></div>' +
     '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(181,121,15,0.3)">' +
       '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">📍 현재 좌표: ' + (raw.lat||0).toFixed(6) + ', ' + (raw.lng||0).toFixed(6) + '</div>' +
-      '<button onclick="adminStartMovePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#378ADD;color:#fff;cursor:pointer;margin-bottom:6px">📍 지도에서 위치 이동</button>' +
-      '<button onclick="adminDeletePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||'') + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#EF4444;color:#fff;cursor:pointer">🗑️ 이 성지 삭제</button>' +
+      '<button onclick="adminStartMovePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||raw.name||'') + '\',\'' + coll + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#378ADD;color:#fff;cursor:pointer;margin-bottom:6px">📍 지도에서 위치 이동</button>' +
+      '<button onclick="adminDeletePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||raw.name||'') + '\',\'' + coll + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#EF4444;color:#fff;cursor:pointer">🗑️ 이 ' + (coll==='restaurants'?'맛집':'성지') + ' 삭제</button>' +
     '</div>' +
   '</div>';
 };
-window.adminDeletePlace = async function(pid, name) {
+window.adminDeletePlace = async function(pid, name, coll) {
   if (!window.isAdmin()) return;
+  coll = coll || 'pilgrimages';
   if (!confirm('"' + name + '"을(를) 정말 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) return;
   if (!confirm('한 번 더 확인할게요 — "' + name + '"을(를) 완전히 삭제합니다. 진행할까요?')) return;
   try {
     const { db, doc, deleteDoc } = window._mapDB;
-    await deleteDoc(doc(db, 'pilgrimages', pid));
-    if (_pilgrimData) {
-      const idx = _pilgrimData.findIndex(p => p._id === pid);
-      if (idx >= 0) _pilgrimData.splice(idx, 1);
+    await deleteDoc(doc(db, coll, pid));
+    if (coll === 'restaurants') {
+      if (_restData) {
+        const idx = _restData.findIndex(p => p._id === pid);
+        if (idx >= 0) _restData.splice(idx, 1);
+      }
+      renderRestPinsInView();
+    } else {
+      if (_pilgrimData) {
+        const idx = _pilgrimData.findIndex(p => p._id === pid);
+        if (idx >= 0) _pilgrimData.splice(idx, 1);
+      }
+      renderPilgrimPinsInView();
     }
     closePlaceSheet();
-    renderPilgrimPinsInView();
     showToast('🗑️ "' + name + '" 삭제 완료');
   } catch(e) {
     console.error('삭제 실패: ' + (e.message||e));
