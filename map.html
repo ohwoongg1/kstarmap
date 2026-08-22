@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.46';
+const VERSION = 'map v2.6.47';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -870,6 +870,42 @@ function reloadBoardCurrentView() {
   if (_boardCurrentView === 'person') return openPersonCollection();
   return loadBoardList();
 }
+function boardLikeKey(postId) {
+  const d = new Date();
+  const ymd = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  return 'kstar_liked_' + postId + '_' + ymd;
+}
+function boardLikeButtonHtml(p, style) {
+  const liked = !!localStorage.getItem(boardLikeKey(p.id));
+  const cnt = p.likeCount || 0;
+  style = style || 'font-size:11px;border:none;background:none;cursor:pointer;padding:4px 0 0 10px';
+  return '<button class="board-like-btn" data-post-like="'+p.id+'" onclick="event.stopPropagation();toggleBoardLike(\''+p.id+'\')" style="'+style+';color:'+(liked?'#D4537E':'var(--text2)')+';font-weight:'+(liked?'800':'400')+'">'+(liked?'❤️':'🤍')+' '+cnt+'</button>';
+}
+function rankBadgeHtml(idx) {
+  const medal = idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':null;
+  return '<span style="display:inline-block;min-width:20px;font-size:12px;font-weight:800;color:var(--text3);margin-right:5px">'+(medal||(idx+1)+'.')+'</span>';
+}
+window.toggleBoardLike = async function(postId) {
+  const key = boardLikeKey(postId);
+  if (localStorage.getItem(key)) { showToast('오늘은 이미 좋아요를 눌렀어요 — 내일 다시 눌러주세요'); return; }
+  localStorage.setItem(key, '1');
+  const cached = window._boardCache && window._boardCache[postId];
+  if (cached) cached.likeCount = (cached.likeCount||0) + 1;
+  document.querySelectorAll('[data-post-like="'+postId+'"]').forEach(btn=>{
+    btn.outerHTML = boardLikeButtonHtml(cached || {id:postId, likeCount:1});
+  });
+  try {
+    const { db, doc, updateDoc, increment } = window._mapDB;
+    await updateDoc(doc(db,'board',postId), { likeCount: increment(1) });
+  } catch(e) {
+    localStorage.removeItem(key);
+    if (cached) cached.likeCount = Math.max(0,(cached.likeCount||1)-1);
+    document.querySelectorAll('[data-post-like="'+postId+'"]').forEach(btn=>{
+      btn.outerHTML = boardLikeButtonHtml(cached || {id:postId, likeCount:0});
+    });
+    showToast('좋아요 실패: '+(e.message||e));
+  }
+};
 function renderBoardCard(p) {
       const ytRe=/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})[^\s]*/g;
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canDel=isAdmin||isOwner, canEdit=isOwner||isAdmin;
@@ -915,6 +951,7 @@ function renderBoardCard(p) {
           '<div style="display:flex;gap:6px;align-items:center">'+
             (expandable?'<button class="board-more-btn" onclick="boardToggle(this)" style="font-size:12px;color:#c0392b;font-weight:800;border:none;background:none;cursor:pointer;padding:0">더 보기</button>':'')+
             '<button onclick="event.stopPropagation();sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:0">📤 공유</button>'+
+            boardLikeButtonHtml(p, 'font-size:11px;border:none;background:none;cursor:pointer;padding:0')+
             quickMapBtn+
             pinBtn+
             editBtn+
@@ -1015,6 +1052,7 @@ window.openSceneCollection = async function() {
     const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
       .filter(p => Array.isArray(p.placeTags) && p.placeTags.length > 0 && !(p.body||'').includes('[맛집]') && !(p.body||'').includes('[쇼핑]') && !(p.body||'').includes('[인물]'));
+    posts.sort((a,b)=>(b.likeCount||0)-(a.likeCount||0));
     window._boardCache = window._boardCache || {};
     posts.forEach(p=>{ window._boardCache[p.id] = p; });
     if (!posts.length) {
@@ -1022,7 +1060,7 @@ window.openSceneCollection = async function() {
       return;
     }
     const escC = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const rows = posts.map(p => {
+    const rows = posts.map((p, idx) => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
@@ -1030,10 +1068,11 @@ window.openSceneCollection = async function() {
       const place = (p.placeTags||[])[0] || '';
       return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
         '<div onclick="openBoardStory(\''+p.id+'\')">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escC(p.title||'')+'</div>' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+rankBadgeHtml(idx)+escC(p.title||'')+'</div>' +
         (place?'<div style="font-size:11.5px;color:var(--gold);font-weight:700;margin-bottom:4px">📍 '+escC(place)+'</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        boardLikeButtonHtml(p) +
         (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
@@ -1057,6 +1096,7 @@ window.openFoodCollection = async function() {
     const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
       .filter(p => (p.body||'').includes('[맛집]'));
+    posts.sort((a,b)=>(b.likeCount||0)-(a.likeCount||0));
     window._boardCache = window._boardCache || {};
     posts.forEach(p=>{ window._boardCache[p.id] = p; });
     if (!posts.length) {
@@ -1064,7 +1104,7 @@ window.openFoodCollection = async function() {
       return;
     }
     const escF = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const rows = posts.map(p => {
+    const rows = posts.map((p, idx) => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[맛집\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
@@ -1073,10 +1113,11 @@ window.openFoodCollection = async function() {
       const place = placeTags ? placeTags[0].slice(4,-1).split(':')[0].trim() : '';
       return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
         '<div onclick="openBoardStory(\''+p.id+'\')">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escF(p.title||'')+'</div>' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+rankBadgeHtml(idx)+escF(p.title||'')+'</div>' +
         (place?'<div style="font-size:11.5px;color:#e67e22;font-weight:700;margin-bottom:4px">📍 '+escF(place)+'</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        boardLikeButtonHtml(p) +
         (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
@@ -1100,6 +1141,7 @@ window.openMusicCollection = async function() {
     const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
       .filter(p => (p.body||'').includes('[음악]'));
+    posts.sort((a,b)=>(b.likeCount||0)-(a.likeCount||0));
     window._boardCache = window._boardCache || {};
     posts.forEach(p=>{ window._boardCache[p.id] = p; });
     if (!posts.length) {
@@ -1107,7 +1149,7 @@ window.openMusicCollection = async function() {
       return;
     }
     const escM = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const rows = posts.map(p => {
+    const rows = posts.map((p, idx) => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[음악\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
@@ -1116,10 +1158,11 @@ window.openMusicCollection = async function() {
       const place = placeTags ? placeTags[0].slice(4,-1).split(':')[0].trim() : '';
       return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
         '<div onclick="openBoardStory(\''+p.id+'\')">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escM(p.title||'')+'</div>' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+rankBadgeHtml(idx)+escM(p.title||'')+'</div>' +
         (place?'<div style="font-size:11.5px;color:#16a34a;font-weight:700;margin-bottom:4px">📍 '+escM(place)+'</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        boardLikeButtonHtml(p) +
         (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
@@ -1143,6 +1186,7 @@ window.openShoppingCollection = async function() {
     const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
       .filter(p => (p.body||'').includes('[쇼핑]'));
+    posts.sort((a,b)=>(b.likeCount||0)-(a.likeCount||0));
     window._boardCache = window._boardCache || {};
     posts.forEach(p=>{ window._boardCache[p.id] = p; });
     if (!posts.length) {
@@ -1150,7 +1194,7 @@ window.openShoppingCollection = async function() {
       return;
     }
     const escS = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const rows = posts.map(p => {
+    const rows = posts.map((p, idx) => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[쇼핑\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
@@ -1159,10 +1203,11 @@ window.openShoppingCollection = async function() {
       const place = placeTags ? placeTags[0].slice(4,-1).split(':')[0].trim() : '';
       return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
         '<div onclick="openBoardStory(\''+p.id+'\')">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escS(p.title||'')+'</div>' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+rankBadgeHtml(idx)+escS(p.title||'')+'</div>' +
         (place?'<div style="font-size:11.5px;color:#9b59b6;font-weight:700;margin-bottom:4px">📍 '+escS(place)+'</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        boardLikeButtonHtml(p) +
         (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
@@ -1186,6 +1231,7 @@ window.openPersonCollection = async function() {
     const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
     const posts = snap.docs.map(d => ({ id:d.id, ...d.data() }))
       .filter(p => (p.body||'').includes('[인물]'));
+    posts.sort((a,b)=>(b.likeCount||0)-(a.likeCount||0));
     window._boardCache = window._boardCache || {};
     posts.forEach(p=>{ window._boardCache[p.id] = p; });
     if (!posts.length) {
@@ -1193,7 +1239,7 @@ window.openPersonCollection = async function() {
       return;
     }
     const escP = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const rows = posts.map(p => {
+    const rows = posts.map((p, idx) => {
       const isAdmin=window.isAdmin&&window.isAdmin(), isOwner=window.currentUser&&window.currentUser.uid===p.uid, canEdit=isOwner||isAdmin;
       const bodyClean = (p.body||'').replace(/\[인물\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
         .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
@@ -1202,10 +1248,11 @@ window.openPersonCollection = async function() {
       const place = (p.placeTags||[])[0] || '';
       return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
         '<div onclick="openBoardStory(\''+p.id+'\')">' +
-        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escP(p.title||'')+'</div>' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+rankBadgeHtml(idx)+escP(p.title||'')+'</div>' +
         (spotCount?'<div style="font-size:11.5px;color:#2563eb;font-weight:700;margin-bottom:4px">📍 관련 성지 '+spotCount+'곳</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
+        boardLikeButtonHtml(p) +
         (place?'<button onclick="event.stopPropagation();boardPlaceLink(\''+place.replace(/'/g,"\\'")+'\',\''+(p.title||'').replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--gold);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">📍 지도에서 보기</button>':'') +
         (canEdit?'<button onclick="event.stopPropagation();editBoardPost(\''+p.id+'\')" style="font-size:11px;color:var(--text2);border:none;background:none;cursor:pointer;padding:4px 0 0 10px">수정</button>':'') +
       '</div>';
@@ -1432,7 +1479,9 @@ window.openBoardStory = function(postId) {
       });
       list.innerHTML='<div style="padding:18px">'+
         '<div style="display:flex;gap:8px;margin-bottom:14px"><button onclick="loadBoardList()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">← 목록</button>'+
-        '<button onclick="sharePost(\''+postId+'\')" style="background:#3b82f6;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">📤 공유</button>'+editBtnHtml+'</div>'+
+        '<button onclick="sharePost(\''+postId+'\')" style="background:#3b82f6;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer">📤 공유</button>'+
+        boardLikeButtonHtml({id:postId, likeCount:p.likeCount}, 'background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer')+
+        editBtnHtml+'</div>'+
         '<div style="font-size:16px;font-weight:800;margin-bottom:10px">'+escS(p.title||'')+'</div>'+
         '<div style="font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap">'+bodyHtml+'</div>'+
         ytHtml+mapHtml+'</div>';
