@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.50';
+const VERSION = 'map v2.6.51';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -4126,7 +4126,7 @@ async function renderHomeRanking() {
   const box = document.getElementById('homeRankingView');
   if (!box) return;
   let cache = [];
-  try { cache = await getBoardTitleCache(); } catch(e) {}
+  try { cache = await getBoardTitleCache(true); } catch(e) {}
   const LIKE_TAG_MAP = { actor:'인물', drama:'드라마', movie:'영화', music:'음악' };
   let html = '<div style="padding:18px 16px 6px;display:flex;align-items:center;justify-content:space-between">' +
     '<div><div style="font-size:19px;font-weight:900">⭐ KStarMap</div>' +
@@ -4179,7 +4179,7 @@ window.goHome = function() {
 window.showHomeRanking = function() {
   _showHomeRanking = true;
   const box = document.getElementById('homeRankingView');
-  if (box) { if (!box.innerHTML) renderHomeRanking(); box.classList.add('show'); }
+  if (box) { renderHomeRanking(); box.classList.add('show'); }
   prefetchBoardTitleCache();
 };
 window.hideHomeRanking = function() {
@@ -4294,7 +4294,7 @@ window.openBoardPostByTitle = async function(nameHint, requiredTag) {
 async function getBoardTitleCache(forceRefresh) {
   if (_boardTitleCache && !forceRefresh) return _boardTitleCache;
   const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
-  const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(300)));
+  const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
   _boardTitleCache = snap.docs.map(d => {
     const body = d.data().body || '';
     const tags = (body.match(/\[(인물|드라마|영화|음악|맛집|쇼핑)\]/g) || []).map(t => t.slice(1,-1));
