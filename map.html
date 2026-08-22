@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.49';
+const VERSION = 'map v2.6.50';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -4046,6 +4046,8 @@ const HOME_RANKINGS = {
     {name:'잠실종합운동장', blurb:'BTS 월드투어 개막 무대'},
     {name:'광화문광장', blurb:'BTS 완전체 컴백쇼 무대'},
     {name:'고척스카이돔', blurb:'BTS 최초 국내 돔 콘서트'},
+    {name:'섭지코지', blurb:'이병헌 주연 올인 촬영지, 제주'},
+    {name:'남산서울타워', blurb:'케이팝 데몬 헌터스 클라이맥스 무대'},
   ]},
   actor: { icon:'🌟', label:'인기연예인', sub:'데뷔부터 지금까지, 그 사람의 이야기', linkType:'post', items:[
     {name:'아이유', blurb:'가난한 연습생에서 국민 여동생까지'},
@@ -4056,6 +4058,8 @@ const HOME_RANKINGS = {
     {name:'변우석', blurb:'선재 업고 튀어로 폭발한 스타성'},
     {name:'김혜윤', blurb:'아역부터 로코퀸까지'},
     {name:'송강', blurb:'스위트홈에서 스타덤으로'},
+    {name:'정국', blurb:'황금막내의 솔로 신화'},
+    {name:'공유', blurb:'도깨비로 완성한 아저씨 신드롬'},
   ]},
   drama: { icon:'📺', label:'인기드라마', sub:'전 세계가 본 K-드라마', linkType:'post', items:[
     {name:'선재 업고 튀어', blurb:'2024년 최고 화제작'},
@@ -4066,6 +4070,8 @@ const HOME_RANKINGS = {
     {name:'이태원클라쓰', blurb:'청춘 복수극의 정석'},
     {name:'눈물의 여왕', blurb:'김수현·김지원 재벌 로맨스'},
     {name:'오징어 게임', blurb:'넷플릭스 역대 최고 흥행작'},
+    {name:'더 글로리', blurb:'송혜교의 복수극, 전 세계 신드롬'},
+    {name:'킹덤', blurb:'조선판 좀비 사극의 시작'},
   ]},
   movie: { icon:'🎬', label:'인기영화', sub:'세계가 인정한 한국 영화', linkType:'post', items:[
     {name:'기생충', blurb:'아카데미 작품상 수상작'},
@@ -4074,6 +4080,10 @@ const HOME_RANKINGS = {
     {name:'헤어질 결심', blurb:'칸이 인정한 박찬욱'},
     {name:'미나리', blurb:'아카데미 여우조연상 수상작'},
     {name:'베테랑', blurb:'황정민표 통쾌한 액션'},
+    {name:'올드보이', blurb:'칸 그랑프리 수상, K무비의 전설'},
+    {name:'살인의 추억', blurb:'봉준호가 그린 실화 스릴러'},
+    {name:'괴물', blurb:'한강이 배경이 된 크리처물'},
+    {name:'설국열차', blurb:'봉준호의 첫 할리우드 진출작'},
   ]},
   music: { icon:'🎵', label:'인기음악', sub:'전 세계를 흔든 K-pop 히트곡', linkType:'post', items:[
     {name:'Dynamite', blurb:'한국 가수 최초 빌보드 핫100 1위'},
@@ -4084,6 +4094,8 @@ const HOME_RANKINGS = {
     {name:'휘파람', blurb:'데뷔 13일 만에 1위'},
     {name:'불장난', blurb:'블랙핑크 신인 최초 3관왕'},
     {name:'IDOL', blurb:'니키 미나즈와의 콜라보'},
+    {name:'아파트', blurb:'로제·브루노 마스, 그래미 4관왕 후보'},
+    {name:'Seven', blurb:'정국 솔로데뷔곡, 빌보드 3관 1위'},
   ]},
   food: { icon:'🍲', label:'인기맛집', sub:'그 지역을 대표하는 진짜 노포', linkType:'place', items:[
     {name:'안일옥', blurb:'경기도 최고령, 100년 국밥집'},
@@ -4093,6 +4105,9 @@ const HOME_RANKINGS = {
     {name:'고복수평양냉면', blurb:'실향민 3대가 이어온 냉면'},
     {name:'인하찹쌀순대', blurb:'부천 40년 순대국밥'},
     {name:'신승반점', blurb:'짜장면 원조 공화춘의 진짜 혈통'},
+    {name:'하동관', blurb:'87년째 배달 안 하는 명동 곰탕'},
+    {name:'청진옥', blurb:'89년째 불 안 꺼지는 종로 해장국'},
+    {name:'필동면옥', blurb:'의정부파 좌장, 충무로 평양냉면'},
   ]},
   shopping: { icon:'🛍️', label:'인기쇼핑지역', sub:'한국 오면 꼭 가봐야 할 곳', linkType:'place', items:[
     {name:'올리브영 명동타운', blurb:'외국인 매출 95%, K뷰티 성지'},
@@ -4102,6 +4117,9 @@ const HOME_RANKINGS = {
     {name:'남대문시장', blurb:'600년 전통, 흥정이 통하는 시장'},
     {name:'동대문시장', blurb:'낮시장·밤시장이 다른 도매의 성지'},
     {name:'아트박스 명동길점', blurb:'올다아무의 마지막 한 글자'},
+    {name:'동대문 디자인플라자', blurb:'자하 하디드가 설계한 랜드마크'},
+    {name:'인사동', blurb:'전통 공예·기념품의 거리'},
+    {name:'가로수길', blurb:'플래그십 스토어가 모인 트렌드 거리'},
   ]},
 };
 async function renderHomeRanking() {
