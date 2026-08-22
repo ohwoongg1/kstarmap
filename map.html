@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.51';
+const VERSION = 'map v2.6.52';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -4128,6 +4128,12 @@ async function renderHomeRanking() {
   let cache = [];
   try { cache = await getBoardTitleCache(true); } catch(e) {}
   const LIKE_TAG_MAP = { actor:'인물', drama:'드라마', movie:'영화', music:'음악' };
+  // place형 카테고리는 게시글의 placeTags(성지 태그)를 대표 항목으로 삼아 그 글의 좋아요 수로 순위를 매김
+  const PLACE_FILTER = {
+    location: d => Array.isArray(d.placeTags) && d.placeTags.length>0 && !d.tags.includes('맛집') && !d.tags.includes('쇼핑') && !d.tags.includes('인물'),
+    food: d => Array.isArray(d.placeTags) && d.placeTags.length>0 && d.tags.includes('맛집'),
+    shopping: d => Array.isArray(d.placeTags) && d.placeTags.length>0 && d.tags.includes('쇼핑'),
+  };
   let html = '<div style="padding:18px 16px 6px;display:flex;align-items:center;justify-content:space-between">' +
     '<div><div style="font-size:19px;font-weight:900">⭐ KStarMap</div>' +
     '<div style="font-size:12px;color:var(--text3);margin-top:2px">K-드라마·K-팝 성지 지도 · 지금 가장 인기 있는 것들</div></div>' +
@@ -4137,11 +4143,29 @@ async function renderHomeRanking() {
     let items = cat.items;
     const likeTag = LIKE_TAG_MAP[key];
     if (cat.linkType === 'post' && likeTag) {
-      items = cat.items.map((it, origIdx) => {
-        const matches = cache.filter(d => (d.title||'').includes(it.name) && d.tags.includes(likeTag));
-        const likeCount = matches.length ? Math.max(...matches.map(m => m.likeCount||0)) : 0;
-        return Object.assign({}, it, { _likeCount: likeCount, _origIdx: origIdx });
-      }).sort((a,b) => (b._likeCount - a._likeCount) || (a._origIdx - b._origIdx));
+      // 고정 후보가 아니라, 해당 태그가 붙은 게시글 전체를 대상으로 좋아요 많은 순 top10을 뽑는다
+      const tagged = cache.filter(d => d.tags.includes(likeTag));
+      items = tagged
+        .sort((a,b) => (b.likeCount - a.likeCount) || (b.createdAt - a.createdAt))
+        .slice(0, 10)
+        .map(d => ({ name: d.title, blurb: d.blurb || '', _likeCount: d.likeCount }));
+      if (!items.length) items = cat.items; // 아직 해당 태그 글이 하나도 없으면 기존 큐레이션 유지
+    } else if (cat.linkType === 'place' && PLACE_FILTER[key]) {
+      // 성지 태그(placeTags)가 붙은 게시글 전체를 대상으로, 장소별 최고 좋아요 글 기준 top10을 뽑는다
+      const tagged = cache.filter(PLACE_FILTER[key]);
+      const byPlace = {};
+      tagged.forEach(d => {
+        const pn = d.placeTags[0];
+        if (!pn) return;
+        if (!byPlace[pn] || d.likeCount > byPlace[pn].likeCount || (d.likeCount === byPlace[pn].likeCount && d.createdAt > byPlace[pn].createdAt)) {
+          byPlace[pn] = { name: pn, blurb: d.blurb || '', likeCount: d.likeCount, createdAt: d.createdAt };
+        }
+      });
+      items = Object.values(byPlace)
+        .sort((a,b) => (b.likeCount - a.likeCount) || (b.createdAt - a.createdAt))
+        .slice(0, 10)
+        .map(d => ({ name: d.name, blurb: d.blurb, _likeCount: d.likeCount }));
+      if (!items.length) items = cat.items; // 아직 해당 태그 글이 하나도 없으면 기존 큐레이션 유지
     }
     html += '<div class="hr-cat"><div class="hr-cat-title">' + cat.icon + ' ' + cat.label + '</div>' +
       '<div class="hr-cat-sub">' + cat.sub + '</div>' +
@@ -4296,9 +4320,13 @@ async function getBoardTitleCache(forceRefresh) {
   const { db, collection, getDocs, query, orderBy, limit } = window._mapDB;
   const snap = await getDocs(query(collection(db,'board'), orderBy('createdAt','desc'), limit(1000)));
   _boardTitleCache = snap.docs.map(d => {
-    const body = d.data().body || '';
+    const data = d.data();
+    const body = data.body || '';
     const tags = (body.match(/\[(인물|드라마|영화|음악|맛집|쇼핑)\]/g) || []).map(t => t.slice(1,-1));
-    return { id: d.id, title: d.data().title || '', tags, placeTags: d.data().placeTags || [], likeCount: d.data().likeCount || 0 };
+    const bodyClean = body.replace(/\[(인물|드라마|영화|음악|맛집|쇼핑)\]/g,'').replace(/\[지도:[^\]]+\]/g,'').replace(/\[성지:[^\]]+\]/g,'').replace(/\[사진:[^\]]+\]/g,'')
+      .replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[\w-]{11}[^\s]*/g,'').trim();
+    const blurb = bodyClean.slice(0, 40);
+    return { id: d.id, title: data.title || '', tags, placeTags: data.placeTags || [], likeCount: data.likeCount || 0, createdAt: data.createdAt?.seconds || 0, blurb };
   });
   return _boardTitleCache;
 }
