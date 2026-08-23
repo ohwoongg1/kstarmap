@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.54';
+const VERSION = 'map v2.6.56';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -2209,6 +2209,7 @@ window.openHallyuSearch = function() {
       '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px"><div style="font-size:34px;margin-bottom:10px">🎬</div>' + t('hallyuPlaceholder') + '</div>' +
     '</div>';
   document.body.appendChild(v);
+  prefetchBoardTitleCache();
   const inp = document.getElementById('hallyuInput');
   inp.focus();
   let _hallyuTypingTimer = null;
@@ -2218,7 +2219,7 @@ window.openHallyuSearch = function() {
   });
 };
 
-function doHallyuSearch(q) {
+async function doHallyuSearch(q) {
   const box = document.getElementById('hallyuResults');
   if (!box) return;
   if (!q) { box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px"><div style="font-size:34px;margin-bottom:10px">🎬</div>' + t('hallyuPlaceholder') + '</div>'; return; }
@@ -2238,7 +2239,13 @@ function doHallyuSearch(q) {
   // 맛집(restaurants 컬렉션)도 같이 검색: celeb/name/area/comment
   const restBlobOf = d => norm(d.celeb) + '|' + norm(d.name) + '|' + norm(d.area) + '|' + norm(d.comment) + '|' + norm(d.address);
   const restMatched = _restData.filter(d => restBlobOf(d).includes(lq));
-  if (!matched.length && !restMatched.length) {
+  // 우리가 쓴 게시글(음악·드라마·영화·인물·맛집·쇼핑 기사)도 함께 검색
+  let boardMatched = [];
+  try {
+    const cache = await getBoardTitleCache();
+    boardMatched = cache.filter(d => norm(d.title).includes(lq));
+  } catch(e) {}
+  if (!matched.length && !restMatched.length && !boardMatched.length) {
     box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:13px">' + t('noResult') + '</div>';
     return;
   }
@@ -2301,8 +2308,34 @@ function doHallyuSearch(q) {
       '<span style="color:var(--gold);font-size:13px;font-weight:700;flex-shrink:0">' + (isEn()?'Filter ›':'필터 ›') + '</span>' +
     '</div>';
   }).join('');
+
+  // 📖 우리가 쓴 게시글 (음악·드라마·영화·인물·맛집·쇼핑 기사)
+  if (boardMatched.length) {
+    const TAG_ICON = { 음악:'🎵', 드라마:'📺', 영화:'🎬', 인물:'🌟', 맛집:'🍲', 쇼핑:'🛍️' };
+    html += '<div style="padding:10px 14px 4px;font-size:12px;color:var(--text3)">📖 관련 글 ' + boardMatched.length + '개</div>';
+    html += boardMatched.map(d => {
+      const tag = d.tags[0] || '';
+      const icon = TAG_ICON[tag] || '📖';
+      return '<div onclick="closeHallyuSearchAndOpenBoard(\'' + d.id + '\')" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:0.5px solid var(--border);cursor:pointer">' +
+        '<div style="width:44px;height:44px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">' + icon + '</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--text)">' + String(d.title||'').replace(/</g,'&lt;') + '</div>' +
+        (d.blurb ? '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + String(d.blurb).replace(/</g,'&lt;') + '</div>' : '') +
+        '</div>' +
+        '<span style="color:var(--text3);font-size:13px;flex-shrink:0">›</span>' +
+      '</div>';
+    }).join('');
+  }
+
   box.innerHTML = html;
 }
+
+// 한류검색 결과에서 게시글 클릭 → 검색창 닫고, 성지 태그 있으면 지도부터 이동한 뒤 글 읽기 화면 열기
+window.closeHallyuSearchAndOpenBoard = function(id) {
+  document.getElementById('hallyuSearch')?.remove();
+  const cached = (_boardTitleCache || []).find(d => d.id === id);
+  if (cached && cached.placeTags && cached.placeTags.length) centerMapOnPlace(cached.placeTags[0]);
+  openBoardStory(id);
+};
 
 // 검색 결과에서 맛집 하나 클릭 → 검색창 닫고 지도에서 바로 상세 열기
 window.closeHallyuSearchAndOpenRest = function(id) {
