@@ -12,15 +12,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>KStarMap · 통합지도</title>
-<meta name="description" content="한류 성지·맛집을 한 지도에서. 어디든 검색하고, 가본 곳을 사진으로 인증하세요.">
+<meta name="description" content="한류 스팟·맛집을 한 지도에서. 어디든 검색하고, 가본 곳을 사진으로 인증하세요.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="KStarMap">
 <meta property="og:title" content="KStarMap · 통합지도">
-<meta property="og:description" content="좋아하는 드라마·배우가 다녀간 실제 성지를 지도에서 찾아보세요. 전 세계 한류 팬을 위한 K-드라마 성지 순례 지도.">
+<meta property="og:description" content="좋아하는 드라마·배우가 다녀간 실제 스팟을 지도에서 찾아보세요. 전 세계 한류 팬을 위한 K-드라마 스팟 지도.">
 <meta property="og:url" content="https://kstarmap.com/map.html">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="KStarMap · 통합지도">
-<meta name="twitter:description" content="좋아하는 드라마·배우가 다녀간 실제 성지를 지도에서 찾아보세요.">
+<meta name="twitter:description" content="좋아하는 드라마·배우가 다녀간 실제 스팟을 지도에서 찾아보세요.">
 <link rel="canonical" href="https://kstarmap.com/map.html">
 <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services&autoload=false"></script>
 <style>
@@ -293,7 +293,7 @@
     <div id="homeRankingView"></div>
     <div class="filterbar-float">
       <div class="chip" id="chipSearch" onclick="toggleFilter('search')"><span class="dot" style="background:var(--red)"></span>검색</div>
-      <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>성지</div>
+      <div class="chip" id="chipPilgrim" onclick="toggleFilter('pilgrim')"><span class="dot" style="background:var(--blue)"></span>스팟</div>
       <div class="chip" id="chipRest" onclick="toggleFilter('rest')"><span class="dot" style="background:var(--amber)"></span>맛집</div>
     </div>
     <button class="my-loc-btn" onclick="goMyLocation()">📍</button>
@@ -375,7 +375,7 @@
     </div>
     <div style="padding:24px 16px 40px;text-align:center;border-top:1px solid var(--border);margin-top:20px">
       <div style="font-size:15px;font-weight:800;color:var(--gold)">⭐ KStarMap</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">K-드라마·K-스타 성지 지도</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">K-드라마·K-스타 스팟 지도</div>
       <div id="appVersion" style="font-size:11px;color:var(--text3);margin-top:8px"></div>
       <div style="font-size:10px;color:var(--text3);margin-top:6px">관광정보 · 사진 제공: 한국관광공사</div>
     </div>
@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.53';
+const VERSION = 'map v2.6.54';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -470,7 +470,7 @@ let LANG = 'ko';   // 앱 UI는 항상 한국어 원문. 번역은 전부 구글
 const I18N = {
   ko: {
     searchPlace: '장소·주소 검색 (예: 중앙고등학교)',
-    search:'검색', pilgrim:'성지', rest:'맛집',
+    search:'검색', pilgrim:'스팟', rest:'맛집',
     hallyuSearch:'배우·드라마·그룹 검색', all:'전체',
     tabMap:'지도', tabFeed:'피드', tabSaved:'저장', tabMy:'내 공간',
     certBtn:'가본곳 · 사진 올리기', save:'저장', nav:'길찾기',
@@ -490,7 +490,7 @@ const I18N = {
     mapView:'지도에서 보기', close:'닫기',
     statCert:'인증', statPlace:'다녀온 곳', statWork:'작품',
     needPhoto:'사진이 최소 1장 필요해요', needLogin:'🔒 로그인이 필요해요',
-    hallyuHint:'이 인물이 등장하는 성지', allSpots:'성지 전체',
+    hallyuHint:'이 인물이 등장하는 스팟', allSpots:'스팟 전체',
   },
   en: {
     searchPlace: 'Search place or address',
@@ -572,7 +572,7 @@ window.openMoreMenu = function() {
       item('✉️', '개발자에게 의견', "document.getElementById('moreSheet').remove();openDevFeedback()") +
       item('💬', '의견함 (모두의 의견 보기)', "document.getElementById('moreSheet').remove();openFeedbackList()") +
       item('🌐', '언어 선택', "document.getElementById('moreSheet').remove();openLangPicker()") +
-      '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 성지 지도</div>' +
+      '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 스팟 지도</div>' +
     '</div>';
   document.body.appendChild(sheet);
   sheet.addEventListener('touchmove', function(e){ if (!e.target.closest('[style*="overflow-y"]')) e.preventDefault(); }, {passive:false});
@@ -593,7 +593,7 @@ window.openDevFeedback = function() {
         '<div style="font-size:16px;font-weight:800;padding:4px 0 4px;flex:1">✉️ 개발자에게 의견</div>' +
         '<button onclick="document.getElementById(\'devSheet\').remove();setTimeout(openMoreMenu,0)" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;color:var(--text2);cursor:pointer;line-height:1">✕</button>' +
       '</div>' +
-      '<div style="font-size:12.5px;color:var(--text3);margin-bottom:12px">버그·건의·성지 추가 요청 등 자유롭게 남겨주세요.</div>' +
+      '<div style="font-size:12.5px;color:var(--text3);margin-bottom:12px">버그·건의·스팟 추가 요청 등 자유롭게 남겨주세요.</div>' +
       '<textarea id="devMsg" placeholder="의견을 입력하세요..." style="width:100%;height:120px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;resize:none;background:var(--bg2);color:var(--text)"></textarea>' +
       '<input id="devContact" placeholder="답변받을 이메일 (선택)" style="width:100%;margin-top:8px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;background:var(--bg2);color:var(--text)">' +
       '<button onclick="submitDevFeedback()" style="width:100%;margin-top:12px;padding:14px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer">보내기</button>' +
@@ -1071,13 +1071,13 @@ async function loadBoardList() {
     const sceneEntry = '<div onclick="openSceneCollection()" style="padding:15px 18px;border-bottom:2px solid var(--gold);background:var(--gold-bg);cursor:pointer;display:flex;align-items:center;gap:10px">' +
       '<span style="font-size:20px">🎬</span>' +
       '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:var(--gold)"><span style="font-size:10px;background:var(--gold);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>명장면 모음</div>' +
-      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">드라마·영화 속 그 장면, 촬영지와 함께 보기<br>명대사, 비하인드 스토리, OST까지 — 성지순례 전에 꼭 읽어보세요!<br>현재 <b>'+sceneCount+'편</b>의 명장면 스토리가 등록되어 있습니다.</div></div>' +
+      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">드라마·영화 속 그 장면, 촬영지와 함께 보기<br>명대사, 비하인드 스토리, OST까지 — 스팟 탐방 전에 꼭 읽어보세요!<br>현재 <b>'+sceneCount+'편</b>의 명장면 스토리가 등록되어 있습니다.</div></div>' +
       '<span style="font-size:14px;color:var(--gold)">→</span></div>';
     const foodCount = posts.filter(p=>(p.body||'').includes('[맛집]')).length;
     const foodEntry = '<div onclick="openFoodCollection()" style="padding:15px 18px;border-bottom:2px solid #e67e22;background:#fef9f0;cursor:pointer;display:flex;align-items:center;gap:10px">' +
       '<span style="font-size:20px">🍲</span>' +
       '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:#e67e22"><span style="font-size:10px;background:#e67e22;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>맛집칼럼</div>' +
-      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">한류 성지 주변 숨은 맛집, 직접 먹어보고 쓰는 리얼 후기<br>미슐랭부터 동네 한 끼까지 — 성지순례 맛집 가이드!<br>현재 <b>'+foodCount+'편</b>의 맛집 칼럼이 등록되어 있습니다.</div></div>' +
+      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">한류 스팟 주변 숨은 맛집, 직접 먹어보고 쓰는 리얼 후기<br>미슐랭부터 동네 한 끼까지 — 스팟 탐방 맛집 가이드!<br>현재 <b>'+foodCount+'편</b>의 맛집 칼럼이 등록되어 있습니다.</div></div>' +
       '<span style="font-size:14px;color:#e67e22">→</span></div>';
     const shopCount = posts.filter(p=>(p.body||'').includes('[쇼핑]')).length;
     const shopEntry = '<div onclick="openShoppingCollection()" style="padding:15px 18px;border-bottom:2px solid #9b59b6;background:#f8f3fb;cursor:pointer;display:flex;align-items:center;gap:10px">' +
@@ -1089,7 +1089,7 @@ async function loadBoardList() {
     const personEntry = '<div onclick="openPersonCollection()" style="padding:15px 18px;border-bottom:2px solid #2563eb;background:#eff5ff;cursor:pointer;display:flex;align-items:center;gap:10px">' +
       '<span style="font-size:20px">🌟</span>' +
       '<div style="flex:1"><div style="font-size:14px;font-weight:800;color:#2563eb"><span style="font-size:10px;background:#2563eb;color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px">공지</span>인기연예인</div>' +
-      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">내가 좋아하는 그 배우, 어떻게 여기까지 왔을까<br>데뷔 비하인드부터 커리어 스토리, 관련 성지까지 한눈에<br>현재 <b>'+personCount+'편</b>의 인물 스토리가 등록되어 있습니다.</div></div>' +
+      '<div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.5">내가 좋아하는 그 배우, 어떻게 여기까지 왔을까<br>데뷔 비하인드부터 커리어 스토리, 관련 스팟까지 한눈에<br>현재 <b>'+personCount+'편</b>의 인물 스토리가 등록되어 있습니다.</div></div>' +
       '<span style="font-size:14px;color:#2563eb">→</span></div>';
     const musicCount = posts.filter(p=>(p.body||'').includes('[음악]')).length;
     const musicEntry = '<div onclick="openMusicCollection()" style="padding:15px 18px;border-bottom:2px solid #16a34a;background:#f0fdf4;cursor:pointer;display:flex;align-items:center;gap:10px">' +
@@ -1312,7 +1312,7 @@ window.openPersonCollection = async function() {
       return '<div style="padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer">' +
         '<div onclick="openBoardStory(\''+p.id+'\')">' +
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+escP(p.title||'')+'</div>' +
-        (spotCount?'<div style="font-size:11.5px;color:#2563eb;font-weight:700;margin-bottom:4px">📍 관련 성지 '+spotCount+'곳</div>':'') +
+        (spotCount?'<div style="font-size:11.5px;color:#2563eb;font-weight:700;margin-bottom:4px">📍 관련 스팟 '+spotCount+'곳</div>':'') +
         '<div style="font-size:12.5px;color:var(--text2);line-height:1.5">'+preview+'</div></div>' +
         '<button onclick="sharePost(\''+p.id+'\')" style="font-size:11px;color:#3b82f6;border:none;background:none;cursor:pointer;padding:4px 0 0">📤 공유</button>' +
         boardLikeButtonHtml(p) +
@@ -1669,7 +1669,7 @@ window.sharePlace = async function() {
   const pid = (p.raw && p.raw._id) || '';
   if (!pid) { showToast('공유할 수 없는 장소예요'); return; }
   const url = 'https://kstarmap.com/place/' + pid + '/';
-  const text = '📍 KStarMap — ' + (p.name || '한류 성지');
+  const text = '📍 KStarMap — ' + (p.name || '한류 스팟');
   await shareLink(url, text);
 };
 window.sharePost = async function(pid, title) {
@@ -1677,7 +1677,7 @@ window.sharePost = async function(pid, title) {
     title = window._boardCache[pid].title || '';
   }
   const url = 'https://kstarmap.com/post/' + pid + '/';
-  const text = '⭐ KStarMap — ' + (title || '한류 성지 이야기');
+  const text = '⭐ KStarMap — ' + (title || '한류 스팟 이야기');
   await shareLink(url, text);
 };
 window.deleteBoardPost = async function(pid) {
@@ -1848,7 +1848,7 @@ function showWelcomePopup() {
       '<div style="padding:30px 24px 20px;text-align:center;background:linear-gradient(180deg,rgba(181,121,15,0.1),transparent)">' +
         '<div style="font-size:44px">⭐</div>' +
         '<div style="font-size:19px;font-weight:800;margin:10px 0 6px">KStarMap에 오신 걸 환영해요</div>' +
-        '<div style="font-size:13.5px;color:var(--text2);line-height:1.6">좋아하는 드라마·배우가 다녀간<br>실제 성지를 지도에서 찾아보세요.</div>' +
+        '<div style="font-size:13.5px;color:var(--text2);line-height:1.6">좋아하는 드라마·배우가 다녀간<br>실제 스팟을 지도에서 찾아보세요.</div>' +
       '</div>' +
       '<div style="padding:0 20px 20px">' +
         '<button onclick="location.href=\'guide.html\'" style="width:100%;padding:14px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:9px">📖 사용 설명서 보기</button>' +
@@ -1974,7 +1974,7 @@ async function loadAllData() {
     getDocs(query(collection(db, 'pilgrimages'), limit(9999))).then(full => {
       _pilgrimData = full.docs.map(d => ({ ...d.data(), _id: d.id }));
       renderPilgrimPinsInView();
-      showToast('🎬 성지 ' + _pilgrimData.length + '곳 로드');
+      showToast('🎬 스팟 ' + _pilgrimData.length + '곳 로드');
     });
   } catch(e) { console.error('성지 로드 오류', e); }
   try {
@@ -2186,7 +2186,7 @@ window.selectContent = function(title) {
   _contentFilter = title;
   if (!title) _hallyuFocus = null;
   renderPilgrimPinsInView();
-  if (title) showToast('🎬 ' + title + ' 성지만 표시');
+  if (title) showToast('🎬 ' + title + ' 스팟만 표시');
 };
 
 // ── 한류 검색 (배우·작품·가수·그룹) ──
@@ -2342,7 +2342,7 @@ function finishHallyuFilter(label) {
   renderActiveFilterChip();
   const list = _pilgrimData.filter(d => d.lat && d.lng && passHallyuFilter(d));
   const restList = _restData.filter(d => d.lat && d.lng && passRestHallyuFilter(d));
-  if (!list.length && !restList.length) { showToast('해당 성지가 없어요'); return; }
+  if (!list.length && !restList.length) { showToast('해당 스팟이 없어요'); return; }
   // 거리/화면판단은 성지+맛집 합쳐서 계산 (성지가 없고 맛집만 있는 셀럽도 정상 동작하도록)
   const combined = [...list, ...restList];
 
@@ -2406,13 +2406,13 @@ window.applyHallyuResult = function(title) {
     const nearCount = sorted.filter(d => dist(d) <= 30).length;
     map.setCenter(new kakao.maps.LatLng(myLat, myLng));
     map.setLevel(nearCount > 1 ? 6 : 5);
-    showToast('🎬 내 주변 ' + title + ' 성지 ' + nearCount + '곳');
+    showToast('🎬 내 주변 ' + title + ' 스팟 ' + nearCount + '곳');
   } else {
     // 내 주변엔 없음 → 가장 가까운 성지로 이동
     map.setCenter(new kakao.maps.LatLng(nearest.lat, nearest.lng));
     map.setLevel(6);
     const area = nearest.area || nearest.placeName || '';
-    showToast('🎬 가장 가까운 ' + title + ' 성지는 ' + (area ? area + '에' : '여기') + ' 있어요');
+    showToast('🎬 가장 가까운 ' + title + ' 스팟은 ' + (area ? area + '에' : '여기') + ' 있어요');
   }
   setTimeout(() => renderPilgrimPinsInView(), 300);
 };
@@ -4173,12 +4173,12 @@ const HOME_RANKINGS = {
     {name:'필동면옥', blurb:'의정부파 좌장, 충무로 평양냉면'},
   ]},
   shopping: { icon:'🛍️', label:'인기쇼핑지역', sub:'한국 오면 꼭 가봐야 할 곳', linkType:'place', items:[
-    {name:'올리브영 명동타운', blurb:'외국인 매출 95%, K뷰티 성지'},
+    {name:'올리브영 명동타운', blurb:'외국인 매출 95%, K뷰티 인기 스팟'},
     {name:'다이소 명동역점', blurb:'즉시환급 가능한 관광객 특화점'},
     {name:'오프뷰티 명동스퀘어점', blurb:'화장품 최대 90% 할인 아울렛'},
     {name:'CU 홍대상상점', blurb:'라면 225종, 라면 라이브러리'},
     {name:'남대문시장', blurb:'600년 전통, 흥정이 통하는 시장'},
-    {name:'동대문시장', blurb:'낮시장·밤시장이 다른 도매의 성지'},
+    {name:'동대문시장', blurb:'낮시장·밤시장이 다른 도매 명소'},
     {name:'아트박스 명동길점', blurb:'올다아무의 마지막 한 글자'},
     {name:'동대문 디자인플라자', blurb:'자하 하디드가 설계한 랜드마크'},
     {name:'인사동', blurb:'전통 공예·기념품의 거리'},
@@ -4199,7 +4199,7 @@ async function renderHomeRanking() {
   };
   let html = '<div style="padding:18px 16px 6px;display:flex;align-items:center;justify-content:space-between">' +
     '<div><div style="font-size:19px;font-weight:900">⭐ KStarMap</div>' +
-    '<div style="font-size:12px;color:var(--text3);margin-top:2px">K-드라마·K-팝 성지 지도 · 지금 가장 인기 있는 것들</div></div>' +
+    '<div style="font-size:12px;color:var(--text3);margin-top:2px">K-드라마·K-팝 스팟 지도 · 지금 가장 인기 있는 것들</div></div>' +
     '<button onclick="hideHomeRanking()" style="background:var(--gold);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap">🗺️ 지도 바로가기</button>' +
   '</div>';
   Object.entries(HOME_RANKINGS).forEach(([key, cat]) => {
@@ -4932,7 +4932,7 @@ window.adminCancelBulkAdd = function() {
 };
 function adminFinishBulkAdd() {
   console.log('✅ 전체 완료 (' + _bulkAddDone.length + '곳): ' + _bulkAddDone.join(', '));
-  showToast('✅ 성지 ' + _bulkAddDone.length + '곳 추가 완료');
+  showToast('✅ 스팟 ' + _bulkAddDone.length + '곳 추가 완료');
   _bulkAddQueue = null; _bulkAddIndex = 0;
 }
 // 좌표+이름으로 관광공사 콘텐츠를 찾아 tourContentId를 매칭한다.
@@ -5081,7 +5081,7 @@ window.renderAdminPanel = (raw, coll) => {
     '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(181,121,15,0.3)">' +
       '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">📍 현재 좌표: ' + (raw.lat||0).toFixed(6) + ', ' + (raw.lng||0).toFixed(6) + '</div>' +
       '<button onclick="adminStartMovePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||raw.name||'') + '\',\'' + coll + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#378ADD;color:#fff;cursor:pointer;margin-bottom:6px">📍 지도에서 위치 이동</button>' +
-      '<button onclick="adminDeletePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||raw.name||'') + '\',\'' + coll + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#EF4444;color:#fff;cursor:pointer">🗑️ 이 ' + (coll==='restaurants'?'맛집':'성지') + ' 삭제</button>' +
+      '<button onclick="adminDeletePlace(\'' + raw._id + '\',\'' + esc(raw.placeName||raw.title||raw.name||'') + '\',\'' + coll + '\')" style="width:100%;padding:8px;font-size:12px;font-weight:700;border:0;border-radius:6px;background:#EF4444;color:#fff;cursor:pointer">🗑️ 이 ' + (coll==='restaurants'?'맛집':'스팟') + ' 삭제</button>' +
     '</div>' +
   '</div>';
 };
