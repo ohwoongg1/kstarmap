@@ -377,7 +377,7 @@
       <div style="font-size:15px;font-weight:800;color:var(--gold)">⭐ KStarMap</div>
       <div style="font-size:11px;color:var(--text3);margin-top:4px">K-드라마·K-스타 스팟 지도</div>
       <div id="appVersion" style="font-size:11px;color:var(--text3);margin-top:8px"></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:6px">관광정보 · 사진 제공: 한국관광공사</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">출처: ⓒ한국관광공사</div>
     </div>
   </div>
 
@@ -456,7 +456,7 @@ let _filters = { search: true, pilgrim: true, rest: true };
 let _selectedPlace = null;
 let _autoExpandOnCerts = false;  // openPlaceSheet 직후 인증 있으면 자동 펼침용
 let _mySubTab = 'visited';       // 내 공간 서브탭: visited(다녀왔어요) | wish(가고싶어요)
-const VERSION = 'map v2.6.56';
+const VERSION = 'map v2.6.57';
 // 유튜브 자막: 한국어 사용자는 자막 없음, 그 외는 해당 언어 자막 자동 켜기
 window._ytCC = function() {
   const L = localStorage.getItem('kstar_display_lang') || 'ko';
@@ -572,7 +572,8 @@ window.openMoreMenu = function() {
       item('✉️', '개발자에게 의견', "document.getElementById('moreSheet').remove();openDevFeedback()") +
       item('💬', '의견함 (모두의 의견 보기)', "document.getElementById('moreSheet').remove();openFeedbackList()") +
       item('🌐', '언어 선택', "document.getElementById('moreSheet').remove();openLangPicker()") +
-      '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">KStarMap · K-드라마 스팟 지도</div>' +
+      '<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px 16px 4px">KStarMap · K-드라마 스팟 지도</div>' +
+      '<div style="font-size:10px;color:var(--text3);text-align:center;padding:0 16px 16px">출처: ⓒ한국관광공사</div>' +
     '</div>';
   document.body.appendChild(sheet);
   sheet.addEventListener('touchmove', function(e){ if (!e.target.closest('[style*="overflow-y"]')) e.preventDefault(); }, {passive:false});
